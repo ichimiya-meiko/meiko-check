@@ -2442,33 +2442,106 @@ function App(){
                 </div>
               )}
 
+              {/* テスト範囲バナー（どの単元からどの単元か表示） */}
+              {jhSi>=0&&isChu(activeGrade)&&(()=>{
+                const sName=(jhFullName||'').replace(/（.+?）/,'');
+                const school=STUDENT_SCHOOLS[sName];
+                if(!school) return null;
+                const rk=`${school}_${activeGrade}_${activeTestRound}`;
+                const rng=jhTestRanges[rk];
+                if(!rng) return null;
+                const isEng=activeSubj==='英語';
+                const startId=isEng?rng.engStart:rng.mathStart;
+                const endId=isEng?rng.engEnd:rng.mathEnd;
+                if(!endId&&!startId) return null;
+                const tKey=jhTextbookKey(jhSi,activeSubj);
+                const allItems=(CHAPTERS[tKey]||[]).flatMap(c=>c.items);
+                const startItem=allItems.find(it=>it.id===startId);
+                const endItem=allItems.find(it=>it.id===endId);
+                const rLabel=TEST_ROUNDS.find(r=>r.id===activeTestRound)?.label||'';
+                return(
+                  <div style={{background:'#fff7ed',border:'2px solid #f97316',borderRadius:'8px',padding:'8px 14px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+                    <span style={{fontSize:'14px'}}>🎯</span>
+                    <span style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{rLabel} {activeSubj}テスト予想範囲</span>
+                    <span style={{fontSize:'12px',color:'#9a3412'}}>
+                      {startItem?startItem.text.slice(0,14)+'…':'（開始未設定）'}
+                      　〜　
+                      <span style={{fontWeight:'bold',textDecoration:'underline'}}>{endItem?endItem.text.slice(0,14)+'…':'（終了未設定）'}</span>
+                    </span>
+                  </div>
+                );
+              })()}
+
               {/* 項目リスト */}
-              {activeChap&&jhSi>=0&&(
+              {activeChap&&jhSi>=0&&(()=>{
+                const sName=(jhFullName||'').replace(/（.+?）/,'');
+                const school=STUDENT_SCHOOLS[sName];
+                const rk=school?`${school}_${activeGrade}_${activeTestRound}`:null;
+                const rng=rk?jhTestRanges[rk]:null;
+                const isEng=activeSubj==='英語';
+                const rangeStartId=rng?(isEng?rng.engStart:rng.mathStart):'';
+                const rangeEndId=rng?(isEng?rng.engEnd:rng.mathEnd):'';
+                const items=activeChap.items||[];
+                const skKey=`${activeGrade}_${activeSubj}`;
+                const skList=jhSkipItems[skKey]||[];
+                const isSkipped=id=>skList.includes(id);
+                const tKey=jhTextbookKey(jhSi,activeSubj);
+                const allItemsGlobal=(CHAPTERS[tKey]||[]).flatMap(c=>c.items);
+                const globalStartIdx=rangeStartId?allItemsGlobal.findIndex(x=>x.id===rangeStartId):-1;
+                const globalEndIdx=rangeEndId?allItemsGlobal.findIndex(x=>x.id===rangeEndId):-1;
+                const chapFirstGlobal=items.length>0?allItemsGlobal.findIndex(x=>x.id===items[0].id):-1;
+                return(
                 <div style={{background:'white',borderRadius:'10px',overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}>
                   <div style={{padding:'8px 14px',background:SUBJECT_COLOR[activeSubj]||'#4f46e5',color:'white',fontWeight:'bold',fontSize:'14px'}}>
                     {activeChap.name}
                   </div>
-                  {activeChap.items.map(it=>{
+                  {items.map((it,idx)=>{
                     const r=jhGetRecord(jhSi,`${activeSubj}_${it.id}`);
                     const st=r.status;
+                    const skipped=isSkipped(it.id);
+                    let inRange=false;
+                    if(globalStartIdx>=0&&globalEndIdx>=0&&chapFirstGlobal>=0){
+                      const globalIdx=chapFirstGlobal+idx;
+                      inRange=globalIdx>=globalStartIdx&&globalIdx<=globalEndIdx;
+                    }
+                    const isStart=rangeStartId&&it.id===rangeStartId;
+                    const isEnd=rangeEndId&&it.id===rangeEndId;
+                    const rowBg=skipped?'#f3f4f6':isEnd?'#fff7ed':inRange?'#fefce8':st!=='未'?STATUS_BG[st]:'white';
+                    const borderBottom=isEnd?'2px solid #f97316':'1px solid #f3f4f6';
                     return(
-                      <div key={it.id} style={{borderBottom:'1px solid #f3f4f6',background:st!=='未'?STATUS_BG[st]:'white'}}>
+                      <div key={it.id} style={{borderBottom,background:rowBg,opacity:skipped?0.65:1}}>
                         <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 12px'}}>
-                          <button onClick={()=>jhCycleStatus(jhSi,`${activeSubj}_${it.id}`)}
-                            style={{minWidth:'44px',padding:'4px 8px',borderRadius:'6px',border:'none',
-                              background:STATUS_BG[st],color:STATUS_COLOR[st],fontWeight:'bold',fontSize:'13px',cursor:'pointer'}}>
-                            {st}
-                          </button>
-                          <div style={{flex:1,fontSize:'13px',color:'#374151'}}>
-                            {it.text}
-                            {st!=='未'&&r.teacher&&<span style={{marginLeft:'6px',fontSize:'10px',color:'#9ca3af'}}>({r.teacher}{r.date?' · '+r.date:''})</span>}
+                          <span style={{color:'#9ca3af',fontSize:'11px',minWidth:'20px'}}>{idx+1}</span>
+                          {skipped?(
+                            <span style={{minWidth:'44px',padding:'4px 8px',borderRadius:'6px',background:'#e5e7eb',color:'#9ca3af',fontWeight:'bold',fontSize:'13px',textAlign:'center'}}>—</span>
+                          ):(
+                            <button onClick={()=>jhCycleStatus(jhSi,`${activeSubj}_${it.id}`)}
+                              style={{minWidth:'44px',padding:'4px 8px',borderRadius:'6px',border:'none',
+                                background:STATUS_BG[st],color:STATUS_COLOR[st],fontWeight:'bold',fontSize:'13px',cursor:'pointer'}}>
+                              {st}
+                            </button>
+                          )}
+                          <div style={{flex:1,fontSize:'13px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                            {isEnd&&!skipped&&<span style={{background:'#f97316',color:'white',fontSize:'10px',fontWeight:'bold',borderRadius:'4px',padding:'1px 6px',whiteSpace:'nowrap'}}>🎯ゴール</span>}
+                            {isStart&&!isEnd&&!skipped&&<span style={{background:'#3b82f6',color:'white',fontSize:'10px',fontWeight:'bold',borderRadius:'4px',padding:'1px 6px',whiteSpace:'nowrap'}}>📌スタート</span>}
+                            {skipped&&<span style={{background:'#9ca3af',color:'white',fontSize:'10px',fontWeight:'bold',borderRadius:'4px',padding:'1px 6px',whiteSpace:'nowrap'}}>⏭ 飛ばして次へ</span>}
+                            <span style={{color:skipped?'#9ca3af':'#1f2937',textDecoration:skipped?'line-through':'none'}}>{it.text}</span>
                           </div>
+                          {!skipped&&st!=='未'&&r.teacher&&<span style={{fontSize:'10px',color:'#9ca3af',flexShrink:0}}>{r.teacher}{r.date?' · '+r.date:''}</span>}
+                          <button onClick={()=>jhToggleSkip(activeGrade,activeSubj,it.id)}
+                            title={skipped?'スキップ解除':'この単元をスキップ'}
+                            style={{background:skipped?'#fee2e2':'#f3f4f6',color:skipped?'#dc2626':'#9ca3af',
+                              border:'none',borderRadius:'4px',padding:'3px 8px',fontSize:'11px',cursor:'pointer',
+                              fontWeight:skipped?'bold':'normal',flexShrink:0}}>
+                            {skipped?'✕解除':'⏭'}
+                          </button>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
               {jhChapters.length===0&&<div style={{background:'white',borderRadius:'10px',padding:'24px',textAlign:'center',color:'#6b7280'}}><p>受講なし（{activeSubj}）</p></div>}
             </>
           )}
