@@ -2098,6 +2098,15 @@ function App(){
     const nd={...jhDirectives,[key]:text};setJhDirectives(nd);
     await jhSet('directives',nd);flash('📢 方針を保存しました');
   };
+  const jhToggleSkip=async(grade,subjKey,itemId)=>{
+    const key=`${grade}_${subjKey}`;
+    const cur=jhSkipItems[key]||[];
+    const ns=cur.includes(itemId)?cur.filter(id=>id!==itemId):[...cur,itemId];
+    const updated={...jhSkipItems,[key]:ns};
+    setJhSkipItems(updated);
+    await jhSet('skipItems',updated);
+    flash(cur.includes(itemId)?'↩ スキップ解除':'⏭ スキップ設定');
+  };
 
   // 高校生サイドバー用サマリー
   const getHsSummary=idx=>{
@@ -2255,6 +2264,12 @@ function App(){
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
           {saveMsg&&<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>}
+          {curType==='jh'&&isChu(activeGrade)&&(
+            <select value={activeTestRound} onChange={e=>setActiveTestRound(e.target.value)}
+              style={{background:'rgba(255,255,255,0.15)',color:'white',border:'1px solid rgba(255,255,255,0.3)',borderRadius:'6px',padding:'4px 8px',fontSize:'11px',cursor:'pointer'}}>
+              {TEST_ROUNDS.map(r=><option key={r.id} value={r.id} style={{color:'black'}}>{r.label}</option>)}
+            </select>
+          )}
           <button onClick={()=>setPhase('students')}
             style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 10px',fontSize:'12px',cursor:'pointer'}}>
             ← 生徒選択
