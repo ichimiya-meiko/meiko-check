@@ -39,23 +39,18 @@ const NYUMON_SETS = {
   'iiic': {label:'数学ⅢC',  dataKey:'CHAPTERS_IIIC', desc:'入門問題精講 数ⅢC（仮）'},
 };
 const SETS = {
-  'yellow_1a':{label:'黄チャート IA',  short:'黄IA', color:'#92400e',bg:'#fffbeb',border:'#fbbf24',dataKey:'CHAPTERS_YELLOW_1',nyumon:'ia',  desc:'数学ⅠA対応'},
-  'yellow_a': {label:'黄チャート A',   short:'黄A',  color:'#78350f',bg:'#fef3c7',border:'#f59e0b',dataKey:'CHAPTERS_YELLOW_A', nyumon:'ia',  desc:'数学A対応'},
-  'white_1a': {label:'白チャート IA',  short:'白IA', color:'#374151',bg:'#f9fafb',border:'#9ca3af',dataKey:'CHAPTERS_WHITE',    nyumon:'ia',  desc:'数学ⅠA対応'},
-  'blue_1a':  {label:'青チャート IA',  short:'青IA', color:'#1d4ed8',bg:'#eff6ff',border:'#3b82f6',dataKey:'CHAPTERS_BLUE_1',   nyumon:'ia',  desc:'数学ⅠA対応'},
-  'yellow_2': {label:'黄チャート ⅡB', short:'黄ⅡB',color:'#713f12',bg:'#fefce8',border:'#facc15',dataKey:'CHAPTERS_YELLOW_2', nyumon:'iib', desc:'数学ⅡB対応'},
-  'yellow_b': {label:'黄チャート B',   short:'黄B',  color:'#78350f',bg:'#fef9c3',border:'#eab308',dataKey:'CHAPTERS_YELLOW_B', nyumon:'iib', desc:'数学B対応'},
-  'white_2b': {label:'白チャート ⅡB', short:'白ⅡB',color:'#065f46',bg:'#f0fdf4',border:'#6ee7b7',dataKey:'CHAPTERS_WHITE_2',  nyumon:'iib', desc:'数学ⅡB対応'},
-  'white_2bc':{label:'白チャート ⅡBC',short:'白ⅡBC',color:'#581c87',bg:'#faf5ff',border:'#d8b4fe',dataKey:'CHAPTERS_WHITE_C', nyumon:'iib', desc:'数学ⅡBC対応'},
-  'blue_2b':  {label:'青チャート ⅡB', short:'青ⅡB',color:'#1e3a8a',bg:'#e0f2fe',border:'#7dd3fc',dataKey:'CHAPTERS_BLUE_2',   nyumon:'iib', desc:'数学ⅡB対応'},
-  'blue_2bc': {label:'青チャート ⅡBC',short:'青ⅡBC',color:'#1a1a5e',bg:'#eef2ff',border:'#a5b4fc',dataKey:'CHAPTERS_BLUE_C',  nyumon:'iib', desc:'数学ⅡBC対応'},
-  'yellow_c': {label:'黄チャート C',   short:'黄C',  color:'#713f12',bg:'#fefce8',border:'#d97706',dataKey:'CHAPTERS_YELLOW_C', nyumon:'iib', desc:'数学C対応'},
-  'yellow_3': {label:'黄チャート 数Ⅲ',short:'黄Ⅲ', color:'#7c2d12',bg:'#fff7ed',border:'#c2410c',dataKey:'CHAPTERS_YELLOW_3', nyumon:'iiic',desc:'数学Ⅲ対応'},
-  'white_3':  {label:'白チャート 数Ⅲ',short:'白Ⅲ', color:'#831843',bg:'#fff1f2',border:'#fda4af',dataKey:'CHAPTERS_WHITE_3',  nyumon:'iiic',desc:'数学Ⅲ対応'},
-  'blue_3':   {label:'青チャート 数Ⅲ',short:'青Ⅲ', color:'#312e81',bg:'#f5f3ff',border:'#c4b5fd',dataKey:'CHAPTERS_BLUE_3',   nyumon:'iiic',desc:'数学Ⅲ対応'},
-  'yellow_3c':{label:'黄チャート ⅢC', short:'黄ⅢC',color:'#7c2d12',bg:'#fff7ed',border:'#f97316',dataKey:'CHAPTERS_YELLOW_3', nyumon:'iiic',desc:'数学ⅢC対応'},
-  'white_3c': {label:'白チャート ⅢC', short:'白ⅢC',color:'#831843',bg:'#fff1f2',border:'#f43f5e',dataKey:'CHAPTERS_WHITE_3',  nyumon:'iiic',desc:'数学ⅢC対応'},
-  'blue_3c':  {label:'青チャート ⅢC', short:'青ⅢC',color:'#312e81',bg:'#f5f3ff',border:'#818cf8',dataKey:'CHAPTERS_BLUE_3',   nyumon:'iiic',desc:'数学ⅢC対応'},
+  // ── 白チャート ──
+  'white_1a':  {label:'白チャート ⅠA',  short:'白ⅠA', color:'#374151',bg:'#f9fafb',border:'#9ca3af',dataKey:'CHAPTERS_WHITE',   nyumon:'ia',  desc:'数学ⅠA対応'},
+  'white_2bc': {label:'白チャート ⅡBC', short:'白ⅡBC',color:'#581c87',bg:'#faf5ff',border:'#d8b4fe',dataKey:'CHAPTERS_WHITE_C', nyumon:'iib', desc:'数学ⅡBC対応'},
+  'white_3':   {label:'白チャート Ⅲ',   short:'白Ⅲ',  color:'#831843',bg:'#fff1f2',border:'#fda4af',dataKey:'CHAPTERS_WHITE_3', nyumon:'iiic',desc:'数学Ⅲ対応'},
+  // ── 黄チャート ──
+  'yellow_1a': {label:'黄チャート ⅠA',  short:'黄ⅠA', color:'#92400e',bg:'#fffbeb',border:'#fbbf24',dataKey:'CHAPTERS_YELLOW_1',nyumon:'ia',  desc:'数学ⅠA対応'},
+  'yellow_2bc':{label:'黄チャート ⅡBC', short:'黄ⅡBC',color:'#713f12',bg:'#fefce8',border:'#facc15',dataKey:'CHAPTERS_YELLOW_C',nyumon:'iib', desc:'数学ⅡBC対応'},
+  'yellow_3':  {label:'黄チャート Ⅲ',   short:'黄Ⅲ',  color:'#7c2d12',bg:'#fff7ed',border:'#c2410c',dataKey:'CHAPTERS_YELLOW_3',nyumon:'iiic',desc:'数学Ⅲ対応'},
+  // ── 青チャート ──
+  'blue_1a':   {label:'青チャート ⅠA',  short:'青ⅠA', color:'#1d4ed8',bg:'#eff6ff',border:'#3b82f6',dataKey:'CHAPTERS_BLUE_1',  nyumon:'ia',  desc:'数学ⅠA対応'},
+  'blue_2bc':  {label:'青チャート ⅡBC', short:'青ⅡBC',color:'#1a1a5e',bg:'#eef2ff',border:'#a5b4fc',dataKey:'CHAPTERS_BLUE_C',  nyumon:'iib', desc:'数学ⅡBC対応'},
+  'blue_3':    {label:'青チャート Ⅲ',   short:'青Ⅲ',  color:'#312e81',bg:'#f5f3ff',border:'#c4b5fd',dataKey:'CHAPTERS_BLUE_3',  nyumon:'iiic',desc:'数学Ⅲ対応'},
 };
 const CYCLE     = {'未':'◯','◯':'△','△':'✗','✗':'未'};
 const ST_BG     = {'未':'#f3f4f6','◯':'#d1fae5','△':'#fef3c7','✗':'#fee2e2'};
@@ -1925,11 +1920,9 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
             {/* チャート選択 */}
             <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>📚 使用チャートを選択</p>
             {[
-              {group:'数ⅠA対応', keys:['yellow_1a','yellow_a','white_1a','blue_1a']},
-              {group:'数ⅡB対応', keys:['yellow_2','yellow_b','white_2b','white_2bc','blue_2b','blue_2bc']},
-              {group:'数C対応',  keys:['yellow_c','white_2bc_c','blue_2bc_c']},
-              {group:'数Ⅲ対応',  keys:['yellow_3','white_3','blue_3']},
-              {group:'数ⅢC対応（仮）', keys:['yellow_3c','white_3c','blue_3c']},
+              {group:'📘 数ⅠA対応',   keys:['white_1a','yellow_1a','blue_1a']},
+              {group:'📗 数ⅡBC対応', keys:['white_2bc','yellow_2bc','blue_2bc']},
+              {group:'📕 数Ⅲ対応',   keys:['white_3','yellow_3','blue_3']},
             ].map(({group,keys})=>(
               <div key={group} style={{marginBottom:'10px'}}>
                 <p style={{fontSize:'11px',fontWeight:'bold',color:'#6b7280',marginBottom:'4px'}}>{group}</p>
