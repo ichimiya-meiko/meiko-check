@@ -2065,15 +2065,15 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
               {/* 入門問題精講の章範囲 */}
               <div style={{marginBottom:'18px',background:'#f0fdf4',borderRadius:'10px',padding:'14px'}}>
                 <p style={{fontSize:'13px',fontWeight:'bold',color:'#065f46',marginBottom:'10px'}}>
-                  📗 入門問題精講（{NYUMON_SETS[selSet.nyumon]?.label}）の表示章範囲
+                  📗 入門問題精講（{NYUMON_SETS[selSet.nyumon]?.label}）の表示章範囲 <span style={{color:'#6b7280',fontSize:'11px'}}>（全{getNyumon(selSet.nyumon).length}章）</span>
                 </p>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <span style={{fontSize:'12px',color:'#374151'}}>第</span>
-                  <input type="number" min="1" max="20" value={curPlan.nyumonRange?.from||1}
+                  <input type="number" min="1" max={getNyumon(selSet.nyumon).length} value={curPlan.nyumonRange?.from||1}
                     onChange={e=>setNR('from',Number(e.target.value))}
                     style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
-                  <input type="number" min="1" max="20" value={curPlan.nyumonRange?.to||20}
+                  <input type="number" min="1" max={getNyumon(selSet.nyumon).length} value={curPlan.nyumonRange?.to||getNyumon(selSet.nyumon).length}
                     onChange={e=>setNR('to',Number(e.target.value))}
                     style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
@@ -2083,15 +2083,15 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
               {/* チャートの章範囲 */}
               <div style={{marginBottom:'18px',background:selSet.bg,borderRadius:'10px',padding:'14px'}}>
                 <p style={{fontSize:'13px',fontWeight:'bold',color:selSet.color,marginBottom:'10px'}}>
-                  📘 {selSet.label} の表示章範囲
+                  📘 {selSet.label} の表示章範囲 <span style={{color:'#6b7280',fontSize:'11px'}}>（全{getChaps(selSet.dataKey).length}章）</span>
                 </p>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                   <span style={{fontSize:'12px',color:'#374151'}}>第</span>
-                  <input type="number" min="1" max="20" value={curPlan.chartRange?.from||1}
+                  <input type="number" min="1" max={getChaps(selSet.dataKey).length} value={curPlan.chartRange?.from||1}
                     onChange={e=>setCR('from',Number(e.target.value))}
                     style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
-                  <input type="number" min="1" max="20" value={curPlan.chartRange?.to||20}
+                  <input type="number" min="1" max={getChaps(selSet.dataKey).length} value={curPlan.chartRange?.to||getChaps(selSet.dataKey).length}
                     onChange={e=>setCR('to',Number(e.target.value))}
                     style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
@@ -2176,6 +2176,116 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
 // ══════════════════════════════════════════
 // メインApp（統合）
 // ══════════════════════════════════════════
+function HsAdjustModal({curName,curPlan,setF,setNR,setCR,selSet,hw,save,msg,onClose}){
+  if(!selSet) return null;
+  const nyumonLen=getNyumon(selSet.nyumon).length;
+  const chartLen=getChaps(selSet.dataKey).length;
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'14px',padding:'20px',width:'100%',maxWidth:'520px',maxHeight:'90vh',overflowY:'auto',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
+          <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a'}}>🎯 {curName} の絞り込み設定</p>
+          <button onClick={onClose} style={{background:'#e5e7eb',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'13px'}}>✕ 閉じる</button>
+        </div>
+
+        {/* 開始日・完了目標日 */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'14px'}}>
+          <div>
+            <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>📅 開始日</p>
+            <input type="date" value={curPlan.startDate||''} onChange={e=>setF('startDate',e.target.value)}
+              style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
+          </div>
+          <div>
+            <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>🎯 完了目標日</p>
+            <input type="date" value={curPlan.deadline||''} onChange={e=>setF('deadline',e.target.value)}
+              style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
+          </div>
+        </div>
+
+        {/* コンパスレベル */}
+        <div style={{marginBottom:'14px'}}>
+          <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'6px'}}>🧭 チャートのコンパスレベル上限</p>
+          <div style={{display:'flex',gap:'6px'}}>
+            {[1,2,3,4,5].map(lv=>{
+              const cur=curPlan.maxLevel||5;
+              const isActive=lv<=cur;
+              return(
+                <button key={lv} onClick={()=>setF('maxLevel',lv)}
+                  style={{flex:1,padding:'8px 4px',borderRadius:'6px',border:`2px solid ${cur===lv?selSet.border:'#e5e7eb'}`,
+                    background:isActive?COMPASS_COLOR[lv]:'#f9fafb',cursor:'pointer',
+                    fontWeight:cur===lv?'bold':'normal',fontSize:'11px',color:cur===lv?'#374151':'#9ca3af'}}>
+                  {lv}<br/><span style={{fontSize:'9px'}}>{COMPASS_LABEL[lv]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 入門精講章範囲 */}
+        <div style={{marginBottom:'14px',background:'#f0fdf4',borderRadius:'8px',padding:'12px'}}>
+          <p style={{fontSize:'12px',fontWeight:'bold',color:'#065f46',marginBottom:'6px'}}>
+            📗 入門問題精講（{NYUMON_SETS[selSet.nyumon]?.label}）<span style={{fontSize:'10px',color:'#6b7280'}}>（全{nyumonLen}章）</span>
+          </p>
+          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+            <span style={{fontSize:'12px'}}>第</span>
+            <input type="number" min="1" max={nyumonLen} value={curPlan.nyumonRange?.from||1}
+              onChange={e=>setNR('from',Number(e.target.value))}
+              style={{width:'56px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
+            <span style={{fontSize:'12px'}}>章 〜 第</span>
+            <input type="number" min="1" max={nyumonLen} value={curPlan.nyumonRange?.to||nyumonLen}
+              onChange={e=>setNR('to',Number(e.target.value))}
+              style={{width:'56px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
+            <span style={{fontSize:'12px'}}>章まで</span>
+          </div>
+        </div>
+
+        {/* チャート章範囲 */}
+        <div style={{marginBottom:'14px',background:selSet.bg,borderRadius:'8px',padding:'12px'}}>
+          <p style={{fontSize:'12px',fontWeight:'bold',color:selSet.color,marginBottom:'6px'}}>
+            📘 {selSet.label} <span style={{fontSize:'10px',color:'#6b7280'}}>（全{chartLen}章）</span>
+          </p>
+          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+            <span style={{fontSize:'12px'}}>第</span>
+            <input type="number" min="1" max={chartLen} value={curPlan.chartRange?.from||1}
+              onChange={e=>setCR('from',Number(e.target.value))}
+              style={{width:'56px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
+            <span style={{fontSize:'12px'}}>章 〜 第</span>
+            <input type="number" min="1" max={chartLen} value={curPlan.chartRange?.to||chartLen}
+              onChange={e=>setCR('to',Number(e.target.value))}
+              style={{width:'56px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
+            <span style={{fontSize:'12px'}}>章まで</span>
+          </div>
+        </div>
+
+        {/* リアルタイム宿題量表示 */}
+        {hw&&(
+          <div style={{background:'linear-gradient(135deg,#1e3a8a,#065f46)',borderRadius:'8px',padding:'12px',color:'white',marginBottom:'12px'}}>
+            <p style={{fontWeight:'bold',fontSize:'12px',marginBottom:'6px'}}>📊 宿題量シミュレーション</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',marginBottom:'6px'}}>
+              <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'6px',padding:'6px',textAlign:'center'}}>
+                <p style={{fontSize:'10px',opacity:0.8}}>入門精講</p>
+                <p style={{fontSize:'16px',fontWeight:'bold'}}>{hw.nTotal}問</p>
+              </div>
+              <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'6px',padding:'6px',textAlign:'center'}}>
+                <p style={{fontSize:'10px',opacity:0.8}}>チャート</p>
+                <p style={{fontSize:'16px',fontWeight:'bold'}}>{hw.cTotal}問</p>
+              </div>
+            </div>
+            <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'6px',padding:'6px',textAlign:'center'}}>
+              <p style={{fontSize:'10px',opacity:0.8}}>合計 {hw.total}問 ÷ {hw.weeks}週</p>
+              <p style={{fontSize:'18px',fontWeight:'bold'}}>週{hw.perWeek}問 / 1日{hw.perDay}問</p>
+            </div>
+          </div>
+        )}
+
+        <button onClick={save} style={{width:'100%',background:'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'12px',fontWeight:'bold',fontSize:'14px',cursor:'pointer'}}>
+          {msg||'💾 保存'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function App(){
   const [phase,setPhase]=useState('login'); // login|teacher|students|loading|main|director
   const [role,setRole]=useState('');
@@ -2208,6 +2318,7 @@ function App(){
   const [showTextbookModal,setShowTextbookModal]=useState(false);
   const [showTestRangeModal,setShowTestRangeModal]=useState(false);
   const [showDirectiveModal,setShowDirectiveModal]=useState(false);
+  const [showHsAdjustModal,setShowHsAdjustModal]=useState(false);
 
   const flash=msg=>{setSaveMsg(msg);setTimeout(()=>setSaveMsg(''),2500);};
 
@@ -2587,6 +2698,32 @@ function App(){
           {/* ── 高校生チェック画面 ── */}
           {curType==='hs'&&(
             <>
+              {showHsAdjustModal&&<HsAdjustModal curName={curName} curPlan={curPlan}
+                setF={(f,v)=>{
+                  const newPlan={...curPlan,[f]:v};
+                  setHsPlans(p=>({...p,[curName]:newPlan}));
+                  hsSet(`koukou:plan:${curName}`,newPlan);
+                }}
+                setNR={(f,v)=>{
+                  const newRange={...(curPlan.nyumonRange||{}),[f]:v};
+                  const newPlan={...curPlan,nyumonRange:newRange};
+                  setHsPlans(p=>({...p,[curName]:newPlan}));
+                  hsSet(`koukou:plan:${curName}`,newPlan);
+                }}
+                setCR={(f,v)=>{
+                  const newRange={...(curPlan.chartRange||{}),[f]:v};
+                  const newPlan={...curPlan,chartRange:newRange};
+                  setHsPlans(p=>({...p,[curName]:newPlan}));
+                  hsSet(`koukou:plan:${curName}`,newPlan);
+                }}
+                selSet={curSet} hw={hw}
+                save={async()=>{
+                  await hsSet(`koukou:plan:${curName}`,curPlan);
+                  flash('💾 保存しました');
+                  setShowHsAdjustModal(false);
+                }}
+                msg={saveMsg}
+                onClose={()=>setShowHsAdjustModal(false)}/>}
               <div style={{background:'white',borderRadius:'10px',padding:'12px 14px',marginBottom:'10px',boxShadow:'0 1px 4px rgba(0,0,0,.07)'}}>
                 <p style={{fontWeight:'bold',fontSize:'17px',color:'#1e3a8a',marginBottom:'4px'}}>{curName}</p>
                 {curSet
@@ -2605,6 +2742,42 @@ function App(){
                 }
                 {curPlan.memo&&<p style={{marginTop:'6px',fontSize:'12px',color:'#374151',background:'#fffbeb',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fde68a'}}>📝 {curPlan.memo}</p>}
               </div>
+
+              {/* 講師用：宿題量シミュレーション＆絞り込み調整パネル */}
+              {curSet&&(
+                <div style={{background:'linear-gradient(135deg,#1e3a8a,#065f46)',borderRadius:'12px',padding:'14px',color:'white',marginBottom:'10px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px',flexWrap:'wrap',gap:'6px'}}>
+                    <p style={{fontWeight:'bold',fontSize:'14px'}}>📊 宿題量シミュレーション</p>
+                    <button onClick={()=>setShowHsAdjustModal(true)}
+                      style={{background:'rgba(255,255,255,0.25)',color:'white',border:'none',borderRadius:'6px',padding:'4px 12px',fontSize:'11px',cursor:'pointer',fontWeight:'bold'}}>
+                      ⚙ 絞り込み調整
+                    </button>
+                  </div>
+                  {hw?(
+                    <>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                      <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'8px',padding:'8px',textAlign:'center'}}>
+                        <p style={{fontSize:'10px',color:'rgba(255,255,255,0.8)',marginBottom:'2px'}}>入門精講</p>
+                        <p style={{fontSize:'18px',fontWeight:'bold'}}>{hw.nTotal}問</p>
+                      </div>
+                      <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'8px',padding:'8px',textAlign:'center'}}>
+                        <p style={{fontSize:'10px',color:'rgba(255,255,255,0.8)',marginBottom:'2px'}}>チャート（Lv{curPlan.maxLevel||5}以下）</p>
+                        <p style={{fontSize:'18px',fontWeight:'bold'}}>{hw.cTotal}問</p>
+                      </div>
+                    </div>
+                    <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'8px',padding:'8px',textAlign:'center'}}>
+                      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.8)'}}>合計 {hw.total}問 ÷ {hw.weeks}週（{hw.days}日）</p>
+                      <p style={{fontSize:'22px',fontWeight:'bold',marginTop:'2px'}}>週{hw.perWeek}問 / 1日{hw.perDay}問</p>
+                    </div>
+                    </>
+                  ):(
+                    <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'8px',padding:'10px',textAlign:'center',fontSize:'11px'}}>
+                      💡 開始日・完了目標日を設定すると宿題量が計算されます。右上「⚙ 絞り込み調整」から入力できます。
+                    </div>
+                  )}
+                </div>
+              )}
+
               {!curSet&&<div style={{background:'white',borderRadius:'10px',padding:'32px',textAlign:'center',color:'#6b7280'}}><p style={{fontSize:'24px',marginBottom:'8px'}}>📚</p><p>テキストが未設定です</p></div>}
               {curSet&&(()=>{
                 const maxLen=Math.max(iaChaps.length,chartChaps?chartChaps.length:0);
