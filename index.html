@@ -1835,8 +1835,8 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
         if(d) p[n]=d;
       }
       setPlans(p);
-      const t=await gasGet('koukou:teachers',INIT_TEACHERS);
-      const st=await gasGet('koukou:students',INIT_STUDENTS);
+      const t=await hsGet('koukou:teachers',ALL_TEACHERS_DEFAULT);
+      const st=await hsGet('koukou:students',HS_STUDENTS_DEFAULT);
       setTcList(t);setStList(st);
     })();
   },[]);
@@ -1861,7 +1861,7 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
     if(!window.confirm(`「${s}」を削除しますか？`)) return;
     const next=stList.filter(x=>x!==s);
     setStList(next);
-    await gasSet('koukou:students',next);
+    await hsSet('koukou:students',next);
     setDelMsg(`✅ ${stripGrade(s)} を削除しました`);
     setTimeout(()=>setDelMsg(''),3000);
   };
@@ -1869,7 +1869,7 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
     if(!window.confirm(`「${t}」を削除しますか？`)) return;
     const next=tcList.filter(x=>x!==t);
     setTcList(next);
-    await gasSet('koukou:teachers',next);
+    await hsSet('koukou:teachers',next);
     setDelMsg(`✅ ${t} を削除しました`);
     setTimeout(()=>setDelMsg(''),3000);
   };
