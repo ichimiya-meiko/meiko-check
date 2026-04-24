@@ -56,6 +56,7 @@ const CYCLE     = {'未':'◯','◯':'△','△':'✗','✗':'未'};
 const ST_BG     = {'未':'#f3f4f6','◯':'#d1fae5','△':'#fef3c7','✗':'#fee2e2'};
 const ST_COL    = {'未':'#6b7280','◯':'#065f46','△':'#92400e','✗':'#991b1b'};
 const COMPASS_COLOR = {1:'#dcfce7',2:'#bbf7d0',3:'#fef9c3',4:'#fed7aa',5:'#fecaca'};
+const COMPASS_LABEL = {1:'★☆☆☆☆',2:'★★☆☆☆',3:'★★★☆☆',4:'★★★★☆',5:'★★★★★'};
 
 // 生徒の種別判定
 function getStudentType(name){
@@ -1599,7 +1600,7 @@ function PasswordGate({onPass}){
 // ══════════════════════════════════════════
 // 講師選択画面
 // ══════════════════════════════════════════
-function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd}){
+function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd,bgLoading}){
   const [editMode,setEditMode]=useState(false);
   const [newName,setNewName]=useState('');
   const handleDel=(t)=>{
@@ -1618,6 +1619,7 @@ function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd}){
       <div style={{maxWidth:'480px',margin:'0 auto'}}>
         <p style={{textAlign:'center',fontWeight:'bold',fontSize:'20px',color:'#1e3a8a',marginBottom:'6px'}}>👨‍🏫 講師を選択</p>
         <p style={{textAlign:'center',color:'#6b7280',fontSize:'13px',marginBottom:'16px'}}>{role==='director'?'🏫 教室長モード':'講師モード'}</p>
+        {bgLoading&&<div style={{textAlign:'center',marginBottom:'12px',padding:'8px',background:'#fef3c7',borderRadius:'8px',fontSize:'12px',color:'#92400e',fontWeight:'bold'}}>⏳ 最新の講師リストを取得中...</div>}
         {role==='director'&&(
           <div style={{display:'flex',justifyContent:'center',marginBottom:'16px'}}>
             <button onClick={()=>setEditMode(!editMode)}
@@ -1662,7 +1664,7 @@ function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd}){
 // ══════════════════════════════════════════
 // 生徒選択画面（小中高全員統合）
 // ══════════════════════════════════════════
-function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onBack}){
+function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onBack,bgLoading}){
   const [sel,setSel]=useState([]);
   const [filter,setFilter]=useState('all'); // 'all'|'hs'|'jh_chu'|'jh_sho'
 
@@ -1751,6 +1753,7 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
           </div>
           <button onClick={onBack} style={{background:'#e5e7eb',border:'none',borderRadius:'8px',padding:'8px 14px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
         </div>
+        {bgLoading&&<div style={{textAlign:'center',marginBottom:'12px',padding:'8px',background:'#fef3c7',borderRadius:'8px',fontSize:'12px',color:'#92400e',fontWeight:'bold'}}>⏳ 最新の生徒リストを取得中...</div>}
 
         {/* フィルタータブ */}
         <div style={{display:'flex',gap:'6px',marginBottom:'14px',flexWrap:'wrap'}}>
@@ -2160,6 +2163,7 @@ function App(){
   const [selTeacher,setSelTeacher]=useState('');
   const [selStudents,setSelStudents]=useState([]); // [{name,type:'hs'|'jh'}]
   const [loadMsg,setLoadMsg]=useState('');
+  const [bgLoading,setBgLoading]=useState(false); // バックグラウンド読込中表示
 
   // 高校生データ
   const [hsRecords,setHsRecords]=useState({});
@@ -2208,6 +2212,7 @@ function App(){
     setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);
     setPhase('teacher');  // すぐ遷移
     // ② バックグラウンドで最新データを取得してUIを更新
+    setBgLoading(true);
     (async()=>{
       const [t,hs,jh]=await Promise.all([
         hsGet('koukou:teachers',cT),
@@ -2222,6 +2227,7 @@ function App(){
         jhGet('skipItems',cSk),
       ]);
       setJhTextbookOverrides(tb);setJhTestRanges(tr);setJhDirectives(dv);setJhSkipItems(sk);
+      setBgLoading(false);
     })();
   };
 
@@ -2247,6 +2253,7 @@ function App(){
     setActiveStudentIdx(0);setPhase('main');
 
     // ② バックグラウンドで最新データを取得して上書き
+    setBgLoading(true);
     (async()=>{
       const nr={...cNr},np={...cNp};
       for(const name of hsNames){
@@ -2259,6 +2266,7 @@ function App(){
         setJhRecords(jr);
       }
       setHsRecords(nr);setHsPlans(np);
+      setBgLoading(false);
     })();
   };
 
@@ -2385,7 +2393,7 @@ function App(){
 
   // ── フェーズ分岐 ──
   if(phase==='login') return <PasswordGate onPass={handleLogin}/>;
-  if(phase==='teacher') return <TeacherSelectScreen teachers={teachers} role={role}
+  if(phase==='teacher') return <TeacherSelectScreen bgLoading={bgLoading} teachers={teachers} role={role}
     onSelect={t=>{setSelTeacher(t);setPhase('students');}}
     onDelete={async t=>{
       const next=teachers.filter(x=>x!==t);
@@ -2403,7 +2411,7 @@ function App(){
     }}
   />;
   if(phase==='students') return(
-    <StudentSelectScreen hsStudents={hsStudents} jhStudents={jhStudents}
+    <StudentSelectScreen bgLoading={bgLoading} hsStudents={hsStudents} jhStudents={jhStudents}
       teacherName={selTeacher} role={role}
       onStart={handleStart}
       onBack={()=>setPhase('teacher')}/>
@@ -2501,6 +2509,7 @@ function App(){
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
           {saveMsg&&<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>}
+          {bgLoading&&<span style={{color:'#fde68a',fontSize:'11px',fontWeight:'bold',background:'rgba(0,0,0,0.2)',padding:'3px 8px',borderRadius:'10px'}}>⏳ 最新データ取得中...</span>}
           {curType==='jh'&&isChu(activeGrade)&&(
             <select value={activeTestRound} onChange={e=>setActiveTestRound(e.target.value)}
               style={{background:'rgba(255,255,255,0.15)',color:'white',border:'1px solid rgba(255,255,255,0.3)',borderRadius:'6px',padding:'4px 8px',fontSize:'11px',cursor:'pointer'}}>
