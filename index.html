@@ -123,13 +123,13 @@ function calcHomework(plan){
 // ─── 教科定義 ─────────────────────────────────────────────────
 // 小学生：算数のみ / 中学生：数学＋英語
 const GRADE_SUBJECTS = {
-  "小1":["算数"],"小2":["算数"],"小3":["算数"],
-  "小4":["算数"],"小5":["算数"],"小6":["算数"],
+  "小1":["算数","国語"],"小2":["算数","国語"],"小3":["算数","国語"],
+  "小4":["算数","国語"],"小5":["算数","国語"],"小6":["算数","国語"],
   "中1":["数学","英語"],
   "中2":["数学","英語"],
   "中3":["数学","英語"],
 };
-const SUBJECT_COLOR = {"算数":"#0891b2","数学":"#1d4ed8","英語":"#059669"};
+const SUBJECT_COLOR = {"算数":"#0891b2","数学":"#1d4ed8","英語":"#059669","国語":"#dc2626"};
 
 // ─── チャプターデータ（教科別） ────────────────────────────────
 // キー形式: "学年_教科"
@@ -138,7 +138,7 @@ const CHAPTERS = {
   // ══════════════════════════════════════════════
   //  小1 算数
   // ══════════════════════════════════════════════
-  "小1_算数": [
+  "小1Y_算数": [
     { id:"g1c1", name:"かずのかんかく", items:[
       {id:"101",text:"5までのかず"},{id:"102",text:"10までのかず"},{id:"103",text:"なんばんめ"},
       {id:"104",text:"6,7,8はいくつといくつ"},{id:"105",text:"9,10はいくつといくつ・0というかず"},
@@ -169,7 +169,7 @@ const CHAPTERS = {
   // ══════════════════════════════════════════════
   //  小2 算数
   // ══════════════════════════════════════════════
-  "小2_算数": [
+  "小2Y_算数": [
     { id:"g2c1", name:"たし算・ひき算", items:[
       {id:"201",text:"1年のふくしゅう①②"},{id:"202",text:"何十をたしたり ひいたりする計算"},
       {id:"204",text:"たし算"},{id:"205",text:"ひき算"},{id:"208",text:"たし算（1）"},
@@ -200,7 +200,7 @@ const CHAPTERS = {
   // ══════════════════════════════════════════════
   //  小3 算数
   // ══════════════════════════════════════════════
-  "小3_算数": [
+  "小3Y_算数": [
     { id:"g3c1", name:"かけ算・わり算", items:[
       {id:"301",text:"2年の復習①"},{id:"302",text:"2年の復習②"},
       {id:"304",text:"九九の表とかけ算"},{id:"305",text:"1人分の数をもとめる計算・2つの分け方"},
@@ -239,7 +239,7 @@ const CHAPTERS = {
   // ══════════════════════════════════════════════
   //  小4 算数
   // ══════════════════════════════════════════════
-  "小4_算数": [
+  "小4Y_算数": [
     { id:"g4c1", name:"大きい数・グラフ", items:[
       {id:"401",text:"3年生の復習①②"},{id:"402",text:"大きな数の位"},{id:"403",text:"大きな数の計算"},
       {id:"404",text:"変わり方を表すグラフ"},{id:"405",text:"折れ線グラフの書き方"},{id:"406",text:"2つのグラフを比べて"},
@@ -276,7 +276,7 @@ const CHAPTERS = {
   // ══════════════════════════════════════════════
   //  小5 算数
   // ══════════════════════════════════════════════
-  "小5_算数": [
+  "小5Y_算数": [
     { id:"g5c1", name:"整数・小数・体積・比例", items:[
       {id:"501",text:"4年生の復習①②"},{id:"502",text:"整数と小数"},
       {id:"503",text:"直方体・立方体の体積（1）"},{id:"504",text:"直方体・立方体の体積（2）"},
@@ -312,7 +312,7 @@ const CHAPTERS = {
   // ══════════════════════════════════════════════
   //  小6 算数
   // ══════════════════════════════════════════════
-  "小6_算数": [
+  "小6Y_算数": [
     { id:"g6c1", name:"対称・文字式・分数のかけ算", items:[
       {id:"601",text:"線対称"},{id:"602",text:"点対称"},{id:"603",text:"多角形と対称"},
       {id:"604",text:"文字を使った式"},{id:"605",text:"式の読み方"},
@@ -697,6 +697,125 @@ const CHAPTERS = {
       {id:"e3Y334",text:"発音・語いの問題"},
     ]},
   ],
+  // ══════════════════════════════════════════════
+  //  小学4〜6年 算数 ウィンパス（X）
+  // ══════════════════════════════════════════════
+  "小4X_算数":[
+    { id:"小4xc1", name:"大きい数・わり算", items:[
+      {id:"p401",text:"大きい数の表し方"},{id:"p402",text:"大きい数のしくみ"},{id:"p403",text:"大きい数の計算"},{id:"p404",text:"折れ線グラフ"},{id:"p405",text:"いろいろな折れ線グラフ"},{id:"p406",text:"整理のしかた"},{id:"p407",text:"１けたの数でわるわり算"},{id:"p408",text:"２けたの数でわるわり算の利用"}
+    ]},
+    { id:"小4xc2", name:"図形・角度", items:[
+      {id:"p409",text:"角の大きさ"},{id:"p410",text:"角度の計算"},{id:"p411",text:"垂直と平行"},{id:"p412",text:"台形と平行四辺形"},{id:"p413",text:"いろいろな四角形と対角線"}
+    ]},
+    { id:"小4xc3", name:"小数", items:[
+      {id:"p414",text:"小数の表し方"},{id:"p415",text:"小数のしくみ"},{id:"p416",text:"小数のたし算とひき算"}
+    ]},
+    { id:"小4xc4", name:"わり算・がい数", items:[
+      {id:"p417",text:"２けたの数でわるわり算"},{id:"p418",text:"整数のわり算"},{id:"p419",text:"整数のわり算の利用"},{id:"p420",text:"がい数"},{id:"p421",text:"見積もり"},{id:"p422",text:"計算のじゅんじょ"},{id:"p423",text:"計算のきまり"},{id:"p424",text:"かけ算とわり算のくふう"},{id:"p425",text:"□を使った式"}
+    ]},
+    { id:"小4xc5", name:"面積", items:[
+      {id:"p426",text:"長方形や正方形の面積"},{id:"p427",text:"面積の求め方"},{id:"p428",text:"面積のいろいろな単位"},{id:"p429",text:"面積の問題"}
+    ]},
+    { id:"小4xc6", name:"小数と分数", items:[
+      {id:"p430",text:"小数×整数"},{id:"p431",text:"小数÷整数①"},{id:"p432",text:"小数÷整数②"},{id:"p433",text:"いろいろな分数"},{id:"p434",text:"分数のたし算とひき算"}
+    ]},
+    { id:"小4xc7", name:"変わり方・立体", items:[
+      {id:"p435",text:"変わり方"},{id:"p436",text:"直方体と立方体"},{id:"p437",text:"辺や面の垂直と平行"}
+    ]}
+  ],
+  "小5X_算数":[
+    { id:"小5xc1", name:"小数のかけ算・わり算", items:[
+      {id:"p501",text:"整数×小数"},{id:"p502",text:"小数×小数"},{id:"p503",text:"整数÷小数"},{id:"p504",text:"小数÷小数"},{id:"p505",text:"小数のかけ算とわり算の利用"},{id:"p506",text:"小数の倍"}
+    ]},
+    { id:"小5xc2", name:"体積・図形", items:[
+      {id:"p507",text:"直方体や立方体の体積"},{id:"p508",text:"いろいろな体積"},{id:"p509",text:"２つの量の変わり方"},{id:"p510",text:"合同な図形"},{id:"p511",text:"三角形の角"},{id:"p512",text:"四角形・多角形の角"}
+    ]},
+    { id:"小5xc3", name:"整数の性質・分数", items:[
+      {id:"p513",text:"偶数と奇数"},{id:"p514",text:"倍数と公倍数"},{id:"p515",text:"倍数と公倍数の利用"},{id:"p516",text:"約数と公約数"},{id:"p517",text:"公約数の利用"},{id:"p518",text:"約分"},{id:"p519",text:"通分"},{id:"p520",text:"分数の性質"},{id:"p521",text:"分数のたし算とひき算"},{id:"p522",text:"いろいろな分数のたし算とひき算"}
+    ]},
+    { id:"小5xc4", name:"平均・単位量・速さ", items:[
+      {id:"p523",text:"平均"},{id:"p524",text:"単位量あたりの大きさ"},{id:"p525",text:"速さ"},{id:"p526",text:"速さの利用"}
+    ]},
+    { id:"小5xc5", name:"面積", items:[
+      {id:"p527",text:"平行四辺形の面積"},{id:"p528",text:"三角形の面積"},{id:"p529",text:"台形の面積"},{id:"p530",text:"三角形・四角形の面積"}
+    ]},
+    { id:"小5xc6", name:"割合・グラフ", items:[
+      {id:"p531",text:"割合"},{id:"p532",text:"百分率と歩合"},{id:"p533",text:"帯グラフと円グラフ"},{id:"p534",text:"いろいろな帯グラフや円グラフ"},{id:"p535",text:"割合についての問題"}
+    ]},
+    { id:"小5xc7", name:"正多角形・円・立体", items:[
+      {id:"p536",text:"正多角形"},{id:"p537",text:"円"},{id:"p538",text:"角柱と円柱"}
+    ]}
+  ],
+  "小6X_算数":[
+    { id:"小6xc1", name:"対称な図形", items:[
+      {id:"p601",text:"線対称"},{id:"p602",text:"点対称"},{id:"p603",text:"多角形と対称"}
+    ]},
+    { id:"小6xc2", name:"文字式・分数の計算", items:[
+      {id:"p604",text:"文字を使った式"},{id:"p605",text:"逆算"},{id:"p606",text:"分数×整数"},{id:"p607",text:"分数÷整数"},{id:"p608",text:"分数×分数"},{id:"p609",text:"分数÷分数"},{id:"p610",text:"いろいろな分数の計算"}
+    ]},
+    { id:"小6xc3", name:"速さ・割合と分数", items:[
+      {id:"p611",text:"速さと分数"},{id:"p612",text:"速さの問題"},{id:"p613",text:"割合と分数①"},{id:"p614",text:"割合と分数②"}
+    ]},
+    { id:"小6xc4", name:"比・拡大図", items:[
+      {id:"p615",text:"比"},{id:"p616",text:"比の利用"},{id:"p617",text:"比の問題"},{id:"p618",text:"拡大図と縮図"},{id:"p619",text:"縮図の利用"}
+    ]},
+    { id:"小6xc5", name:"データ・グラフ", items:[
+      {id:"p620",text:"データの代表値とちらばり"},{id:"p621",text:"度数分布表とヒストグラム"},{id:"p622",text:"いろいろなグラフ"}
+    ]},
+    { id:"小6xc6", name:"図形の計量", items:[
+      {id:"p623",text:"円の面積"},{id:"p624",text:"角柱や円柱の体積"},{id:"p625",text:"およその大きさ"}
+    ]},
+    { id:"小6xc7", name:"比例・反比例", items:[
+      {id:"p626",text:"比例"},{id:"p627",text:"比例の式と利用"},{id:"p628",text:"比例のグラフ"},{id:"p629",text:"反比例"},{id:"p630",text:"反比例の式と利用"},{id:"p631",text:"反比例のグラフ"}
+    ]},
+    { id:"小6xc8", name:"場合の数・総復習", items:[
+      {id:"p632",text:"場合の数"},{id:"p633",text:"小学生の復習（①数と計算）"},{id:"p634",text:"小学生の復習（②割合と比）"},{id:"p635",text:"小学生の復習（③単位量あたりの大きさと速さ）"},{id:"p636",text:"小学生の復習（④平面図形）"},{id:"p637",text:"小学生の復習（⑤立体図形）"},{id:"p638",text:"小学生の復習（⑥データとグラフ）"}
+    ]}
+  ],
+
+
+  // ══════════════════════════════════════════════
+  //  小6 算数 エフォート（W）
+  // ══════════════════════════════════════════════
+  "小6W_算数":[
+    { id:"6wmc1", name:"分数の計算・文章題", items:[{id:"p601",text:"分数のかけ算とわり算"},{id:"p602",text:"いろいろな分数の問題"}] },
+    { id:"6wmc2", name:"比・速さ・濃さ", items:[{id:"p603",text:"比"},{id:"p604",text:"比の利用と逆比"},{id:"p605",text:"速さと比"},{id:"p606",text:"濃さと比・倍数算"}] },
+    { id:"6wmc3", name:"対称・相似・面積", items:[{id:"p607",text:"対称な図形"},{id:"p608",text:"拡大図と縮図"},{id:"p609",text:"相似な三角形"},{id:"p610",text:"面積と辺の比"}] },
+    { id:"6wmc4", name:"場合の数・資料", items:[{id:"p611",text:"順列・組み合わせ"},{id:"p612",text:"いろいろな場合の数"},{id:"p613",text:"資料の調べ方"}] },
+    { id:"6wmc5", name:"図形の計量", items:[{id:"p614",text:"円の面積"},{id:"p615",text:"図形の移動"},{id:"p616",text:"立体の体積と表面積"},{id:"p617",text:"立体の切断"},{id:"p618",text:"水の深さの変化"},{id:"p619",text:"立体図形の応用"}] },
+    { id:"6wmc6", name:"比例・反比例", items:[{id:"p620",text:"比例"},{id:"p621",text:"反比例"},{id:"p622",text:"いろいろな変化とグラフ"}] },
+    { id:"6wmc7", name:"文章題（和・差・割合・速さ）", items:[{id:"p623",text:"和と差の問題(1)"},{id:"p624",text:"和と差の問題(2)"},{id:"p625",text:"割合と比の問題(1)"},{id:"p626",text:"割合と比の問題(2)"},{id:"p627",text:"速さの問題(1)"},{id:"p628",text:"速さの問題(2)"}] },
+    { id:"6wmc8", name:"規則性・条件整理", items:[{id:"p629",text:"規則性の問題(1)"},{id:"p630",text:"規則性の問題(2)"},{id:"p631",text:"条件整理の問題(1)"},{id:"p632",text:"条件整理の問題(2)"}] },
+    { id:"6wmc9", name:"計算・総合演習", items:[{id:"p633",text:"計算"},{id:"p634",text:"一行問題"},{id:"p635",text:"表現力問題"}] }
+  ],
+
+  // ══════════════════════════════════════════════
+  //  小学4〜6年 国語 ウィンパス（X）
+  // ══════════════════════════════════════════════
+  "小4X_国語":[
+    { id:"4xkc1", name:"読み取りの基礎", items:[{id:"p401",text:"文学的文章の読み取り方"},{id:"p402",text:"詩の基礎的知識"},{id:"p403",text:"説明的文章の読み取り方"},{id:"p404",text:"問題の答え方"}] },
+    { id:"4xkc2", name:"第1ステージ", items:[{id:"p405",text:"物語(1)"},{id:"p406",text:"物語(2)"},{id:"p407",text:"詩(1)"},{id:"p408",text:"説明文(1)"},{id:"p409",text:"説明文(2)"},{id:"p410",text:"言葉の学習・言葉のきまり(1)"},{id:"p411",text:"思考力・判断力・表現力UP!(1)"}] },
+    { id:"4xkc3", name:"第2ステージ", items:[{id:"p412",text:"物語(3)"},{id:"p413",text:"物語(4)"},{id:"p414",text:"物語(5)"},{id:"p415",text:"説明文(3)"},{id:"p416",text:"説明文(4)"},{id:"p417",text:"言葉の学習・言葉のきまり(2)"},{id:"p418",text:"思考力・判断力・表現力UP!(2)"}] },
+    { id:"4xkc4", name:"第3ステージ", items:[{id:"p419",text:"物語(6)"},{id:"p420",text:"物語(7)"},{id:"p421",text:"詩(2)"},{id:"p422",text:"説明文(5)"},{id:"p423",text:"説明文(6)"},{id:"p424",text:"言葉の学習・言葉のきまり(3)"},{id:"p425",text:"思考力・判断力・表現力UP!(3)"}] },
+    { id:"4xkc5", name:"第4ステージ", items:[{id:"p426",text:"物語(8)"},{id:"p427",text:"物語(9)"},{id:"p428",text:"物語(10)"},{id:"p429",text:"説明文(7)"},{id:"p430",text:"説明文(8)"},{id:"p431",text:"言葉の学習・言葉のきまり(4)"},{id:"p432",text:"思考力・判断力・表現力UP!(4)"}] },
+    { id:"4xkc6", name:"総仕上げ", items:[{id:"p433",text:"物語の完成(1)"},{id:"p434",text:"物語の完成(2)"},{id:"p435",text:"詩の完成"},{id:"p436",text:"説明文の完成(1)"},{id:"p437",text:"説明文の完成(2)"},{id:"p438",text:"言葉の学習・言葉のきまり(5)"},{id:"p439",text:"思考力・判断力・表現力UP!(5)"},{id:"p440",text:"総仕上げテスト"}] }
+  ],
+  "小5X_国語":[
+    { id:"5xkc1", name:"読み取りの基礎", items:[{id:"p501",text:"文学的文章(物事・随筆)の読み取り方"},{id:"p502",text:"詩の基礎知識"},{id:"p503",text:"説明的文章(説明文・論説文)の読み取り方"},{id:"p504",text:"問題の答え方"}] },
+    { id:"5xkc2", name:"第1ステージ", items:[{id:"p505",text:"物語(1)"},{id:"p506",text:"物語(2)"},{id:"p507",text:"詩(1)"},{id:"p508",text:"説明文(1)"},{id:"p509",text:"説明文(2)"},{id:"p510",text:"言葉の学習・言葉のきまり(1)"},{id:"p511",text:"思考力・判断力・表現力UP!(1)"}] },
+    { id:"5xkc3", name:"第2ステージ", items:[{id:"p512",text:"物語(3)"},{id:"p513",text:"物語(4)"},{id:"p514",text:"伝記"},{id:"p515",text:"説明文(3)"},{id:"p516",text:"説明文(4)"},{id:"p517",text:"言葉の学習・言葉のきまり(2)"},{id:"p518",text:"思考力・判断力・表現力UP!(2)"}] },
+    { id:"5xkc4", name:"第3ステージ", items:[{id:"p519",text:"物語(5)"},{id:"p520",text:"物語(6)"},{id:"p521",text:"詩(2)"},{id:"p522",text:"説明文(5)"},{id:"p523",text:"説明文(6)"},{id:"p524",text:"言葉の学習・言葉のきまり(3)"},{id:"p525",text:"思考力・判断力・表現力UP!(3)"}] },
+    { id:"5xkc5", name:"第4ステージ", items:[{id:"p526",text:"物語(7)"},{id:"p527",text:"物語(8)"},{id:"p528",text:"随筆"},{id:"p529",text:"論説文(1)"},{id:"p530",text:"論説文(2)"},{id:"p531",text:"言葉の学習・言葉のきまり(4)"},{id:"p532",text:"思考力・判断力・表現力UP!(4)"}] },
+    { id:"5xkc6", name:"総仕上げ", items:[{id:"p533",text:"物語の完成(2)"},{id:"p534",text:"詩の完成"},{id:"p535",text:"説明文の完成"},{id:"p536",text:"論説文の完成"},{id:"p537",text:"言葉の学習・言葉のきまり(5)"},{id:"p538",text:"思考力・判断力・表現力UP!(5)"},{id:"p539",text:"総仕上げテスト(1)"},{id:"p540",text:"総仕上げテスト(2)"}] }
+  ],
+  "小6X_国語":[
+    { id:"6xkc1", name:"読み取りの基礎", items:[{id:"p601",text:"文学的文章(物語・随筆)の読み取り方"},{id:"p602",text:"詩・短歌・俳句の基礎知識"},{id:"p603",text:"説明的文章(説明文・論説文)の読み取り方"},{id:"p604",text:"問題の答え方"}] },
+    { id:"6xkc2", name:"第1ステージ", items:[{id:"p605",text:"物語(1)"},{id:"p606",text:"物語(2)"},{id:"p607",text:"詩"},{id:"p608",text:"説明文(1)"},{id:"p609",text:"説明文(2)"},{id:"p610",text:"言葉の学習・言葉のきまり(1)"},{id:"p611",text:"思考力・判断力・表現力UP!(1)"}] },
+    { id:"6xkc3", name:"第2ステージ", items:[{id:"p612",text:"物語(3)"},{id:"p613",text:"物語(4)"},{id:"p614",text:"随筆(1)"},{id:"p615",text:"説明文(3)"},{id:"p616",text:"説明文(4)"},{id:"p617",text:"言葉の学習・言葉のきまり(2)"},{id:"p618",text:"思考力・判断力・表現力UP!(2)"}] },
+    { id:"6xkc4", name:"第3ステージ", items:[{id:"p619",text:"物語(5)"},{id:"p620",text:"物語(6)"},{id:"p621",text:"短歌・俳句"},{id:"p622",text:"説明文(5)"},{id:"p623",text:"説明文(6)"},{id:"p624",text:"言葉の学習・言葉のきまり(3)"},{id:"p625",text:"思考力・判断力・表現力UP!(3)"}] },
+    { id:"6xkc5", name:"第4ステージ", items:[{id:"p626",text:"物語(7)"},{id:"p627",text:"物語(8)"},{id:"p628",text:"随筆(2)"},{id:"p629",text:"論説文(1)"},{id:"p630",text:"論説文(2)"},{id:"p631",text:"言葉の学習・言葉のきまり(4)"},{id:"p632",text:"思考力・判断力・表現力UP!(4)"}] },
+    { id:"6xkc6", name:"総仕上げ", items:[{id:"p633",text:"文学的文章の読解(1)"},{id:"p634",text:"文学的文章の読解(2)"},{id:"p635",text:"文学的文章の読解(3)"},{id:"p636",text:"文学的文章の読解(4)"},{id:"p637",text:"思考力・判断力・表現力UP!(5)"},{id:"p638",text:"総仕上げテスト(1)"},{id:"p639",text:"総仕上げテスト(2)"}] }
+  ],
 };
 
 // ─── 定数 ─────────────────────────────────────────────────────
@@ -1057,23 +1176,45 @@ function TextbookModal({si,students,textbookOverrides,onSave,onClose}){
   const grade=extractGrade(students[si]||"");
   const subjects=GRADE_SUBJECTS[grade]||[];
   const isMiddle=grade.startsWith("中");
-  if(!isMiddle){onClose();return null;}
+  const isSho=grade.startsWith("小");
+  if(!isMiddle&&!isSho){onClose();return null;}
   const gradeNum=grade.replace(/[^0-9]/g,"");
   const overrides=textbookOverrides[si]||{};
   const [vals,setVals]=useState(()=>{
     const init={};
-    subjects.forEach(subj=>{init[subj]=overrides[subj]||`${grade}_${subj}`;});
+    subjects.forEach(subj=>{
+      // デフォルト：中学生はY、小学生もY（明光式ワーク）
+      const defaultKey=isMiddle?`${grade}Y_${subj}`:`${grade}Y_${subj}`;
+      init[subj]=overrides[subj]||defaultKey;
+    });
     return init;
   });
-  const GRADE_OPTS=["1","2","3"];
-  const makeOpts=(subj)=>[
-    ...GRADE_OPTS.flatMap(n=>[
+  const CHU_OPTS=["1","2","3"];
+  const SHO_OPTS=["1","2","3","4","5","6"];
+  const makeChuOpts=(subj)=>[
+    ...CHU_OPTS.flatMap(n=>[
       {value:`中${n}Y_${subj}`,label:`中${n}年 α+10`,color:"#dcfce7",textColor:"#166534"},
       {value:`中${n}X_${subj}`,label:`中${n}年 ウイニング`,color:"#dbeafe",textColor:"#1e40af"},
     ]),
     {value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"},
   ];
-  const OPTIONS={"数学":makeOpts("数学"),"英語":makeOpts("英語")};
+  // 小学生：Y=明光式ワーク / X=ウィンパス / W=エフォート
+  // 小1〜小3はYのみ / 小4〜小6はY・X・W
+  const gNum=Number(grade.replace(/[^0-9]/g,""));
+  const makeShoOpts=(subj)=>{
+    const opts=[
+      {value:`${grade}Y_${subj}`,label:`${grade} 明光式ワーク(Y)`,color:"#dcfce7",textColor:"#166534"},
+    ];
+    if(gNum>=4){
+      opts.push({value:`${grade}X_${subj}`,label:`${grade} ウィンパス(X)`,color:"#dbeafe",textColor:"#1e40af"});
+      opts.push({value:`${grade}W_${subj}`,label:`${grade} エフォート(W)`,color:"#fef3c7",textColor:"#92400e"});
+    }
+    opts.push({value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"});
+    return opts;
+  };
+  const OPTIONS=isMiddle
+    ?{"数学":makeChuOpts("数学"),"英語":makeChuOpts("英語")}
+    :{"算数":makeShoOpts("算数"),"国語":makeShoOpts("国語")};
   const stuName=students[si]?.replace(/（.+?）/,"")||"";
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"16px"}} onClick={onClose}>
@@ -2144,7 +2285,7 @@ function App(){
     let t=0,d=0;
     subjects.forEach(subj=>{
       const override=jhTextbookOverrides[si]?.[subj];
-      const defaultKey=grade.startsWith('中')?`${grade}Y_${subj}`:`${grade}_${subj}`;
+      const defaultKey=(grade.startsWith('中')||grade.startsWith('小'))?`${grade}Y_${subj}`:`${grade}_${subj}`;
       const rawKey=override||defaultKey;
       if(rawKey&&rawKey.startsWith('none_')) return;
       const chs=CHAPTERS[rawKey]||[];
@@ -2211,6 +2352,8 @@ function App(){
     const override=jhTextbookOverrides[si]?.[subj];
     if(override){if(override.startsWith('none_')) return null; return override;}
     if(grade.startsWith('中')) return `${grade}Y_${subj}`;
+    // 小学生はデフォルトY（明光式ワーク）
+    if(grade.startsWith('小')) return `${grade}Y_${subj}`;
     return `${grade}_${subj}`;
   };
   const chapKey=jhSi>=0?jhTextbookKey(jhSi,activeSubj):null;
@@ -2372,7 +2515,7 @@ function App(){
                     <p style={{fontWeight:'bold',fontSize:'17px',color:GRADE_COLORS[activeGrade]||'#4f46e5',marginBottom:'2px'}}>{jhFullName}</p>
                   </div>
                   <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
-                    {isChu(activeGrade)&&<button onClick={()=>setShowTextbookModal(true)} style={{background:'#eef2ff',color:'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📚 テキスト</button>}
+                    <button onClick={()=>setShowTextbookModal(true)} style={{background:'#eef2ff',color:'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📚 テキスト</button>
                     {isChu(activeGrade)&&<button onClick={()=>setShowTestRangeModal(true)} style={{background:'#fef3c7',color:'#92400e',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📝 テスト範囲</button>}
                     <button onClick={()=>setShowDirectiveModal(true)} style={{background:'#f0fdf4',color:'#065f46',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📢 方針</button>
                   </div>
