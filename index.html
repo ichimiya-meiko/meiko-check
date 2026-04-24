@@ -1589,18 +1589,59 @@ function PasswordGate({onPass}){
 // ══════════════════════════════════════════
 // 講師選択画面
 // ══════════════════════════════════════════
-function TeacherSelectScreen({teachers,role,onSelect}){
+function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd}){
+  const [editMode,setEditMode]=useState(false);
+  const [newName,setNewName]=useState('');
+  const handleDel=(t)=>{
+    if(window.confirm(`講師「${t}」を削除しますか？\n※この操作は取り消せません`)){
+      onDelete(t);
+    }
+  };
+  const handleAdd=()=>{
+    const name=(newName||'').trim();
+    if(!name){alert('講師名を入力してください');return;}
+    if(teachers.includes(name)){alert('同じ名前の講師が既に登録されています');return;}
+    onAdd(name);setNewName('');
+  };
   return(
     <div style={{minHeight:'100vh',background:'#f0f4f8',padding:'24px 16px'}}>
       <div style={{maxWidth:'480px',margin:'0 auto'}}>
         <p style={{textAlign:'center',fontWeight:'bold',fontSize:'20px',color:'#1e3a8a',marginBottom:'6px'}}>👨‍🏫 講師を選択</p>
-        <p style={{textAlign:'center',color:'#6b7280',fontSize:'13px',marginBottom:'24px'}}>{role==='director'?'🏫 教室長モード':'講師モード'}</p>
+        <p style={{textAlign:'center',color:'#6b7280',fontSize:'13px',marginBottom:'16px'}}>{role==='director'?'🏫 教室長モード':'講師モード'}</p>
+        {role==='director'&&(
+          <div style={{display:'flex',justifyContent:'center',marginBottom:'16px'}}>
+            <button onClick={()=>setEditMode(!editMode)}
+              style={{background:editMode?'#dc2626':'#f59e0b',color:'white',border:'none',borderRadius:'8px',padding:'8px 16px',fontSize:'13px',cursor:'pointer',fontWeight:'bold'}}>
+              {editMode?'✕ 編集モード終了':'⚙ 講師リストを編集'}
+            </button>
+          </div>
+        )}
+        {editMode&&role==='director'&&(
+          <div style={{background:'#fef3c7',border:'1px solid #fbbf24',borderRadius:'10px',padding:'12px',marginBottom:'16px'}}>
+            <p style={{fontSize:'12px',color:'#78350f',marginBottom:'8px',fontWeight:'bold'}}>➕ 新しい講師を追加</p>
+            <div style={{display:'flex',gap:'6px'}}>
+              <input type="text" value={newName} onChange={e=>setNewName(e.target.value)} placeholder="例：山田 太郎"
+                onKeyDown={e=>e.key==='Enter'&&handleAdd()}
+                style={{flex:1,border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 10px',fontSize:'13px'}}/>
+              <button onClick={handleAdd} style={{background:'#065f46',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'13px',cursor:'pointer',fontWeight:'bold'}}>追加</button>
+            </div>
+            <p style={{fontSize:'11px',color:'#92400e',marginTop:'8px'}}>💡 各講師の右にある 🗑 ボタンで削除できます</p>
+          </div>
+        )}
         <div style={{display:'grid',gap:'8px'}}>
           {teachers.map((t,i)=>(
-            <button key={i} onClick={()=>onSelect(t)}
-              style={{background:'white',border:'2px solid #e5e7eb',borderRadius:'10px',padding:'14px 18px',fontSize:'15px',cursor:'pointer',textAlign:'left',fontWeight:'bold',color:'#374151'}}>
-              {t}
-            </button>
+            <div key={i} style={{display:'flex',gap:'4px'}}>
+              <button onClick={()=>!editMode&&onSelect(t)}
+                style={{flex:1,background:'white',border:'2px solid #e5e7eb',borderRadius:'10px',padding:'14px 18px',fontSize:'15px',cursor:editMode?'default':'pointer',textAlign:'left',fontWeight:'bold',color:'#374151'}}>
+                {t}
+              </button>
+              {editMode&&role==='director'&&(
+                <button onClick={()=>handleDel(t)} title="この講師を削除"
+                  style={{background:'#fee2e2',color:'#dc2626',border:'2px solid #fca5a5',borderRadius:'10px',padding:'0 14px',fontSize:'16px',cursor:'pointer',fontWeight:'bold'}}>
+                  🗑
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -2307,7 +2348,23 @@ function App(){
 
   // ── フェーズ分岐 ──
   if(phase==='login') return <PasswordGate onPass={handleLogin}/>;
-  if(phase==='teacher') return <TeacherSelectScreen teachers={teachers} role={role} onSelect={t=>{setSelTeacher(t);setPhase('students');}}/>;
+  if(phase==='teacher') return <TeacherSelectScreen teachers={teachers} role={role}
+    onSelect={t=>{setSelTeacher(t);setPhase('students');}}
+    onDelete={async t=>{
+      const next=teachers.filter(x=>x!==t);
+      setTeachers(next);
+      await hsSet('koukou:teachers',next);
+      await jhSet('teachers',next);
+      flash('🗑 削除しました');
+    }}
+    onAdd={async name=>{
+      const next=[...teachers,name];
+      setTeachers(next);
+      await hsSet('koukou:teachers',next);
+      await jhSet('teachers',next);
+      flash('➕ 追加しました');
+    }}
+  />;
   if(phase==='students') return(
     <StudentSelectScreen hsStudents={hsStudents} jhStudents={jhStudents}
       teacherName={selTeacher} role={role}
