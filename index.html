@@ -83,13 +83,25 @@ function stripGrade(s){return s.replace(/（.+?）/,'');}
 
 // GASアクセス
 async function hsGet(key,fb){
-  try{const r=await fetch(`${GAS_HS}?action=get&key=${encodeURIComponent(key)}`);const d=await r.json();return d.value?JSON.parse(d.value):fb;}catch{return fb;}
+  try{const r=await fetch(`${GAS_HS}?action=get&key=${encodeURIComponent(key)}`);const d=await r.json();const v=d.value?JSON.parse(d.value):fb;
+    try{localStorage.setItem('cache:hs:'+key,JSON.stringify({v,t:Date.now()}));}catch{}
+    return v;}catch{return fb;}
+}
+function hsGetCached(key,fb){
+  try{const c=localStorage.getItem('cache:hs:'+key);if(c){return JSON.parse(c).v;}}catch{}
+  return fb;
 }
 async function hsSet(key,val){
   try{await fetch(`${GAS_HS}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(JSON.stringify(val))}`);}catch{}
 }
 async function jhGet(key,fb){
-  try{const r=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+key)}`);const d=await r.json();return d.value?JSON.parse(d.value):fb;}catch{return fb;}
+  try{const r=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+key)}`);const d=await r.json();const v=d.value?JSON.parse(d.value):fb;
+    try{localStorage.setItem('cache:jh:'+key,JSON.stringify({v,t:Date.now()}));}catch{}
+    return v;}catch{return fb;}
+}
+function jhGetCached(key,fb){
+  try{const c=localStorage.getItem('cache:jh:'+key);if(c){return JSON.parse(c).v;}}catch{}
+  return fb;
 }
 async function jhSet(key,val){
   try{await fetch(`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(JSON.stringify(val))}`);}catch{}
@@ -1557,9 +1569,11 @@ function PasswordGate({onPass}){
   const [pw,setPw]=useState('');
   const [err,setErr]=useState('');
   const chk=role=>{
-    if((role==='teacher'&&pw===PW_TEACHER)||(role==='director'&&pw===PW_DIRECTOR)) onPass(role);
-    else setErr('パスワードが違います');
+    if((role==='teacher'&&pw===PW_TEACHER)||(role==='director'&&pw===PW_DIRECTOR)){
+      onPass(role);
+    } else setErr('パスワードが違います');
   };
+  const loading=false;
   return(
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1e3a8a,#065f46)'}}>
       <div style={{background:'white',borderRadius:'16px',padding:'40px',width:'340px',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
@@ -1573,14 +1587,15 @@ function PasswordGate({onPass}){
           onKeyDown={e=>e.key==='Enter'&&chk('teacher')}
           placeholder="パスワードを入力" autoFocus
           style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'10px',padding:'12px 14px',fontSize:'15px',marginBottom:'12px',outline:'none'}}/>
-        <button onClick={()=>chk('teacher')}
-          style={{width:'100%',background:'#1e3a8a',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:'pointer',marginBottom:'8px'}}>
-          講師としてログイン
+        <button onClick={()=>chk('teacher')} disabled={loading}
+          style={{width:'100%',background:loading?'#9ca3af':'#1e3a8a',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:loading?'wait':'pointer',marginBottom:'8px'}}>
+          {loading?'⏳ 読み込み中...':'講師としてログイン'}
         </button>
-        <button onClick={()=>chk('director')}
-          style={{width:'100%',background:'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:'pointer'}}>
-          教室長としてログイン
+        <button onClick={()=>chk('director')} disabled={loading}
+          style={{width:'100%',background:loading?'#9ca3af':'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:loading?'wait':'pointer'}}>
+          {loading?'⏳ 読み込み中...':'教室長としてログイン'}
         </button>
+        {loading&&<p style={{fontSize:'11px',color:'#6b7280',textAlign:'center',marginTop:'12px'}}>サーバーに接続中...数秒お待ちください</p>}
       </div>
     </div>
   );
@@ -2188,41 +2203,70 @@ function App(){
   // ログイン後：講師・生徒リストと軽量設定を先読み
   const handleLogin=async r=>{
     setRole(r);
-    const [t,hs,jh,tb,tr,dv,sk]=await Promise.all([
-      hsGet('koukou:teachers',ALL_TEACHERS_DEFAULT),
-      hsGet('koukou:students',HS_STUDENTS_DEFAULT),
-      jhGet('students',JH_STUDENTS_DEFAULT),
-      jhGet('textbookOverrides',{}),
-      jhGet('testRanges',{}),
-      jhGet('directives',{}),
-      jhGet('skipItems',{}),
-    ]);
-    setTeachers(t);setHsStudents(hs);setJhStudents(jh);
-    setJhTextbookOverrides(tb);setJhTestRanges(tr);setJhDirectives(dv);setJhSkipItems(sk);
-    setPhase('teacher');
+    // ① まずキャッシュから即時読み込んで画面を進める（超高速）
+    const cT=hsGetCached('koukou:teachers',ALL_TEACHERS_DEFAULT);
+    const cHs=hsGetCached('koukou:students',HS_STUDENTS_DEFAULT);
+    const cJh=jhGetCached('students',JH_STUDENTS_DEFAULT);
+    const cTb=jhGetCached('textbookOverrides',{});
+    const cTr=jhGetCached('testRanges',{});
+    const cDv=jhGetCached('directives',{});
+    const cSk=jhGetCached('skipItems',{});
+    setTeachers(cT);setHsStudents(cHs);setJhStudents(cJh);
+    setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);
+    setPhase('teacher');  // すぐ遷移
+    // ② バックグラウンドで最新データを取得してUIを更新
+    (async()=>{
+      const [t,hs,jh]=await Promise.all([
+        hsGet('koukou:teachers',cT),
+        hsGet('koukou:students',cHs),
+        jhGet('students',cJh),
+      ]);
+      setTeachers(t);setHsStudents(hs);setJhStudents(jh);
+      const [tb,tr,dv,sk]=await Promise.all([
+        jhGet('textbookOverrides',cTb),
+        jhGet('testRanges',cTr),
+        jhGet('directives',cDv),
+        jhGet('skipItems',cSk),
+      ]);
+      setJhTextbookOverrides(tb);setJhTestRanges(tr);setJhDirectives(dv);setJhSkipItems(sk);
+    })();
   };
 
   // 生徒選択後：選んだ生徒のデータだけ読む
   const handleStart=async selected=>{
     if(role==='director'){setSelStudents(selected);setPhase('director');return;}
-    setSelStudents(selected);setPhase('loading');
+    setSelStudents(selected);
+
+    // ① キャッシュから即時読み込んで画面を進める
     const hsNames=selected.filter(x=>x.type==='hs').map(x=>x.name);
     const jhNeeded=selected.some(x=>x.type==='jh');
-    const nr={},np={};
-    let i=0;
+    const cNr={},cNp={};
     for(const name of hsNames){
-      i++;setLoadMsg(`読み込み中… ${stripGrade(name)}（${i}/${selected.length}）`);
-      nr[name]=await hsGet(`koukou:records:${stripGrade(name)}`,{});
-      const p=await hsGet(`koukou:plan:${stripGrade(name)}`,null);
-      if(p) np[name]=p;
+      cNr[name]=hsGetCached(`koukou:records:${stripGrade(name)}`,{});
+      const p=hsGetCached(`koukou:plan:${stripGrade(name)}`,null);
+      if(p) cNp[name]=p;
     }
     if(jhNeeded){
-      setLoadMsg('小中学生の記録を読み込み中...');
-      const jr=await jhGet('records',{});
-      setJhRecords(jr);
+      const cJr=jhGetCached('records',{});
+      setJhRecords(cJr);
     }
-    setHsRecords(nr);setHsPlans(np);
+    setHsRecords(cNr);setHsPlans(cNp);
     setActiveStudentIdx(0);setPhase('main');
+
+    // ② バックグラウンドで最新データを取得して上書き
+    (async()=>{
+      const nr={...cNr},np={...cNp};
+      for(const name of hsNames){
+        nr[name]=await hsGet(`koukou:records:${stripGrade(name)}`,cNr[name]||{});
+        const p=await hsGet(`koukou:plan:${stripGrade(name)}`,cNp[name]||null);
+        if(p) np[name]=p;
+      }
+      if(jhNeeded){
+        const jr=await jhGet('records',{});
+        setJhRecords(jr);
+      }
+      setHsRecords(nr);setHsPlans(np);
+    })();
   };
 
   // 現在の生徒
