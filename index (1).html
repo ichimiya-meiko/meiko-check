@@ -1,0 +1,2800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>明光義塾 新屋敷教室 チェックアプリ</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback}=React;
+
+// ══════════════════════════════════════════
+// 定数
+// ══════════════════════════════════════════
+const PW_TEACHER  = '1384';
+const PW_DIRECTOR = 'meiko117';
+const GAS_HS = 'https://script.google.com/macros/s/AKfycbw_i4oxAIiuH-j-ZA9Ndtktwm1AkFqxgM3BuZQfEBB-9Jqr2xcek1eBrMLzNDfDgM8VYg/exec';
+const GAS_JH = 'https://script.google.com/macros/s/AKfycbybRa6HIwXqWbdhiI4MSTrYgTSuw6gWZCUijqjySaZNHFq84mxjZopl6ETGQ6dGgpu4Vw/exec';
+const JH_PREFIX = 'shochugaku:';
+
+// 統合教師リスト（小中学生側が先頭に2名追加）
+const ALL_TEACHERS_DEFAULT = ['山田島 尚史','十住 結羽','佐々木 俊輔','迫田 莉久','古田 達也','德丸 日向子','西 愛子','牧野 花太郎','村上 凜','伊藤 歩','高本 凉咲','増山 響','河野 紗織','金乙 瑞希','小多 美幸','黒川 奨真','小松 真綾','関岡 好実','沼田 亨太郎','一宮 紗耶佳','一宮 啓介'];
+
+// 高校生生徒（GASから読み込む・これはデフォルト値）
+const HS_STUDENTS_DEFAULT = ['池田 颯汰（高1）','小材 幸史朗（高1）','指山 大翔（高1）','張 薪蕙澤（高1）','樋口 花（高1）','冨樫 文（高1）','福島 優佳（高1）','宮下 蒼佑（高1）','矢野 華穂（高1）','山本 あかり（高1）','秋吉 夢晃（高1）','森田 柚希（高1）','加悦 洋丞（高1）','寺本 淳恵（高2）','田尻 晃征（高2）','山村 初穂（高2）','村山 奈々（高2）','山本 紗慧（高2）','神田 咲人（高2）','髙栁 隆太朗（高2）','松本 さくら（高2）','吉田 壮馬（高2）','迫丸 美和（高2）','佐々木 桃子（高2）','東 明佳音（高2）','渡辺 悠斗（高2）','村松 大智（高2）','江川 諒（高2）','小林 和來（高2）','馬場 惺也（高2）','甲斐 愛菜（高3）','岩上 桃子（高3）','松岡 学（中3）'];
+
+// 小中学生生徒（GASから読み込む・これはデフォルト値）
+const JH_STUDENTS_DEFAULT = ['植田 桜禾（小2）','井 さなみ（小3）','浦田 映人（小3）','星野 葵央（小4）','田中 陽斗（小4）','竹中 新（小4）','榮木 新菜（小4）','蓮尾 碧久（小4）','佐々木 希帆（小4）','吉村 優杜（小4）','松本 廣紀（小5）','火野坂 采音（小5）','藤山 翔大（小5）','角田 悠樹（小5）','白木 花歩（小5）','有江 雛美（小6）','田中 柾希（小6）','蓮尾 珂奈（小6）','宮下 彰人（小6）','山口 璃々加（小6）','田村 亮典（小6）','飯田 春馬（小6）','吉田 百希（小6）','成塚 結衣（小6）','牧野 響太郎（小6）','一宮 颯志（中1）','田中 あかり（中1）','松下 蓮（中1）','豊住 真人（中1）','森田 心穂（中1）','松本 雄真（中1）','藤山 凜乃（中1）','髙田 翔太（中1）','出永 りさ子（中1）','梅田 珠希（中1）','田中 悠斗（中1）','泉 信次郎（中1）','石井 悠稀（中1）','北原 旭陽（中1）','後藤 和希（中1）','吉田 すみれ（中1）','牧野 光之助（中1）','向窪 紗英（中1）','田中 瞬多（中1）','西村 陽（中1）','松尾 淳之介（中2）','宮下 涼太郎（中2）','田中 美咲希（中2）','甲斐 永真（中2）','桑田 淳之介（中2）','江田 麻妃（中2）','小野 美咲（中2）','宮里 将聖（中2）','飯蓋 龍水（中2）','吉安 健登（中2）','長谷川 晟（中2）','林田 彩希（中2）','橋新 卓（中2）','井 爽乃介（中2）','伊田 明珠（中2）','田村 悠高（中3）','添島 康平（中3）','牧田 佳枝（中3）','烏川 晴基（中3）','木下 響（中3）','寳口 美如（中3）','田代 環太（中3）','福田 あや花（中3）','井手 美陽（中3）','一宮 優佳（中3）','村上 もも（中3）','村上 ゆず（中3）','吉田 佑馬（中3）','浦田 佳音（中3）','出永 大晴（中3）','泉 廉太郎（中3）','江原 潤（中3）','小堀 草太朗（中3）','杉本 理采子（中3）','小田 敦丈（中3）','吉田 晴武（中3）','永野 遼平（中3）','坂本 琉哉（中3）'];
+
+// 高校生チャート関連定数
+const NYUMON_SETS = {
+  'ia':   {label:'数学ⅠA',  dataKey:'CHAPTERS_IA',   desc:'入門問題精講 数ⅠA'},
+  'iib':  {label:'数学ⅡB',  dataKey:'CHAPTERS_IIB',  desc:'入門問題精講 数ⅡB'},
+  'iiic': {label:'数学ⅢC',  dataKey:'CHAPTERS_IIIC', desc:'入門問題精講 数ⅢC（仮）'},
+};
+const SETS = {
+  'yellow_1a':{label:'黄チャート IA',  short:'黄IA', color:'#92400e',bg:'#fffbeb',border:'#fbbf24',dataKey:'CHAPTERS_YELLOW_1',nyumon:'ia',  desc:'数学ⅠA対応'},
+  'yellow_a': {label:'黄チャート A',   short:'黄A',  color:'#78350f',bg:'#fef3c7',border:'#f59e0b',dataKey:'CHAPTERS_YELLOW_A', nyumon:'ia',  desc:'数学A対応'},
+  'white_1a': {label:'白チャート IA',  short:'白IA', color:'#374151',bg:'#f9fafb',border:'#9ca3af',dataKey:'CHAPTERS_WHITE',    nyumon:'ia',  desc:'数学ⅠA対応'},
+  'blue_1a':  {label:'青チャート IA',  short:'青IA', color:'#1d4ed8',bg:'#eff6ff',border:'#3b82f6',dataKey:'CHAPTERS_BLUE_1',   nyumon:'ia',  desc:'数学ⅠA対応'},
+  'yellow_2': {label:'黄チャート ⅡB', short:'黄ⅡB',color:'#713f12',bg:'#fefce8',border:'#facc15',dataKey:'CHAPTERS_YELLOW_2', nyumon:'iib', desc:'数学ⅡB対応'},
+  'yellow_b': {label:'黄チャート B',   short:'黄B',  color:'#78350f',bg:'#fef9c3',border:'#eab308',dataKey:'CHAPTERS_YELLOW_B', nyumon:'iib', desc:'数学B対応'},
+  'white_2b': {label:'白チャート ⅡB', short:'白ⅡB',color:'#065f46',bg:'#f0fdf4',border:'#6ee7b7',dataKey:'CHAPTERS_WHITE_2',  nyumon:'iib', desc:'数学ⅡB対応'},
+  'white_2bc':{label:'白チャート ⅡBC',short:'白ⅡBC',color:'#581c87',bg:'#faf5ff',border:'#d8b4fe',dataKey:'CHAPTERS_WHITE_C', nyumon:'iib', desc:'数学ⅡBC対応'},
+  'blue_2b':  {label:'青チャート ⅡB', short:'青ⅡB',color:'#1e3a8a',bg:'#e0f2fe',border:'#7dd3fc',dataKey:'CHAPTERS_BLUE_2',   nyumon:'iib', desc:'数学ⅡB対応'},
+  'blue_2bc': {label:'青チャート ⅡBC',short:'青ⅡBC',color:'#1a1a5e',bg:'#eef2ff',border:'#a5b4fc',dataKey:'CHAPTERS_BLUE_C',  nyumon:'iib', desc:'数学ⅡBC対応'},
+  'yellow_c': {label:'黄チャート C',   short:'黄C',  color:'#713f12',bg:'#fefce8',border:'#d97706',dataKey:'CHAPTERS_YELLOW_C', nyumon:'iib', desc:'数学C対応'},
+  'yellow_3': {label:'黄チャート 数Ⅲ',short:'黄Ⅲ', color:'#7c2d12',bg:'#fff7ed',border:'#c2410c',dataKey:'CHAPTERS_YELLOW_3', nyumon:'iiic',desc:'数学Ⅲ対応'},
+  'white_3':  {label:'白チャート 数Ⅲ',short:'白Ⅲ', color:'#831843',bg:'#fff1f2',border:'#fda4af',dataKey:'CHAPTERS_WHITE_3',  nyumon:'iiic',desc:'数学Ⅲ対応'},
+  'blue_3':   {label:'青チャート 数Ⅲ',short:'青Ⅲ', color:'#312e81',bg:'#f5f3ff',border:'#c4b5fd',dataKey:'CHAPTERS_BLUE_3',   nyumon:'iiic',desc:'数学Ⅲ対応'},
+  'yellow_3c':{label:'黄チャート ⅢC', short:'黄ⅢC',color:'#7c2d12',bg:'#fff7ed',border:'#f97316',dataKey:'CHAPTERS_YELLOW_3', nyumon:'iiic',desc:'数学ⅢC対応'},
+  'white_3c': {label:'白チャート ⅢC', short:'白ⅢC',color:'#831843',bg:'#fff1f2',border:'#f43f5e',dataKey:'CHAPTERS_WHITE_3',  nyumon:'iiic',desc:'数学ⅢC対応'},
+  'blue_3c':  {label:'青チャート ⅢC', short:'青ⅢC',color:'#312e81',bg:'#f5f3ff',border:'#818cf8',dataKey:'CHAPTERS_BLUE_3',   nyumon:'iiic',desc:'数学ⅢC対応'},
+};
+const CYCLE     = {'未':'◯','◯':'△','△':'✗','✗':'未'};
+const ST_BG     = {'未':'#f3f4f6','◯':'#d1fae5','△':'#fef3c7','✗':'#fee2e2'};
+const ST_COL    = {'未':'#6b7280','◯':'#065f46','△':'#92400e','✗':'#991b1b'};
+const COMPASS_COLOR = {1:'#dcfce7',2:'#bbf7d0',3:'#fef9c3',4:'#fed7aa',5:'#fecaca'};
+
+// 生徒の種別判定
+function getStudentType(name){
+  const g = (name.match(/（(.+?)）/)||[])[1]||'';
+  if(g.startsWith('高')||g==='中3'&&name.includes('（中3）')) return 'hs';
+  if(g.startsWith('小')||g.startsWith('中')) return 'jh';
+  return 'hs';
+}
+function isHS(name){
+  const g=(name.match(/（(.+?)）/)||[])[1]||'';
+  return g.startsWith('高')||(g==='中3');
+}
+
+let DB = null;
+function getChaps(k){return DB?DB[k]||[]:[]}
+function getNyumon(k){return DB?DB[NYUMON_SETS[k]?.dataKey]||[]:[]}
+
+function toDay(){return new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});}
+function stripGrade(s){return s.replace(/（.+?）/,'');}
+
+// GASアクセス
+async function hsGet(key,fb){
+  try{const r=await fetch(`${GAS_HS}?action=get&key=${encodeURIComponent(key)}`);const d=await r.json();const v=d.value?JSON.parse(d.value):fb;
+    try{localStorage.setItem('cache:hs:'+key,JSON.stringify({v,t:Date.now()}));}catch{}
+    return v;}catch{return fb;}
+}
+function hsGetCached(key,fb){
+  try{const c=localStorage.getItem('cache:hs:'+key);if(c){return JSON.parse(c).v;}}catch{}
+  return fb;
+}
+async function hsSet(key,val){
+  try{await fetch(`${GAS_HS}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(JSON.stringify(val))}`);}catch{}
+}
+async function jhGet(key,fb){
+  try{const r=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+key)}`);const d=await r.json();const v=d.value?JSON.parse(d.value):fb;
+    try{localStorage.setItem('cache:jh:'+key,JSON.stringify({v,t:Date.now()}));}catch{}
+    return v;}catch{return fb;}
+}
+function jhGetCached(key,fb){
+  try{const c=localStorage.getItem('cache:jh:'+key);if(c){return JSON.parse(c).v;}}catch{}
+  return fb;
+}
+async function jhSet(key,val){
+  try{await fetch(`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(JSON.stringify(val))}`);}catch{}
+}
+
+function calcHomework(plan){
+  const {startDate,deadline,maxLevel,nyumonRange,chartRange,textbookSet}=plan||{};
+  if(!startDate||!deadline||!textbookSet) return null;
+  const ss=SETS[textbookSet];if(!ss) return null;
+  const nyumonKey=ss.nyumon||'ia';
+  const lv=maxLevel||5;
+  const nFrom=nyumonRange?.from||1, nTo=nyumonRange?.to||99;
+  const cFrom=chartRange?.from||1,  cTo=chartRange?.to||99;
+  const skipSet=new Set(plan.skipItems||[]);
+  let nTotal=0,cTotal=0;
+  getNyumon(nyumonKey).forEach((ch,ci)=>{
+    if(ci+1<nFrom||ci+1>nTo) return;
+    ch.items.forEach(it=>{if(!skipSet.has(`IA_${it.id}`)) nTotal++;});
+  });
+  getChaps(ss.dataKey).forEach((ch,ci)=>{
+    if(ci+1<cFrom||ci+1>cTo) return;
+    ch.items.forEach(it=>{if((it.level||1)<=lv&&!skipSet.has(`CHART_${it.id}`)) cTotal++;});
+  });
+  const total=nTotal+cTotal;
+  const s=new Date(startDate),e=new Date(deadline);
+  const days=Math.max(1,Math.round((e-s)/86400000));
+  const weeks=Math.max(1,Math.round(days/7));
+  return{total,nTotal,cTotal,days,weeks,perWeek:Math.ceil(total/weeks),perDay:Math.ceil(total/days)};
+}
+
+// ─── 教科定義 ─────────────────────────────────────────────────
+// 小学生：算数のみ / 中学生：数学＋英語
+const GRADE_SUBJECTS = {
+  "小1":["算数","国語"],"小2":["算数","国語"],"小3":["算数","国語"],
+  "小4":["算数","国語"],"小5":["算数","国語"],"小6":["算数","国語"],
+  "中1":["数学","英語"],
+  "中2":["数学","英語"],
+  "中3":["数学","英語"],
+};
+const SUBJECT_COLOR = {"算数":"#0891b2","数学":"#1d4ed8","英語":"#059669","国語":"#dc2626"};
+
+// ─── チャプターデータ（教科別） ────────────────────────────────
+// キー形式: "学年_教科"
+const CHAPTERS = {
+
+  // ══════════════════════════════════════════════
+  //  小1 算数
+  // ══════════════════════════════════════════════
+  "小1Y_算数": [
+    { id:"g1c1", name:"かずのかんかく", items:[
+      {id:"101",text:"5までのかず"},{id:"102",text:"10までのかず"},{id:"103",text:"なんばんめ"},
+      {id:"104",text:"6,7,8はいくつといくつ"},{id:"105",text:"9,10はいくつといくつ・0というかず"},
+      {id:"106",text:"いろいろなかたち"},{id:"114",text:"かずしらべ"},
+      {id:"115",text:"10よりおおきいかず"},{id:"116",text:"10といくつ・かずのならびかた"},
+      {id:"132",text:"かずのかぞえかた・かきかた"},{id:"133",text:"100までのかず"},{id:"134",text:"100をこえるかず"},
+    ]},
+    { id:"g1c2", name:"たしざん・ひきざん", items:[
+      {id:"107",text:"ふえたり へったり"},{id:"108",text:"あわせて いくつ"},{id:"109",text:"ふえると いくつ"},
+      {id:"110",text:"たしざんのもんだい"},{id:"111",text:"のこりは いくつ"},{id:"112",text:"ちがいは いくつ"},
+      {id:"113",text:"ひきざんのもんだい"},{id:"117",text:"たしざんとひきざん（1）"},{id:"118",text:"たしざんとひきざん（2）"},
+      {id:"122",text:"3つのかずのけいさん"},{id:"123",text:"たしざん（1）"},{id:"124",text:"たしざん（2）"},
+      {id:"125",text:"たしざんのれんしゅう"},{id:"127",text:"ひきざん（1）"},{id:"128",text:"ひきざん（2）"},
+      {id:"129",text:"ひきざんのれんしゅう"},{id:"130",text:"0のたしざんとひきざん"},
+      {id:"138",text:"100までのかずのけいさん（1）"},{id:"139",text:"100までのかずのけいさん（2）"},{id:"140",text:"100までのかずのけいさん（3）"},
+    ]},
+    { id:"g1c3", name:"ずけい・じかん・くらべかた", items:[
+      {id:"119",text:"なんじ なんじはん"},{id:"120",text:"ながさくらべ"},{id:"121",text:"かさくらべ"},
+      {id:"126",text:"かたちづくり"},{id:"131",text:"ものとひとのかず"},{id:"135",text:"なんじ なんぷん"},
+      {id:"136",text:"おなじかずずつ"},{id:"141",text:"おおいほう すくないほう"},{id:"142",text:"ひろさくらべ"},
+    ]},
+    { id:"g1c4", name:"もんだい・まとめ", items:[
+      {id:"137",text:"たすのかな ひくのかな"},{id:"143",text:"かえますか？かえませんか?"},
+      {id:"144",text:"1年のまとめ①"},{id:"145",text:"1年のまとめ②"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  小2 算数
+  // ══════════════════════════════════════════════
+  "小2Y_算数": [
+    { id:"g2c1", name:"たし算・ひき算", items:[
+      {id:"201",text:"1年のふくしゅう①②"},{id:"202",text:"何十をたしたり ひいたりする計算"},
+      {id:"204",text:"たし算"},{id:"205",text:"ひき算"},{id:"208",text:"たし算（1）"},
+      {id:"209",text:"ひき算（1）"},{id:"214",text:"たし算とひき算"},{id:"217",text:"たし算（2）"},
+      {id:"218",text:"ひき算（2）"},{id:"219",text:"大きい数のひっ算"},{id:"221",text:"しきと計算"},
+    ]},
+    { id:"g2c2", name:"かけ算・九九", items:[
+      {id:"222",text:"いくつ分とかけ算・何ばいとかけ算"},{id:"223",text:"かけ算の九九（1）"},
+      {id:"224",text:"かけ算の九九（2）"},{id:"225",text:"九九づくり（1）"},{id:"226",text:"九九づくり（2）"},
+      {id:"227",text:"九九づくり（3）かけ算をつかったもんだい"},{id:"235",text:"かけ算のきまり"},{id:"236",text:"かけ算を広げて"},
+    ]},
+    { id:"g2c3", name:"たんい・ずけい・数", items:[
+      {id:"203",text:"ひょうとグラフ"},{id:"206",text:"時こくと時間"},{id:"207",text:"長さ"},
+      {id:"215",text:"かさ"},{id:"229",text:"三角形と四角形"},{id:"230",text:"長方形と正方形（1）"},
+      {id:"231",text:"長方形と正方形（2）"},{id:"237",text:"100cmをこえる長さ"},
+      {id:"238",text:"1000をこえる数"},{id:"239",text:"はこの形 はこづくり"},{id:"240",text:"分数"},
+    ]},
+    { id:"g2c4", name:"もんだい・まとめ", items:[
+      {id:"210",text:"ほうかご 何する？（1）"},{id:"211",text:"ほうかご 何する？（2）"},
+      {id:"212",text:"100をこえる数（1）"},{id:"213",text:"100をこえる数（2）"},
+      {id:"216",text:"買えますか？買えませんか？"},{id:"220",text:"こんにちは さようなら"},
+      {id:"228",text:"図やしきをつかって"},{id:"232",text:"かっても まけても！"},
+      {id:"233",text:"どんな計算になるのかな"},{id:"234",text:"何番目"},
+      {id:"241",text:"2年のまとめ①"},{id:"242",text:"2年のまとめ②"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  小3 算数
+  // ══════════════════════════════════════════════
+  "小3Y_算数": [
+    { id:"g3c1", name:"かけ算・わり算", items:[
+      {id:"301",text:"2年の復習①"},{id:"302",text:"2年の復習②"},
+      {id:"304",text:"九九の表とかけ算"},{id:"305",text:"1人分の数をもとめる計算・2つの分け方"},
+      {id:"306",text:"わり算を使った問題・答えが九九にないわり算（1）"},
+      {id:"307",text:"答えが九九にないわり算（2）"},
+      {id:"334",text:"何十・何百のかけ算，2桁×1桁の筆算（1）"},{id:"335",text:"2桁×1桁の筆算（2）"},
+      {id:"336",text:"3桁×1桁の筆算・暗算"},{id:"347",text:"何十をかけるかけ算・2桁×2桁の筆算（1）"},
+      {id:"348",text:"2桁×2桁の筆算（2）3桁×2桁の筆算"},
+    ]},
+    { id:"g3c2", name:"たし算・ひき算の筆算", items:[
+      {id:"303",text:"何百のたし算とひき算"},{id:"310",text:"たし算の筆算（1）"},{id:"311",text:"たし算の筆算（2）"},
+      {id:"312",text:"ひき算の筆算（1）"},{id:"313",text:"ひき算の筆算（2）"},
+      {id:"314",text:"4けたの数の筆算・計算のくふう"},{id:"322",text:"たし算とひき算"},
+      {id:"333",text:"計算のじゅんじょ"},{id:"337",text:"式と計算"},
+    ]},
+    { id:"g3c3", name:"大きい数・分数・小数", items:[
+      {id:"316",text:"万の位（1）"},{id:"317",text:"万の位（2）"},{id:"318",text:"10倍した数・10でわった数"},
+      {id:"338",text:"分数の大きさ（分数のあまり）（1）"},{id:"339",text:"分数の大きさ（2）分数のたし算・ひき算"},
+      {id:"343",text:"小数のあまりの表し方"},{id:"345",text:"小数の大きさ"},{id:"346",text:"小数のたし算・ひき算"},
+    ]},
+    { id:"g3c4", name:"たんい・ずけい・データ", items:[
+      {id:"315",text:"時こくと時間（1）"},{id:"316b",text:"時こくと時間（2）"},
+      {id:"319",text:"整理のしかた"},{id:"320",text:"整理のしかたのくふう"},{id:"321",text:"表やグラフを組み合わせて"},
+      {id:"324",text:"長さ"},{id:"327",text:"重さの表し方"},{id:"328",text:"たんいの関係"},
+      {id:"329",text:"円と球（1）"},{id:"330",text:"円と球（2）"},
+      {id:"341",text:"二等辺三角形と正三角形"},{id:"342",text:"角"},
+    ]},
+    { id:"g3c5", name:"文章題・まとめ", items:[
+      {id:"308",text:"あれ？たくさんいたのに…"},{id:"323",text:"どんな計算になるのかな"},
+      {id:"325",text:"あまりのあるわり算のしかた"},{id:"326",text:"あまりを考えて"},
+      {id:"331",text:"何倍かをもとめる・もとにする大きさをもとめる"},{id:"332",text:"何倍になるかを考えて"},
+      {id:"340",text:"間の数"},{id:"349",text:"□を使った式"},{id:"350",text:"買えますか？買えませんか？"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  小4 算数
+  // ══════════════════════════════════════════════
+  "小4Y_算数": [
+    { id:"g4c1", name:"大きい数・グラフ", items:[
+      {id:"401",text:"3年生の復習①②"},{id:"402",text:"大きな数の位"},{id:"403",text:"大きな数の計算"},
+      {id:"404",text:"変わり方を表すグラフ"},{id:"405",text:"折れ線グラフの書き方"},{id:"406",text:"2つのグラフを比べて"},
+    ]},
+    { id:"g4c2", name:"わり算・角・四角形", items:[
+      {id:"407",text:"2桁÷1桁の筆算"},{id:"408",text:"3桁÷1桁の筆算・暗算"},
+      {id:"409",text:"角の大きさのはかり方（1）"},{id:"410",text:"角の大きさのはかり方（2）角のかき方"},
+      {id:"411",text:"垂直と平行・垂直や平行な直線のかき方"},{id:"412",text:"四角形（1）"},{id:"413",text:"四角形（2）"},
+    ]},
+    { id:"g4c3", name:"小数・わり算の筆算", items:[
+      {id:"414",text:"小数の表し方・小数のしくみ（1）"},{id:"415",text:"小数のしくみ（2）"},
+      {id:"416",text:"小数のたし算・ひき算"},{id:"417",text:"公園をきれいに"},
+      {id:"418",text:"何十でわる割り算"},{id:"419",text:"商が1ケタになる筆算"},
+      {id:"420",text:"商が2桁・3桁になる筆算，わり算の性質"},
+    ]},
+    { id:"g4c4", name:"計算・面積・概数", items:[
+      {id:"421",text:"色々な計算が混じった式"},{id:"422",text:"計算の決まり"},
+      {id:"423",text:"式のよみ方・計算の間の関係"},{id:"424",text:"倍の見方（1）"},
+      {id:"425",text:"倍の見方（2）何倍になるかを考えて"},{id:"426",text:"面積"},
+      {id:"427",text:"面積の求め方の工夫"},{id:"428",text:"大きな面積・面積の単位の関係"},
+      {id:"429",text:"概数の表し方（1）"},{id:"430",text:"概数の表し方（2）"},{id:"431",text:"概数の計算"},
+    ]},
+    { id:"g4c5", name:"小数のかけ算・わり算・分数", items:[
+      {id:"432",text:"わすれても大丈夫"},{id:"433",text:"小数のかけ算（1）"},{id:"434",text:"小数のかけ算（2）"},
+      {id:"435",text:"小数のわり算（1）"},{id:"436",text:"小数のわり算（2）"},{id:"437",text:"小数のわり算（3）"},
+      {id:"438",text:"小数のわり算（4）小数倍"},{id:"439",text:"明石海峡大橋のひみつ"},{id:"440",text:"だれでしょう"},
+      {id:"441",text:"調べ方と整理のしかた・どれにしようかな"},
+      {id:"442",text:"1より大きい分数・分数のたし算ひき算（1）"},{id:"443",text:"分数のたし算ひき算（2）等しい分数"},
+      {id:"444",text:"変わり方（1）"},{id:"445",text:"変わり方（2）"},
+      {id:"446",text:"直方体と立方体"},{id:"447",text:"面や辺の平行と垂直"},{id:"448",text:"位置の表し方"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  小5 算数
+  // ══════════════════════════════════════════════
+  "小5Y_算数": [
+    { id:"g5c1", name:"整数・小数・体積・比例", items:[
+      {id:"501",text:"4年生の復習①②"},{id:"502",text:"整数と小数"},
+      {id:"503",text:"直方体・立方体の体積（1）"},{id:"504",text:"直方体・立方体の体積（2）"},
+      {id:"505",text:"大きな体積・体積の単位の関係"},{id:"506",text:"比例"},
+    ]},
+    { id:"g5c2", name:"小数のかけ算・わり算", items:[
+      {id:"507",text:"整数×小数"},{id:"508",text:"小数×小数"},{id:"509",text:"小数のかけ算を使って"},
+      {id:"510",text:"整数÷小数"},{id:"511",text:"小数÷小数（1）"},{id:"512",text:"小数÷小数（2）"},
+      {id:"513",text:"計算の間の関係"},
+    ]},
+    { id:"g5c3", name:"割合・合同・倍数・約数", items:[
+      {id:"514",text:"割合（1）①"},{id:"515",text:"割合（1）②"},
+      {id:"516",text:"合同な図形"},{id:"517",text:"合同な図形のかき方"},{id:"518",text:"三角形・四角形の書き方"},
+      {id:"519",text:"もう1回！もう1回！"},{id:"520",text:"偶数奇数、倍数と公倍数（1）"},
+      {id:"521",text:"倍数と公倍数（2）"},{id:"522",text:"約数と公約数"},
+    ]},
+    { id:"g5c4", name:"分数・面積・平均・割合", items:[
+      {id:"523",text:"等しい分数"},{id:"524",text:"分数のたし算ひき算（1）"},{id:"525",text:"分数のたし算ひき算（2）"},
+      {id:"526",text:"分数と割り算,分数と小数・整数の関係・分数倍"},
+      {id:"527",text:"三角形の面積・平行四辺形の面積（1）"},{id:"528",text:"平行四辺形の面積（2）台形・ひし形の面積"},
+      {id:"529",text:"面積の求め方の工夫・面積と比例"},{id:"530",text:"平均（1）"},{id:"531",text:"平均（2）平均を使って"},
+      {id:"532",text:"単位量当たりの大きさ"},{id:"533",text:"遊園地へゴー"},
+      {id:"534",text:"割合"},{id:"535",text:"百分率"},{id:"536",text:"割合を使って"},
+    ]},
+    { id:"g5c5", name:"正多角形・グラフ・角柱・速さ", items:[
+      {id:"537",text:"人文字"},{id:"538",text:"見積を使って"},{id:"539",text:"正多角形"},
+      {id:"540",text:"円周と直径・円周と比例"},{id:"541",text:"帯グラフと円グラフ"},{id:"542",text:"帯グラフと円グラフを使って"},
+      {id:"543",text:"角柱と円柱（1）"},{id:"544",text:"角柱と円柱（2）"},
+      {id:"545",text:"速さ（1）"},{id:"546",text:"速さ（2）"},{id:"547",text:"変わり方"},{id:"548",text:"いつ会える？"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  小6 算数
+  // ══════════════════════════════════════════════
+  "小6Y_算数": [
+    { id:"g6c1", name:"対称・文字式・分数のかけ算", items:[
+      {id:"601",text:"線対称"},{id:"602",text:"点対称"},{id:"603",text:"多角形と対称"},
+      {id:"604",text:"文字を使った式"},{id:"605",text:"式の読み方"},
+      {id:"606",text:"分数×整数，分数÷整数"},{id:"607",text:"分数をかける計算(1)"},
+      {id:"608",text:"分数をかける計算(2)"},{id:"609",text:"分数をかける計算(3)"},
+      {id:"610",text:"分数のかけ算を使って（1）"},{id:"611",text:"分数のかけ算を使って（2）"},
+    ]},
+    { id:"g6c2", name:"分数のわり算・割合・場合の数", items:[
+      {id:"612",text:"分数でわる計算（1）"},{id:"613",text:"分数でわる計算（2）"},{id:"614",text:"分数でわる計算（3）"},
+      {id:"615",text:"割合を表す分数"},{id:"616",text:"場合の数の調べ方"},
+      {id:"617",text:"色々な条件を考えて"},{id:"618",text:"日本の森林面積は？"},
+    ]},
+    { id:"g6c3", name:"円・立体・データ", items:[
+      {id:"619",text:"円の面積（１）"},{id:"620",text:"円の面積（２）"},{id:"621",text:"立体の体積"},
+      {id:"622",text:"データの整理"},{id:"623",text:"ちらばりの様子を表す表・グラフ（１）"},
+      {id:"624",text:"ちらばりの様子を表す表・グラフ（２）"},{id:"625",text:"子供会の準備"},
+    ]},
+    { id:"g6c4", name:"比・拡大縮小・比例反比例", items:[
+      {id:"626",text:"比、等しい比（1）"},{id:"627",text:"等しい比（2）"},{id:"628",text:"比を使った問題"},
+      {id:"629",text:"拡大図と縮図"},{id:"630",text:"拡大図と縮図の書き方（１）"},{id:"631",text:"拡大図と縮図の書き方（２）"},
+      {id:"632",text:"縮図の利用"},{id:"633",text:"比例（１）"},{id:"634",text:"比例（２）"},
+      {id:"635",text:"比例（３）"},{id:"636",text:"比例（４）比例を使って"},
+      {id:"637",text:"反比例（１）"},{id:"638",text:"反比例（２）"},
+      {id:"639",text:"ぴったりを探せ"},{id:"640",text:"食といのち"},
+      {id:"641",text:"およその形と面積・およその体積"},{id:"642",text:"単位の間の関係"},
+      {id:"643",text:"よういスタート"},{id:"644",text:"すごろく"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  中学Y 数学（α+10）
+  // ══════════════════════════════════════════════
+  "中1Y_数学": [
+    { id:"m1Ymath_c1", name:"数と式", items:[
+      {id:"m1Y101",text:"正負の数の意味"},{id:"m1Y102",text:"正負の数の加法・減法"},
+      {id:"m1Y103",text:"正負の数の乗法・除法"},{id:"m1Y104",text:"正負の数の四則計算"},
+      {id:"m1Y105",text:"素数・素因数分解"},{id:"m1Y106",text:"文字式の表し方"},
+      {id:"m1Y107",text:"式の値・文字式の加減"},{id:"m1Y108",text:"文字式の計算"},
+    ]},
+    { id:"m1Ymath_c2", name:"方程式・関数", items:[
+      {id:"m1Y109",text:"1次方程式とその解"},{id:"m1Y110",text:"1次方程式の解法"},
+      {id:"m1Y111",text:"1次方程式の応用"},{id:"m1Y112",text:"変化と関数"},
+      {id:"m1Y113",text:"座標"},{id:"m1Y114",text:"比例"},{id:"m1Y115",text:"反比例"},
+    ]},
+    { id:"m1Ymath_c3", name:"図形・データ", items:[
+      {id:"m1Y116",text:"直線・角・垂直と平行"},{id:"m1Y117",text:"作図と移動"},
+      {id:"m1Y118",text:"空間内の位置関係"},{id:"m1Y119",text:"立体"},
+      {id:"m1Y120",text:"体積・表面積"},{id:"m1Y121",text:"データの活用"},
+      {id:"m1Y122",text:"中1のまとめテスト"},
+    ]},
+  ],
+  "中2Y_数学": [
+    { id:"m2Ymath_c1", name:"式の計算・方程式", items:[
+      {id:"m2Y201",text:"単項式と多項式・式の乗除"},{id:"m2Y202",text:"文字式の計算"},
+      {id:"m2Y203",text:"文字式の利用"},{id:"m2Y204",text:"連立方程式の解法"},
+      {id:"m2Y205",text:"いろいろな連立方程式"},{id:"m2Y206",text:"連立方程式の応用"},
+    ]},
+    { id:"m2Ymath_c2", name:"1次関数", items:[
+      {id:"m2Y207",text:"1次関数とグラフ"},{id:"m2Y208",text:"直線の式"},
+      {id:"m2Y209",text:"2元1次方程式とグラフ"},{id:"m2Y210",text:"1次関数の応用"},
+    ]},
+    { id:"m2Ymath_c3", name:"図形・確率", items:[
+      {id:"m2Y211",text:"平行線と角"},{id:"m2Y212",text:"多角形と角・合同"},
+      {id:"m2Y213",text:"定理と証明"},{id:"m2Y214",text:"二等辺三角形"},
+      {id:"m2Y215",text:"直角三角形"},{id:"m2Y216",text:"平行四辺形"},
+      {id:"m2Y217",text:"特別な平行四辺形"},{id:"m2Y218",text:"確率"},{id:"m2Y219",text:"箱ひげ図"},
+    ]},
+  ],
+  "中3Y_数学": [
+    { id:"m3Ymath_c1", name:"式の展開・因数分解・平方根", items:[
+      {id:"m3Y301",text:"式の展開・乗法公式"},{id:"m3Y302",text:"式の展開の利用"},
+      {id:"m3Y303",text:"因数分解"},{id:"m3Y304",text:"因数分解のくふう"},
+      {id:"m3Y305",text:"平方根の意味"},{id:"m3Y306",text:"根号のついた数の乗除"},
+      {id:"m3Y307",text:"根号のついた数の加減"},{id:"m3Y308",text:"有理数と無理数"},
+      {id:"m3Y309",text:"平方根と展開"},
+    ]},
+    { id:"m3Ymath_c2", name:"2次方程式・関数", items:[
+      {id:"m3Y310",text:"2次方程式とその解"},{id:"m3Y311",text:"2次方程式の解法"},
+      {id:"m3Y312",text:"2次方程式の応用"},{id:"m3Y313",text:"2乗に比例する関数"},
+    ]},
+    { id:"m3Ymath_c3", name:"図形・標本調査", items:[
+      {id:"m3Y314",text:"拡大・縮小と相似"},{id:"m3Y315",text:"相似の利用"},
+      {id:"m3Y316",text:"中点連結定理"},{id:"m3Y317",text:"相似と計量"},
+      {id:"m3Y318",text:"円周角"},{id:"m3Y319",text:"三平方の定理"},
+      {id:"m3Y320",text:"立体図形と三平方の定理"},{id:"m3Y321",text:"標本調査"},
+    ]},
+    { id:"m3Ymath_c4", name:"総合まとめ", items:[
+      {id:"m3Y322",text:"数と式の計算"},{id:"m3Y323",text:"方程式"},
+      {id:"m3Y324",text:"図形の性質"},{id:"m3Y325",text:"関数とグラフ"},
+      {id:"m3Y326",text:"整数・確率・データの活用・標本調査"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  中学X 数学（準備中）
+  // ══════════════════════════════════════════════
+  "中1X_数学": [
+    { id:"m1Xmath_c1", name:"正負の数・文字式", items:[
+      {id:"x1X101",text:"正負の数・加法と減法"},
+      {id:"x1X102",text:"正負の数の乗法・除法"},
+      {id:"x1X103",text:"正負の数の四則計算"},
+      {id:"x1X104",text:"正負の数の利用"},
+      {id:"x1X105",text:"文字を使った式"},
+      {id:"x1X106",text:"文字式の計算"},
+      {id:"x1X107",text:"文字式の利用"},
+    ]},
+    { id:"m1Xmath_c2", name:"方程式・比例・反比例", items:[
+      {id:"x1X108",text:"方程式の解き方（1）"},
+      {id:"x1X109",text:"方程式の解き方（2）"},
+      {id:"x1X110",text:"方程式の利用（1）（2）"},
+      {id:"x1X111",text:"方程式の利用（3）（4）"},
+      {id:"x1X112",text:"比例とグラフ"},
+      {id:"x1X113",text:"反比例とグラフ"},
+      {id:"x1X114",text:"比例と反比例の利用"},
+      {id:"x1X115",text:"グラフと図形"},
+    ]},
+    { id:"m1Xmath_c3", name:"図形・データ", items:[
+      {id:"x1X116",text:"図形の基礎"},
+      {id:"x1X117",text:"図形の移動"},
+      {id:"x1X118",text:"図形の作図（1）"},
+      {id:"x1X119",text:"図形の作図（2）"},
+      {id:"x1X120",text:"直線,平面の位置関係"},
+      {id:"x1X121",text:"立体のいろいろな見方"},
+      {id:"x1X122",text:"立体の表面積・体積"},
+      {id:"x1X123",text:"データの活用"},
+    ]},
+  ],
+  "中2X_数学": [
+    { id:"m2Xmath_c1", name:"式の計算・連立方程式", items:[
+      {id:"x2X201",text:"式の計算・加法と減法"},
+      {id:"x2X202",text:"式の計算・乗法と除法"},
+      {id:"x2X203",text:"式の計算の利用"},
+      {id:"x2X204",text:"連立方程式の解き方（1）"},
+      {id:"x2X205",text:"連立方程式の解き方（2）"},
+      {id:"x2X206",text:"連立方程式の利用（1）"},
+      {id:"x2X207",text:"連立方程式の利用（2）"},
+      {id:"x2X208",text:"連立方程式の利用（3）"},
+      {id:"x2X209",text:"連立方程式の利用（4）"},
+    ]},
+    { id:"m2Xmath_c2", name:"1次関数", items:[
+      {id:"x2X210",text:"1次関数とグラフ"},
+      {id:"x2X211",text:"1次関数の式を求めること"},
+      {id:"x2X212",text:"方程式とグラフ"},
+      {id:"x2X213",text:"1次関数のグラフと図形（1）"},
+      {id:"x2X214",text:"1次関数のグラフと図形（2）"},
+      {id:"x2X215",text:"1次関数の利用"},
+    ]},
+    { id:"m2Xmath_c3", name:"図形・確率・データ", items:[
+      {id:"x2X216",text:"平行線と角"},
+      {id:"x2X217",text:"多角形の角（1）"},
+      {id:"x2X218",text:"多角形の角（2）"},
+      {id:"x2X219",text:"合同な図形（1）"},
+      {id:"x2X220",text:"合同な図形（2）"},
+      {id:"x2X221",text:"二等辺三角形"},
+      {id:"x2X222",text:"直角三角形"},
+      {id:"x2X223",text:"平行四辺形"},
+      {id:"x2X224",text:"いろいろな四角形"},
+      {id:"x2X225",text:"場合の数"},
+      {id:"x2X226",text:"確率"},
+      {id:"x2X227",text:"いろいろな確率"},
+      {id:"x2X228",text:"データの活用"},
+    ]},
+  ],
+  "中3X_数学": [
+    { id:"m3Xmath_c1", name:"多項式・平方根・2次方程式", items:[
+      {id:"x3X301",text:"多項式の乗法と除法"},
+      {id:"x3X302",text:"因数分解"},
+      {id:"x3X303",text:"乗法公式や因数分解の利用"},
+      {id:"x3X304",text:"平方根"},
+      {id:"x3X305",text:"平方根の乗除"},
+      {id:"x3X306",text:"根号をふくんだ式の計算"},
+      {id:"x3X307",text:"2次方程式の解き方"},
+      {id:"x3X308",text:"2次方程式の利用"},
+      {id:"x3X309",text:"2次方程式の発展問題"},
+    ]},
+    { id:"m3Xmath_c2", name:"関数y=ax²", items:[
+      {id:"x3X310",text:"関数y=ax²のグラフ"},
+      {id:"x3X311",text:"変域と変化の割合"},
+      {id:"x3X312",text:"放物線と図形"},
+      {id:"x3X313",text:"関数y=ax²の利用"},
+    ]},
+    { id:"m3Xmath_c3", name:"相似・円・三平方の定理", items:[
+      {id:"x3X314",text:"相似な図形"},
+      {id:"x3X315",text:"平行線と線分の比（1）"},
+      {id:"x3X316",text:"平行線と線分の比（2）"},
+      {id:"x3X317",text:"中点連結定理,相似の利用"},
+      {id:"x3X318",text:"円"},
+      {id:"x3X319",text:"円の証明"},
+      {id:"x3X320",text:"円の利用"},
+      {id:"x3X321",text:"三平方の定理"},
+      {id:"x3X322",text:"三平方の定理と平面図形"},
+      {id:"x3X323",text:"三平方の定理と円"},
+      {id:"x3X324",text:"三平方の定理と空間図形（1）"},
+      {id:"x3X325",text:"三平方の定理と空間図形（2）"},
+      {id:"x3X326",text:"標本調査"},
+    ]},
+  ],
+
+  // ══════════════════════════════════════════════
+  //  中学 英語（準備中）
+  // ══════════════════════════════════════════════
+  "中1X_英語": [
+    { id:"m1Xeng_c1", name:"be動詞・一般動詞・助動詞", items:[
+      {id:"e1X101",text:"be動詞（1）"},
+      {id:"e1X102",text:"be動詞（2）"},
+      {id:"e1X103",text:"一般動詞（1）"},
+      {id:"e1X104",text:"助動詞can"},
+      {id:"e1X105",text:"whatとorを使った疑問文"},
+      {id:"e1X106",text:"形容詞・冠詞"},
+      {id:"e1X107",text:"名詞の複数形"},
+      {id:"e1X108",text:"代名詞の複数形"},
+      {id:"e1X109",text:"副詞"},
+      {id:"e1X110",text:"一般動詞（2）"},
+      {id:"e1X111",text:"代名詞の目的格と所有代名詞"},
+      {id:"e1X112",text:"時刻・曜日・日付"},
+    ]},
+    { id:"m1Xeng_c2", name:"疑問詞・命令文・過去形", items:[
+      {id:"e1X113",text:"疑問詞で始まる疑問文（1）"},
+      {id:"e1X114",text:"疑問詞で始まる疑問文（2）"},
+      {id:"e1X115",text:"命令文と感嘆文"},
+      {id:"e1X116",text:"現在進行形"},
+      {id:"e1X117",text:"一般動詞の過去形（1）"},
+      {id:"e1X118",text:"一般動詞の過去形（2）"},
+      {id:"e1X119",text:"be動詞の過去形・過去進行形"},
+    ]},
+  ],
+  "中1Y_英語": [
+    { id:"m1Yeng_c1", name:"基本文型・名詞・代名詞", items:[
+      {id:"e1Y101",text:"アルファベット、単語"},
+      {id:"e1Y102",text:"This is～.の文"},
+      {id:"e1Y103",text:"That is～.の文"},
+      {id:"e1Y104",text:"What・orを使う疑問文"},
+      {id:"e1Y105",text:"He(She) is～.の文"},
+      {id:"e1Y106",text:"I am～,You are～"},
+      {id:"e1Y107",text:"代名詞（1）"},
+      {id:"e1Y108",text:"名詞の複数形・代名詞（2）"},
+    ]},
+    { id:"m1Yeng_c2", name:"一般動詞・助動詞・進行形", items:[
+      {id:"e1Y109",text:"一般動詞(1),can"},
+      {id:"e1Y110",text:"一般動詞(2)"},
+      {id:"e1Y111",text:"命令文"},
+      {id:"e1Y112",text:"代名詞(3)"},
+      {id:"e1Y113",text:"いろいろな疑問文"},
+      {id:"e1Y114",text:"前置詞と時刻・曜日・月"},
+      {id:"e1Y115",text:"形容詞・副詞"},
+      {id:"e1Y116",text:"canを使う文"},
+      {id:"e1Y117",text:"現在進行形"},
+      {id:"e1Y118",text:"There is～の文"},
+    ]},
+    { id:"m1Yeng_c3", name:"過去形・長文・文法", items:[
+      {id:"e1Y119",text:"一般動詞の過去形（1）"},
+      {id:"e1Y120",text:"一般動詞の過去形（2）"},
+      {id:"e1Y121",text:"be動詞の過去形"},
+      {id:"e1Y122",text:"過去進行形"},
+      {id:"e1Y123",text:"発音・アクセント"},
+      {id:"e1Y124",text:"文法問題"},
+      {id:"e1Y125",text:"長文問題"},
+    ]},
+  ],
+  "中2X_英語": [
+    { id:"m2Xeng_c1", name:"復習・未来・助動詞・接続詞", items:[
+      {id:"e2X201",text:"1年生の復習"},
+      {id:"e2X202",text:"There is[are]～."},
+      {id:"e2X203",text:"未来の文（1）"},
+      {id:"e2X204",text:"未来の文（2）"},
+      {id:"e2X205",text:"助動詞（1）"},
+      {id:"e2X206",text:"助動詞（2）"},
+      {id:"e2X207",text:"接続詞"},
+      {id:"e2X208",text:"いろいろな文型"},
+    ]},
+    { id:"m2Xeng_c2", name:"不定詞・動名詞・名詞・比較", items:[
+      {id:"e2X209",text:"不定詞（1）"},
+      {id:"e2X210",text:"不定詞（2）"},
+      {id:"e2X211",text:"不定詞（3）"},
+      {id:"e2X212",text:"動名詞"},
+      {id:"e2X213",text:"名詞・冠詞"},
+      {id:"e2X214",text:"代名詞"},
+      {id:"e2X215",text:"疑問詞"},
+      {id:"e2X216",text:"形容詞・副詞"},
+      {id:"e2X217",text:"比較（1）"},
+      {id:"e2X218",text:"比較（2）"},
+      {id:"e2X219",text:"比較（3）"},
+    ]},
+    { id:"m2Xeng_c3", name:"受動態・疑問文", items:[
+      {id:"e2X220",text:"受動態（1）"},
+      {id:"e2X221",text:"受動態（2）"},
+      {id:"e2X223",text:"否定疑問文・付加疑問文"},
+    ]},
+  ],
+  "中2Y_英語": [
+    { id:"m2Yeng_c1", name:"復習・be動詞・一般動詞・未来", items:[
+      {id:"e2Y201",text:"1年の復習"},
+      {id:"e2Y202",text:"be動詞の過去形"},
+      {id:"e2Y203",text:"一般動詞の過去形"},
+      {id:"e2Y204",text:"過去進行形"},
+      {id:"e2Y205",text:"未来（1）"},
+      {id:"e2Y206",text:"未来（2）"},
+      {id:"e2Y207",text:"助動詞"},
+    ]},
+    { id:"m2Yeng_c2", name:"形容詞・不定詞・接続詞・比較", items:[
+      {id:"e2Y208",text:"形容詞・副詞"},
+      {id:"e2Y209",text:"命令文・感嘆文"},
+      {id:"e2Y210",text:"不定詞（1）・動名詞"},
+      {id:"e2Y211",text:"不定詞（2）"},
+      {id:"e2Y212",text:"接続詞"},
+      {id:"e2Y213",text:"前置詞"},
+      {id:"e2Y214",text:"文型"},
+      {id:"e2Y215",text:"比較（1）"},
+      {id:"e2Y216",text:"比較（2）"},
+    ]},
+    { id:"m2Yeng_c3", name:"受動態・文法・長文", items:[
+      {id:"e2Y217",text:"受動態（1）"},
+      {id:"e2Y218",text:"受動態（2）"},
+      {id:"e2Y219",text:"発音・アクセント"},
+      {id:"e2Y220",text:"文法問題"},
+      {id:"e2Y221",text:"長文問題"},
+    ]},
+  ],
+  "中3X_英語": [
+    { id:"m3Xeng_c1", name:"現在完了・不定詞・動名詞", items:[
+      {id:"e3X301",text:"1・2年の復習"},
+      {id:"e3X302",text:"現在完了（1）"},
+      {id:"e3X303",text:"現在完了（2）"},
+      {id:"e3X304",text:"現在完了（3）"},
+      {id:"e3X305",text:"不定詞・動名詞の基本用法"},
+      {id:"e3X306",text:"いろいろな不定詞（1）"},
+      {id:"e3X307",text:"いろいろな不定詞（2）"},
+      {id:"e3X308",text:"いろいろな不定詞（3）"},
+      {id:"e3X309",text:"原形不定詞"},
+    ]},
+    { id:"m3Xeng_c2", name:"接続詞・分詞・関係代名詞・仮定法", items:[
+      {id:"e3X310",text:"接続詞"},
+      {id:"e3X311",text:"間接疑問文"},
+      {id:"e3X312",text:"分詞"},
+      {id:"e3X313",text:"関係代名詞（1）"},
+      {id:"e3X314",text:"関係代名詞（2）"},
+      {id:"e3X315",text:"関係代名詞（3）"},
+      {id:"e3X316",text:"仮定法"},
+    ]},
+  ],
+  "中3Y_英語": [
+    { id:"m3Yeng_c1", name:"基礎復習・動詞・代名詞", items:[
+      {id:"e3Y301",text:"be動詞"},
+      {id:"e3Y302",text:"一般動詞（1）"},
+      {id:"e3Y303",text:"一般動詞（2）"},
+      {id:"e3Y304",text:"進行形"},
+      {id:"e3Y305",text:"未来形"},
+      {id:"e3Y306",text:"助動詞"},
+      {id:"e3Y307",text:"名詞・冠詞"},
+      {id:"e3Y308",text:"代名詞"},
+      {id:"e3Y309",text:"形容詞・副詞"},
+    ]},
+    { id:"m3Yeng_c2", name:"比較・受動態・現在完了", items:[
+      {id:"e3Y310",text:"比較（1）"},
+      {id:"e3Y311",text:"比較（2）"},
+      {id:"e3Y312",text:"命令文・感嘆文"},
+      {id:"e3Y313",text:"疑問詞"},
+      {id:"e3Y314",text:"受動態"},
+      {id:"e3Y315",text:"現在完了（1）"},
+      {id:"e3Y316",text:"現在完了（2）"},
+      {id:"e3Y317",text:"現在完了（3）"},
+    ]},
+    { id:"m3Yeng_c3", name:"分詞・関係代名詞・不定詞", items:[
+      {id:"e3Y318",text:"分詞"},
+      {id:"e3Y319",text:"関係代名詞（1）"},
+      {id:"e3Y320",text:"関係代名詞（2）"},
+      {id:"e3Y321",text:"関係代名詞（3）"},
+      {id:"e3Y322",text:"不定詞（1）"},
+      {id:"e3Y323",text:"不定詞（2）"},
+      {id:"e3Y324",text:"動名詞"},
+      {id:"e3Y325",text:"間接疑問・付加疑問"},
+      {id:"e3Y326",text:"接続詞"},
+      {id:"e3Y327",text:"前置詞"},
+      {id:"e3Y328",text:"基本5文型"},
+      {id:"e3Y329",text:"仮定法"},
+    ]},
+    { id:"m3Yeng_c4", name:"総合まとめ", items:[
+      {id:"e3Y330",text:"発音・アクセント"},
+      {id:"e3Y331",text:"文法問題"},
+      {id:"e3Y332",text:"長文問題"},
+      {id:"e3Y333",text:"作文問題"},
+      {id:"e3Y334",text:"発音・語いの問題"},
+    ]},
+  ],
+  // ══════════════════════════════════════════════
+  //  小学4〜6年 算数 ウィンパス（X）
+  // ══════════════════════════════════════════════
+  "小4X_算数":[
+    { id:"小4xc1", name:"大きい数・わり算", items:[
+      {id:"p401",text:"大きい数の表し方"},{id:"p402",text:"大きい数のしくみ"},{id:"p403",text:"大きい数の計算"},{id:"p404",text:"折れ線グラフ"},{id:"p405",text:"いろいろな折れ線グラフ"},{id:"p406",text:"整理のしかた"},{id:"p407",text:"１けたの数でわるわり算"},{id:"p408",text:"２けたの数でわるわり算の利用"}
+    ]},
+    { id:"小4xc2", name:"図形・角度", items:[
+      {id:"p409",text:"角の大きさ"},{id:"p410",text:"角度の計算"},{id:"p411",text:"垂直と平行"},{id:"p412",text:"台形と平行四辺形"},{id:"p413",text:"いろいろな四角形と対角線"}
+    ]},
+    { id:"小4xc3", name:"小数", items:[
+      {id:"p414",text:"小数の表し方"},{id:"p415",text:"小数のしくみ"},{id:"p416",text:"小数のたし算とひき算"}
+    ]},
+    { id:"小4xc4", name:"わり算・がい数", items:[
+      {id:"p417",text:"２けたの数でわるわり算"},{id:"p418",text:"整数のわり算"},{id:"p419",text:"整数のわり算の利用"},{id:"p420",text:"がい数"},{id:"p421",text:"見積もり"},{id:"p422",text:"計算のじゅんじょ"},{id:"p423",text:"計算のきまり"},{id:"p424",text:"かけ算とわり算のくふう"},{id:"p425",text:"□を使った式"}
+    ]},
+    { id:"小4xc5", name:"面積", items:[
+      {id:"p426",text:"長方形や正方形の面積"},{id:"p427",text:"面積の求め方"},{id:"p428",text:"面積のいろいろな単位"},{id:"p429",text:"面積の問題"}
+    ]},
+    { id:"小4xc6", name:"小数と分数", items:[
+      {id:"p430",text:"小数×整数"},{id:"p431",text:"小数÷整数①"},{id:"p432",text:"小数÷整数②"},{id:"p433",text:"いろいろな分数"},{id:"p434",text:"分数のたし算とひき算"}
+    ]},
+    { id:"小4xc7", name:"変わり方・立体", items:[
+      {id:"p435",text:"変わり方"},{id:"p436",text:"直方体と立方体"},{id:"p437",text:"辺や面の垂直と平行"}
+    ]}
+  ],
+  "小5X_算数":[
+    { id:"小5xc1", name:"小数のかけ算・わり算", items:[
+      {id:"p501",text:"整数×小数"},{id:"p502",text:"小数×小数"},{id:"p503",text:"整数÷小数"},{id:"p504",text:"小数÷小数"},{id:"p505",text:"小数のかけ算とわり算の利用"},{id:"p506",text:"小数の倍"}
+    ]},
+    { id:"小5xc2", name:"体積・図形", items:[
+      {id:"p507",text:"直方体や立方体の体積"},{id:"p508",text:"いろいろな体積"},{id:"p509",text:"２つの量の変わり方"},{id:"p510",text:"合同な図形"},{id:"p511",text:"三角形の角"},{id:"p512",text:"四角形・多角形の角"}
+    ]},
+    { id:"小5xc3", name:"整数の性質・分数", items:[
+      {id:"p513",text:"偶数と奇数"},{id:"p514",text:"倍数と公倍数"},{id:"p515",text:"倍数と公倍数の利用"},{id:"p516",text:"約数と公約数"},{id:"p517",text:"公約数の利用"},{id:"p518",text:"約分"},{id:"p519",text:"通分"},{id:"p520",text:"分数の性質"},{id:"p521",text:"分数のたし算とひき算"},{id:"p522",text:"いろいろな分数のたし算とひき算"}
+    ]},
+    { id:"小5xc4", name:"平均・単位量・速さ", items:[
+      {id:"p523",text:"平均"},{id:"p524",text:"単位量あたりの大きさ"},{id:"p525",text:"速さ"},{id:"p526",text:"速さの利用"}
+    ]},
+    { id:"小5xc5", name:"面積", items:[
+      {id:"p527",text:"平行四辺形の面積"},{id:"p528",text:"三角形の面積"},{id:"p529",text:"台形の面積"},{id:"p530",text:"三角形・四角形の面積"}
+    ]},
+    { id:"小5xc6", name:"割合・グラフ", items:[
+      {id:"p531",text:"割合"},{id:"p532",text:"百分率と歩合"},{id:"p533",text:"帯グラフと円グラフ"},{id:"p534",text:"いろいろな帯グラフや円グラフ"},{id:"p535",text:"割合についての問題"}
+    ]},
+    { id:"小5xc7", name:"正多角形・円・立体", items:[
+      {id:"p536",text:"正多角形"},{id:"p537",text:"円"},{id:"p538",text:"角柱と円柱"}
+    ]}
+  ],
+  "小6X_算数":[
+    { id:"小6xc1", name:"対称な図形", items:[
+      {id:"p601",text:"線対称"},{id:"p602",text:"点対称"},{id:"p603",text:"多角形と対称"}
+    ]},
+    { id:"小6xc2", name:"文字式・分数の計算", items:[
+      {id:"p604",text:"文字を使った式"},{id:"p605",text:"逆算"},{id:"p606",text:"分数×整数"},{id:"p607",text:"分数÷整数"},{id:"p608",text:"分数×分数"},{id:"p609",text:"分数÷分数"},{id:"p610",text:"いろいろな分数の計算"}
+    ]},
+    { id:"小6xc3", name:"速さ・割合と分数", items:[
+      {id:"p611",text:"速さと分数"},{id:"p612",text:"速さの問題"},{id:"p613",text:"割合と分数①"},{id:"p614",text:"割合と分数②"}
+    ]},
+    { id:"小6xc4", name:"比・拡大図", items:[
+      {id:"p615",text:"比"},{id:"p616",text:"比の利用"},{id:"p617",text:"比の問題"},{id:"p618",text:"拡大図と縮図"},{id:"p619",text:"縮図の利用"}
+    ]},
+    { id:"小6xc5", name:"データ・グラフ", items:[
+      {id:"p620",text:"データの代表値とちらばり"},{id:"p621",text:"度数分布表とヒストグラム"},{id:"p622",text:"いろいろなグラフ"}
+    ]},
+    { id:"小6xc6", name:"図形の計量", items:[
+      {id:"p623",text:"円の面積"},{id:"p624",text:"角柱や円柱の体積"},{id:"p625",text:"およその大きさ"}
+    ]},
+    { id:"小6xc7", name:"比例・反比例", items:[
+      {id:"p626",text:"比例"},{id:"p627",text:"比例の式と利用"},{id:"p628",text:"比例のグラフ"},{id:"p629",text:"反比例"},{id:"p630",text:"反比例の式と利用"},{id:"p631",text:"反比例のグラフ"}
+    ]},
+    { id:"小6xc8", name:"場合の数・総復習", items:[
+      {id:"p632",text:"場合の数"},{id:"p633",text:"小学生の復習（①数と計算）"},{id:"p634",text:"小学生の復習（②割合と比）"},{id:"p635",text:"小学生の復習（③単位量あたりの大きさと速さ）"},{id:"p636",text:"小学生の復習（④平面図形）"},{id:"p637",text:"小学生の復習（⑤立体図形）"},{id:"p638",text:"小学生の復習（⑥データとグラフ）"}
+    ]}
+  ],
+
+
+  // ══════════════════════════════════════════════
+  //  小6 算数 エフォート（W）
+  // ══════════════════════════════════════════════
+  "小6W_算数":[
+    { id:"6wmc1", name:"分数の計算・文章題", items:[{id:"p601",text:"分数のかけ算とわり算"},{id:"p602",text:"いろいろな分数の問題"}] },
+    { id:"6wmc2", name:"比・速さ・濃さ", items:[{id:"p603",text:"比"},{id:"p604",text:"比の利用と逆比"},{id:"p605",text:"速さと比"},{id:"p606",text:"濃さと比・倍数算"}] },
+    { id:"6wmc3", name:"対称・相似・面積", items:[{id:"p607",text:"対称な図形"},{id:"p608",text:"拡大図と縮図"},{id:"p609",text:"相似な三角形"},{id:"p610",text:"面積と辺の比"}] },
+    { id:"6wmc4", name:"場合の数・資料", items:[{id:"p611",text:"順列・組み合わせ"},{id:"p612",text:"いろいろな場合の数"},{id:"p613",text:"資料の調べ方"}] },
+    { id:"6wmc5", name:"図形の計量", items:[{id:"p614",text:"円の面積"},{id:"p615",text:"図形の移動"},{id:"p616",text:"立体の体積と表面積"},{id:"p617",text:"立体の切断"},{id:"p618",text:"水の深さの変化"},{id:"p619",text:"立体図形の応用"}] },
+    { id:"6wmc6", name:"比例・反比例", items:[{id:"p620",text:"比例"},{id:"p621",text:"反比例"},{id:"p622",text:"いろいろな変化とグラフ"}] },
+    { id:"6wmc7", name:"文章題（和・差・割合・速さ）", items:[{id:"p623",text:"和と差の問題(1)"},{id:"p624",text:"和と差の問題(2)"},{id:"p625",text:"割合と比の問題(1)"},{id:"p626",text:"割合と比の問題(2)"},{id:"p627",text:"速さの問題(1)"},{id:"p628",text:"速さの問題(2)"}] },
+    { id:"6wmc8", name:"規則性・条件整理", items:[{id:"p629",text:"規則性の問題(1)"},{id:"p630",text:"規則性の問題(2)"},{id:"p631",text:"条件整理の問題(1)"},{id:"p632",text:"条件整理の問題(2)"}] },
+    { id:"6wmc9", name:"計算・総合演習", items:[{id:"p633",text:"計算"},{id:"p634",text:"一行問題"},{id:"p635",text:"表現力問題"}] }
+  ],
+
+  // ══════════════════════════════════════════════
+  //  小学4〜6年 国語 ウィンパス（X）
+  // ══════════════════════════════════════════════
+  "小4X_国語":[
+    { id:"4xkc1", name:"読み取りの基礎", items:[{id:"p401",text:"文学的文章の読み取り方"},{id:"p402",text:"詩の基礎的知識"},{id:"p403",text:"説明的文章の読み取り方"},{id:"p404",text:"問題の答え方"}] },
+    { id:"4xkc2", name:"第1ステージ", items:[{id:"p405",text:"物語(1)"},{id:"p406",text:"物語(2)"},{id:"p407",text:"詩(1)"},{id:"p408",text:"説明文(1)"},{id:"p409",text:"説明文(2)"},{id:"p410",text:"言葉の学習・言葉のきまり(1)"},{id:"p411",text:"思考力・判断力・表現力UP!(1)"}] },
+    { id:"4xkc3", name:"第2ステージ", items:[{id:"p412",text:"物語(3)"},{id:"p413",text:"物語(4)"},{id:"p414",text:"物語(5)"},{id:"p415",text:"説明文(3)"},{id:"p416",text:"説明文(4)"},{id:"p417",text:"言葉の学習・言葉のきまり(2)"},{id:"p418",text:"思考力・判断力・表現力UP!(2)"}] },
+    { id:"4xkc4", name:"第3ステージ", items:[{id:"p419",text:"物語(6)"},{id:"p420",text:"物語(7)"},{id:"p421",text:"詩(2)"},{id:"p422",text:"説明文(5)"},{id:"p423",text:"説明文(6)"},{id:"p424",text:"言葉の学習・言葉のきまり(3)"},{id:"p425",text:"思考力・判断力・表現力UP!(3)"}] },
+    { id:"4xkc5", name:"第4ステージ", items:[{id:"p426",text:"物語(8)"},{id:"p427",text:"物語(9)"},{id:"p428",text:"物語(10)"},{id:"p429",text:"説明文(7)"},{id:"p430",text:"説明文(8)"},{id:"p431",text:"言葉の学習・言葉のきまり(4)"},{id:"p432",text:"思考力・判断力・表現力UP!(4)"}] },
+    { id:"4xkc6", name:"総仕上げ", items:[{id:"p433",text:"物語の完成(1)"},{id:"p434",text:"物語の完成(2)"},{id:"p435",text:"詩の完成"},{id:"p436",text:"説明文の完成(1)"},{id:"p437",text:"説明文の完成(2)"},{id:"p438",text:"言葉の学習・言葉のきまり(5)"},{id:"p439",text:"思考力・判断力・表現力UP!(5)"},{id:"p440",text:"総仕上げテスト"}] }
+  ],
+  "小5X_国語":[
+    { id:"5xkc1", name:"読み取りの基礎", items:[{id:"p501",text:"文学的文章(物事・随筆)の読み取り方"},{id:"p502",text:"詩の基礎知識"},{id:"p503",text:"説明的文章(説明文・論説文)の読み取り方"},{id:"p504",text:"問題の答え方"}] },
+    { id:"5xkc2", name:"第1ステージ", items:[{id:"p505",text:"物語(1)"},{id:"p506",text:"物語(2)"},{id:"p507",text:"詩(1)"},{id:"p508",text:"説明文(1)"},{id:"p509",text:"説明文(2)"},{id:"p510",text:"言葉の学習・言葉のきまり(1)"},{id:"p511",text:"思考力・判断力・表現力UP!(1)"}] },
+    { id:"5xkc3", name:"第2ステージ", items:[{id:"p512",text:"物語(3)"},{id:"p513",text:"物語(4)"},{id:"p514",text:"伝記"},{id:"p515",text:"説明文(3)"},{id:"p516",text:"説明文(4)"},{id:"p517",text:"言葉の学習・言葉のきまり(2)"},{id:"p518",text:"思考力・判断力・表現力UP!(2)"}] },
+    { id:"5xkc4", name:"第3ステージ", items:[{id:"p519",text:"物語(5)"},{id:"p520",text:"物語(6)"},{id:"p521",text:"詩(2)"},{id:"p522",text:"説明文(5)"},{id:"p523",text:"説明文(6)"},{id:"p524",text:"言葉の学習・言葉のきまり(3)"},{id:"p525",text:"思考力・判断力・表現力UP!(3)"}] },
+    { id:"5xkc5", name:"第4ステージ", items:[{id:"p526",text:"物語(7)"},{id:"p527",text:"物語(8)"},{id:"p528",text:"随筆"},{id:"p529",text:"論説文(1)"},{id:"p530",text:"論説文(2)"},{id:"p531",text:"言葉の学習・言葉のきまり(4)"},{id:"p532",text:"思考力・判断力・表現力UP!(4)"}] },
+    { id:"5xkc6", name:"総仕上げ", items:[{id:"p533",text:"物語の完成(2)"},{id:"p534",text:"詩の完成"},{id:"p535",text:"説明文の完成"},{id:"p536",text:"論説文の完成"},{id:"p537",text:"言葉の学習・言葉のきまり(5)"},{id:"p538",text:"思考力・判断力・表現力UP!(5)"},{id:"p539",text:"総仕上げテスト(1)"},{id:"p540",text:"総仕上げテスト(2)"}] }
+  ],
+  "小6X_国語":[
+    { id:"6xkc1", name:"読み取りの基礎", items:[{id:"p601",text:"文学的文章(物語・随筆)の読み取り方"},{id:"p602",text:"詩・短歌・俳句の基礎知識"},{id:"p603",text:"説明的文章(説明文・論説文)の読み取り方"},{id:"p604",text:"問題の答え方"}] },
+    { id:"6xkc2", name:"第1ステージ", items:[{id:"p605",text:"物語(1)"},{id:"p606",text:"物語(2)"},{id:"p607",text:"詩"},{id:"p608",text:"説明文(1)"},{id:"p609",text:"説明文(2)"},{id:"p610",text:"言葉の学習・言葉のきまり(1)"},{id:"p611",text:"思考力・判断力・表現力UP!(1)"}] },
+    { id:"6xkc3", name:"第2ステージ", items:[{id:"p612",text:"物語(3)"},{id:"p613",text:"物語(4)"},{id:"p614",text:"随筆(1)"},{id:"p615",text:"説明文(3)"},{id:"p616",text:"説明文(4)"},{id:"p617",text:"言葉の学習・言葉のきまり(2)"},{id:"p618",text:"思考力・判断力・表現力UP!(2)"}] },
+    { id:"6xkc4", name:"第3ステージ", items:[{id:"p619",text:"物語(5)"},{id:"p620",text:"物語(6)"},{id:"p621",text:"短歌・俳句"},{id:"p622",text:"説明文(5)"},{id:"p623",text:"説明文(6)"},{id:"p624",text:"言葉の学習・言葉のきまり(3)"},{id:"p625",text:"思考力・判断力・表現力UP!(3)"}] },
+    { id:"6xkc5", name:"第4ステージ", items:[{id:"p626",text:"物語(7)"},{id:"p627",text:"物語(8)"},{id:"p628",text:"随筆(2)"},{id:"p629",text:"論説文(1)"},{id:"p630",text:"論説文(2)"},{id:"p631",text:"言葉の学習・言葉のきまり(4)"},{id:"p632",text:"思考力・判断力・表現力UP!(4)"}] },
+    { id:"6xkc6", name:"総仕上げ", items:[{id:"p633",text:"文学的文章の読解(1)"},{id:"p634",text:"文学的文章の読解(2)"},{id:"p635",text:"文学的文章の読解(3)"},{id:"p636",text:"文学的文章の読解(4)"},{id:"p637",text:"思考力・判断力・表現力UP!(5)"},{id:"p638",text:"総仕上げテスト(1)"},{id:"p639",text:"総仕上げテスト(2)"}] }
+  ],
+};
+
+// ─── 定数 ─────────────────────────────────────────────────────
+const GRADE_ORDER = ["小1","小2","小3","小4","小5","小6","中1","中2","中3"];
+const GRADE_COLORS = {
+  "小1":"#4f46e5","小2":"#7c3aed","小3":"#0891b2",
+  "小4":"#059669","小5":"#d97706","小6":"#dc2626",
+  "中1":"#0ea5e9","中2":"#0891b2","中3":"#0e7490",
+};
+
+
+// ─── 生徒学校データ ────────────────────────────────────────────
+const STUDENT_SCHOOLS = {
+  "一宮 颯志":"長嶺中","田中 あかり":"白川中","松下 蓮":"白川中",
+  "豊住 真人":"白川中","森田 心穂":"白川中","松本 雄真":"白川中",
+  "藤山 凜乃":"白川中","髙田 翔太":"白川中","出永 りさ子":"白川中",
+  "梅田 珠希":"藤園中","田中 悠斗":"白川中","泉 信次郎":"白川中",
+  "石井 悠稀":"白川中","北原 旭陽":"白川中","後藤 和希":"マリスト中",
+  "吉田 すみれ":"九州学院中","牧野 光之助":"九州学院中","向窪 紗英":"白川中",
+  "田中 瞬多":"白川中","西村 陽":"白川中",
+  "松尾 淳之介":"白川中","宮下 涼太郎":"白川中","田中 美咲希":"白川中",
+  "甲斐 永真":"白川中","桑田 淳之介":"白川中","江田 麻妃":"白川中",
+  "小野 美咲":"白川中","宮里 将聖":"九州学院中","飯蓋 龍水":"九州学院中",
+  "吉安 健登":"白川中","長谷川 晟":"白川中","林田 彩希":"白川中",
+  "橋新 卓":"白川中","井 爽乃介":"白川中","伊田 明珠":"白川中",
+  "田村 悠高":"白川中","添島 康平":"白川中","牧田 佳枝":"白川中",
+  "烏川 晴基":"白川中","木下 響":"白川中","寳口 美如":"白川中",
+  "田代 環太":"白川中","福田 あや花":"桜山中","井手 美陽":"白川中",
+  "一宮 優佳":"長嶺中","村上 もも":"信愛女学院中","村上 ゆず":"信愛女学院中",
+  "吉田 佑馬":"白川中","浦田 佳音":"信愛女学院中","出永 大晴":"白川中",
+  "泉 廉太郎":"白川中","江原 潤":"白川中","小堀 草太朗":"真和中",
+  "杉本 理采子":"信愛女学院中","小田 敦丈":"白川中","吉田 晴武":"九州学院中",
+  "永野 遼平":"白川中","坂本 琉哉":"桜山中",
+};
+
+const TEST_ROUNDS = [
+  {id:"t1", label:"第1回（6月）"},
+  {id:"t2", label:"第2回（9月）"},
+  {id:"t3", label:"第3回（11月）"},
+  {id:"t4", label:"第4回（2月）"},
+];
+
+const SCHOOLS = ["白川中","藤園中","マリスト中","九州学院中","長嶺中","桜山中","信愛女学院中","真和中"];
+
+const INITIAL_TEXTBOOK_OVERRIDES = {"25": {"数学": "中1X_数学", "英語": "中1X_英語"}, "45": {"数学": "中2X_数学", "英語": "中2X_英語"}, "46": {"数学": "中2X_数学", "英語": "中2X_英語"}, "60": {"数学": "中3X_数学", "英語": "中3X_英語"}};
+
+const INITIAL_TEACHERS = ["山田島 尚史","十住 結羽","佐々木 俊輔","迫田 莉久","古田 達也","德丸 日向子","西 愛子","牧野 花太郎","村上 凜","伊藤 歩","高本 凉咲","増山 響","河野 紗織","金乙 瑞希","小多 美幸","黒川 奨真","小松 真綾","関岡 好実","沼田 亨太郎","一宮 紗耶佳","一宮 啓介"];
+
+const INITIAL_STUDENTS = [
+  "植田 桜禾（小2）",
+  "井 さなみ（小3）",
+  "浦田 映人（小3）",
+  "星野 葵央（小4）",
+  "田中 陽斗（小4）",
+  "竹中 新（小4）",
+  "榮木 新菜（小4）",
+  "蓮尾 碧久（小4）",
+  "佐々木 希帆（小4）",
+  "吉村 優杜（小4）",
+  "松本 廣紀（小5）",
+  "火野坂 采音（小5）",
+  "藤山 翔大（小5）",
+  "角田 悠樹（小5）",
+  "白木 花歩（小5）",
+  "有江 雛美（小6）",
+  "田中 柾希（小6）",
+  "蓮尾 珂奈（小6）",
+  "宮下 彰人（小6）",
+  "山口 璃々加（小6）",
+  "田村 亮典（小6）",
+  "飯田 春馬（小6）",
+  "吉田 百希（小6）",
+  "成塚 結衣（小6）",
+  "牧野 響太郎（小6）",
+  "一宮 颯志（中1）",
+  "田中 あかり（中1）",
+  "松下 蓮（中1）",
+  "豊住 真人（中1）",
+  "森田 心穂（中1）",
+  "松本 雄真（中1）",
+  "藤山 凜乃（中1）",
+  "髙田 翔太（中1）",
+  "出永 りさ子（中1）",
+  "梅田 珠希（中1）",
+  "田中 悠斗（中1）",
+  "泉 信次郎（中1）",
+  "石井 悠稀（中1）",
+  "北原 旭陽（中1）",
+  "後藤 和希（中1）",
+  "吉田 すみれ（中1）",
+  "牧野 光之助（中1）",
+  "向窪 紗英（中1）",
+  "田中 瞬多（中1）",
+  "西村 陽（中1）",
+  "松尾 淳之介（中2）",
+  "宮下 涼太郎（中2）",
+  "田中 美咲希（中2）",
+  "甲斐 永真（中2）",
+  "桑田 淳之介（中2）",
+  "江田 麻妃（中2）",
+  "小野 美咲（中2）",
+  "宮里 将聖（中2）",
+  "飯蓋 龍水（中2）",
+  "吉安 健登（中2）",
+  "長谷川 晟（中2）",
+  "林田 彩希（中2）",
+  "橋新 卓（中2）",
+  "井 爽乃介（中2）",
+  "伊田 明珠（中2）",
+  "田村 悠高（中3）",
+  "添島 康平（中3）",
+  "牧田 佳枝（中3）",
+  "烏川 晴基（中3）",
+  "木下 響（中3）",
+  "寳口 美如（中3）",
+  "田代 環太（中3）",
+  "福田 あや花（中3）",
+  "井手 美陽（中3）",
+  "一宮 優佳（中3）",
+  "村上 もも（中3）",
+  "村上 ゆず（中3）",
+  "吉田 佑馬（中3）",
+  "浦田 佳音（中3）",
+  "出永 大晴（中3）",
+  "泉 廉太郎（中3）",
+  "江原 潤（中3）",
+  "小堀 草太朗（中3）",
+  "杉本 理采子（中3）",
+  "小田 敦丈（中3）",
+  "吉田 晴武（中3）",
+  "永野 遼平（中3）",
+  "坂本 琉哉（中3）"
+];
+
+const STATUS_CYCLE = {"未":"◯","◯":"△","△":"✗","✗":"未"};
+const STATUS_BG    = {"未":"#f3f4f6","◯":"#d1fae5","△":"#fef3c7","✗":"#fee2e2"};
+const STATUS_COLOR = {"未":"#6b7280","◯":"#065f46","△":"#92400e","✗":"#991b1b"};
+const PAGE_SIZE = 6;
+
+function extractGrade(name){ const m=name.match(/（(.+?)）/); return m?m[1]:"その他"; }
+function today(){ return new Date().toISOString().slice(0,10); }
+function isChu(grade){ return grade&&grade.startsWith("中"); }
+
+async function jhGasGet(key,fallback){
+  try{
+    const res=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+key)}`);
+    const d=await res.json();
+    return d.value?JSON.parse(d.value):fallback;
+  }catch(e){return fallback;}
+}
+async function jhGasSave(key,val){
+  try{ await fetch(`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(JSON.stringify(val))}`); }catch(e){}
+}
+
+// ─── 生徒サイドバー ──────────────────────────────────────────
+
+
+// ─── 方針設定モーダル（教室長専用） ────────────────────────────
+function DirectiveModal({directives, onSave, onClose}){
+  const [school, setSchool] = useState(SCHOOLS[0]);
+  const [grade, setGrade] = useState("全学年");
+  const [subj, setSubj] = useState("全教科");
+  const [text, setText] = useState("");
+
+  React.useEffect(()=>{
+    const gradeStr=grade==="全学年"?"all":grade;
+    const subjStr=subj==="全教科"?"all":subj;
+    const key=`${school}_${gradeStr}_${subjStr}`;
+    setText(directives[key]||"");
+  },[school,grade,subj]);
+
+  const handleSave=()=>{
+    const gradeStr=grade==="全学年"?"all":grade;
+    const subjStr=subj==="全教科"?"all":subj;
+    const key=`${school}_${gradeStr}_${subjStr}`;
+    onSave(key,text);
+    onClose();
+  };
+
+  return(
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"12px"}} onClick={onClose}>
+      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"420px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontWeight:"bold",fontSize:"15px",color:"#1e3a8a",marginBottom:"4px"}}>📢 教室長からの方針設定</div>
+        <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"14px"}}>設定した方針はチェック画面の上部に常時表示されます</div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"12px"}}>
+          <div>
+            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
+            <select value={school} onChange={e=>setSchool(e.target.value)}
+              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
+              {SCHOOLS.map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学年</div>
+            <select value={grade} onChange={e=>setGrade(e.target.value)}
+              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
+              {["全学年","中1","中2","中3"].map(g=><option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>教科</div>
+            <select value={subj} onChange={e=>setSubj(e.target.value)}
+              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
+              {["全教科","数学","英語"].map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{marginBottom:"16px"}}>
+          <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"4px"}}>
+            方針メッセージ
+            <span style={{marginLeft:"8px",color:"#9ca3af"}}>（{school} {grade} {subj}）</span>
+          </div>
+          <textarea
+            value={text}
+            onChange={e=>setText(e.target.value)}
+            placeholder={"例：第1回テストまで第2章を重点的に進めること。解き直しを必ず行うこと。"}
+            rows={4}
+            style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"8px",fontSize:"13px",boxSizing:"border-box",resize:"vertical",lineHeight:"1.6"}}
+          />
+          {text&&(
+            <div style={{marginTop:"8px",background:"#dbeafe",border:"1px solid #93c5fd",borderRadius:"6px",padding:"8px 12px",fontSize:"12px",color:"#1e40af"}}>
+              <span style={{fontWeight:"bold"}}>📢 プレビュー：</span> {text}
+            </div>
+          )}
+        </div>
+
+        <div style={{display:"flex",gap:"8px"}}>
+          <button onClick={()=>{const gs=grade==="全学年"?"all":grade;const ss=subj==="全教科"?"all":subj;onSave(`${school}_${gs}_${ss}`,"");onClose();}}
+            style={{flex:1,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"12px"}}>クリア</button>
+          <button onClick={onClose}
+            style={{flex:1,background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"13px"}}>キャンセル</button>
+          <button onClick={handleSave}
+            style={{flex:2,background:"#1e3a8a",color:"white",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontWeight:"bold",fontSize:"13px"}}>保存</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── テスト範囲設定モーダル（教室長専用） ──────────────────────
+function TestRangeModal({onClose, testRanges, onSave}){
+  const [school, setSchool] = useState(SCHOOLS[0]);
+  const [grade, setGrade] = useState("中1");
+  const [round, setRound] = useState("t1");
+  const [mathStart, setMathStart] = useState("");
+  const [mathEnd, setMathEnd] = useState("");
+  const [engStart, setEngStart] = useState("");
+  const [engEnd, setEngEnd] = useState("");
+
+
+  // 現在の設定を読み込む
+  React.useEffect(() => {
+    const key = `${school}_${grade}_${round}`;
+    const existing = testRanges[key] || {};
+    setMathStart(existing.mathStart || "");
+    setMathEnd(existing.mathEnd || "");
+    setEngStart(existing.engStart || "");
+    setEngEnd(existing.engEnd || "");
+  }, [school, grade, round]);
+
+  const gradeNum = grade.replace(/[^0-9]/g, "");
+  const mathKey = `中${gradeNum}Y_数学`;
+  const engKey = `中${gradeNum}Y_英語`;
+  const mathChapters = CHAPTERS[mathKey] || [];
+  const engChapters = CHAPTERS[engKey] || [];
+  const mathItems = mathChapters.flatMap(ch => ch.items);
+  const engItems = engChapters.flatMap(ch => ch.items);
+
+  const handleSave = () => {
+    const key = `${school}_${grade}_${round}`;
+    onSave(key, {mathStart, mathEnd, engStart, engEnd, school, grade, round});
+    onClose();
+  };
+
+  const ItemSelect = ({value, onChange, items, placeholder}) => (
+    <select value={value} onChange={e => onChange(e.target.value)}
+      style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
+      <option value="">{placeholder}</option>
+      {items.map(it => <option key={it.id} value={it.id}>{it.text.slice(0,28)}</option>)}
+    </select>
+  );
+
+  return(
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"12px"}} onClick={onClose}>
+      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"420px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontWeight:"bold",fontSize:"15px",color:"#1e3a8a",marginBottom:"4px"}}>📝 テスト予測範囲設定</div>
+        <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"14px"}}>教室長専用 ・ 同じ学校・学年の生徒全員に反映されます</div>
+
+        {/* 学校・学年・テスト回選択 */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"14px"}}>
+          <div>
+            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
+            <select value={school} onChange={e=>setSchool(e.target.value)}
+              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
+              {SCHOOLS.map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学年</div>
+            <select value={grade} onChange={e=>setGrade(e.target.value)}
+              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
+              {["中1","中2","中3"].map(g=><option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>テスト</div>
+            <select value={round} onChange={e=>setRound(e.target.value)}
+              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
+              {TEST_ROUNDS.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* 数学範囲 */}
+        <div style={{background:"#eff6ff",borderRadius:"8px",padding:"12px",marginBottom:"10px"}}>
+          <div style={{fontWeight:"bold",fontSize:"12px",color:"#1e40af",marginBottom:"8px"}}>📐 数学の予測範囲</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+            <div>
+              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>開始項目</div>
+              <ItemSelect value={mathStart} onChange={setMathStart} items={mathItems} placeholder="開始を選択"/>
+            </div>
+            <div>
+              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>終了項目</div>
+              <ItemSelect value={mathEnd} onChange={setMathEnd} items={mathItems} placeholder="終了を選択"/>
+            </div>
+          </div>
+        </div>
+
+
+
+        {/* 英語範囲 */}
+        <div style={{background:"#f0fdf4",borderRadius:"8px",padding:"12px",marginBottom:"14px"}}>
+          <div style={{fontWeight:"bold",fontSize:"12px",color:"#166534",marginBottom:"8px"}}>📖 英語の予測範囲</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+            <div>
+              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>開始項目</div>
+              <ItemSelect value={engStart} onChange={setEngStart} items={engItems} placeholder="開始を選択"/>
+            </div>
+            <div>
+              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>終了項目</div>
+              <ItemSelect value={engEnd} onChange={setEngEnd} items={engItems} placeholder="終了を選択"/>
+            </div>
+          </div>
+        </div>
+
+        <div style={{display:"flex",gap:"8px"}}>
+          <button onClick={onClose} style={{flex:1,background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"13px"}}>キャンセル</button>
+          <button onClick={handleSave} style={{flex:2,background:"#1e3a8a",color:"white",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontWeight:"bold",fontSize:"13px"}}>保存</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TextbookModal({si,students,textbookOverrides,onSave,onClose}){
+  const grade=extractGrade(students[si]||"");
+  const subjects=GRADE_SUBJECTS[grade]||[];
+  const isMiddle=grade.startsWith("中");
+  const isSho=grade.startsWith("小");
+  if(!isMiddle&&!isSho){onClose();return null;}
+  const gradeNum=grade.replace(/[^0-9]/g,"");
+  const overrides=textbookOverrides[si]||{};
+  const [vals,setVals]=useState(()=>{
+    const init={};
+    subjects.forEach(subj=>{
+      // デフォルト：中学生はY、小学生もY（明光式ワーク）
+      const defaultKey=isMiddle?`${grade}Y_${subj}`:`${grade}Y_${subj}`;
+      init[subj]=overrides[subj]||defaultKey;
+    });
+    return init;
+  });
+  const CHU_OPTS=["1","2","3"];
+  const SHO_OPTS=["1","2","3","4","5","6"];
+  const makeChuOpts=(subj)=>[
+    ...CHU_OPTS.flatMap(n=>[
+      {value:`中${n}Y_${subj}`,label:`中${n}年 α+10`,color:"#dcfce7",textColor:"#166534"},
+      {value:`中${n}X_${subj}`,label:`中${n}年 ウイニング`,color:"#dbeafe",textColor:"#1e40af"},
+    ]),
+    {value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"},
+  ];
+  // 小学生：Y=明光式ワーク / X=ウィンパス / W=エフォート
+  // 小1〜小3はYのみ / 小4〜小6はY・X・W
+  const gNum=Number(grade.replace(/[^0-9]/g,""));
+  const makeShoOpts=(subj)=>{
+    const opts=[
+      {value:`${grade}Y_${subj}`,label:`${grade} 明光式ワーク(Y)`,color:"#dcfce7",textColor:"#166534"},
+    ];
+    if(gNum>=4){
+      opts.push({value:`${grade}X_${subj}`,label:`${grade} ウィンパス(X)`,color:"#dbeafe",textColor:"#1e40af"});
+      opts.push({value:`${grade}W_${subj}`,label:`${grade} エフォート(W)`,color:"#fef3c7",textColor:"#92400e"});
+    }
+    opts.push({value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"});
+    return opts;
+  };
+  const OPTIONS=isMiddle
+    ?{"数学":makeChuOpts("数学"),"英語":makeChuOpts("英語")}
+    :{"算数":makeShoOpts("算数"),"国語":makeShoOpts("国語")};
+  const stuName=students[si]?.replace(/（.+?）/,"")||"";
+  return(
+    <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"16px"}} onClick={onClose}>
+      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"360px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontWeight:"bold",fontSize:"15px",color:"#312e81",marginBottom:"4px"}}>📚 テキスト設定</div>
+        <div style={{fontSize:"12px",color:"#6b7280",marginBottom:"16px"}}>{stuName}（{grade}）</div>
+        {subjects.map(subj=>{
+          const opts=OPTIONS[subj]||[];
+          if(opts.length===0) return null;
+          return(
+            <div key={subj} style={{marginBottom:"16px"}}>
+              <div style={{fontSize:"12px",fontWeight:"bold",color:"#4338ca",marginBottom:"8px"}}>{subj}</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px"}}>
+                {opts.map(opt=>{
+                  const sel=vals[subj]===opt.value;
+                  return(
+                    <button key={opt.value} onClick={()=>setVals(p=>({...p,[subj]:opt.value}))}
+                      style={{padding:"8px 4px",borderRadius:"6px",border:`2px solid ${sel?"#4f46e5":"#e5e7eb"}`,background:sel?opt.color||"#ede9fe":"white",color:sel?opt.textColor||"#312e81":"#6b7280",fontWeight:sel?"bold":"normal",cursor:"pointer",fontSize:"11px",lineHeight:"1.4",textAlign:"center"}}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+        <div style={{background:"#fef3c7",borderRadius:"6px",padding:"8px 10px",marginBottom:"16px",fontSize:"11px",color:"#92400e"}}>
+          ⚠️ テキストを変更すると進捗データがリセットされます
+        </div>
+        <div style={{display:"flex",gap:"8px"}}>
+          <button onClick={onClose} style={{flex:1,background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"14px"}}>キャンセル</button>
+          <button onClick={()=>onSave(si,vals)} style={{flex:2,background:"#4f46e5",color:"white",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontWeight:"bold",fontSize:"14px"}}>変更して保存</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudentSidebar({students,activeStudent,setActiveStudent,getSummary,deleteStudent,showAdd,setShowAdd,newName,setNewName,addStudent,textbookOverrides,setShowTextbookModal,getTestAlert,activeTestRound}){
+  const gradeMap={};
+  students.forEach((s,i)=>{const g=extractGrade(s);if(!gradeMap[g])gradeMap[g]=[];gradeMap[g].push({name:s,idx:i});});
+  const grades=GRADE_ORDER.filter(g=>gradeMap[g]);
+  // 大項目：小学生・中学生
+  const sections=[
+    {label:'🏫 小学生',grades:grades.filter(g=>g.startsWith('小')),color:'#7c3aed'},
+    {label:'📚 中学生',grades:grades.filter(g=>g.startsWith('中')),color:'#0891b2'},
+  ].filter(s=>s.grades.length>0);
+  const [openG,setOpenG]=useState(()=>Object.fromEntries(grades.map(g=>[g,false])));
+  const [openSection,setOpenSection]=useState({小学生:true,中学生:true});
+  const toggle=g=>setOpenG(p=>({...p,[g]:!p[g]}));
+  const toggleSection=label=>setOpenSection(p=>({...p,[label]:!p[label]}));
+  return(
+    <div style={{overflowY:"auto",flex:1}}>
+      {sections.map(sec=>(
+        <div key={sec.label}>
+          <button onClick={()=>toggleSection(sec.label)}
+            style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 14px",background:sec.color,color:"white",fontWeight:"bold",fontSize:"12px",border:"none",cursor:"pointer"}}>
+            <span>{sec.label}（{sec.grades.reduce((a,g)=>a+(gradeMap[g]?.length||0),0)}人）</span>
+            <span style={{fontSize:"10px"}}>{openSection[sec.label]?"▲":"▼"}</span>
+          </button>
+          {openSection[sec.label]&&sec.grades.map(g=>{
+            const col=GRADE_COLORS[g]||"#4b5563";
+            return(
+              <div key={g}>
+                <button onClick={()=>toggle(g)}
+                  style={{width:"100%",display:"flex",justifyContent:"space-between",padding:"5px 12px 5px 20px",background:`${col}15`,color:col,fontWeight:"bold",fontSize:"11px",borderBottom:"1px solid #e5e7eb",cursor:"pointer",border:"none"}}>
+                  <span>{g}（{gradeMap[g].length}人）</span><span>{openG[g]?"▲":"▼"}</span>
+                </button>
+                {openG[g]&&gradeMap[g].map(({name,idx})=>{
+                  const sum=getSummary(idx);
+                  const pct=sum.total>0?Math.round(sum.done/sum.total*100):0;
+                  return(
+                    <div key={idx} onClick={()=>setActiveStudent(idx)}
+                      style={{padding:"8px 12px",cursor:"pointer",borderBottom:"1px solid #f3f4f6",fontSize:"12px",display:"flex",justifyContent:"space-between",alignItems:"center",background:activeStudent===idx?`${col}12`:"white",borderLeft:activeStudent===idx?`4px solid ${col}`:"4px solid transparent"}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:activeStudent===idx?"bold":"normal",color:activeStudent===idx?col:"#1f2937"}}>{name.replace(/（.+?）/,"")}</div>
+                        <div style={{color:"#9ca3af",fontSize:"11px"}}>{sum.done}/{sum.total} ◯（{pct}%）</div>
+                        {(()=>{
+                          const ma=getTestAlert(idx,"数学",activeTestRound);
+                          const ea=getTestAlert(idx,"英語",activeTestRound);
+                          if(!ma&&!ea) return null;
+                          return <div style={{fontSize:"10px",color:"#dc2626",fontWeight:"bold",marginTop:"2px"}}>{ma?"🚨数学":""}{ma&&ea?" ":""}{ea?"🚨英語":""}</div>;
+                        })()}
+                        {extractGrade(name).startsWith("中")&&(
+                          <div style={{display:"flex",gap:"4px",marginTop:"2px"}}>
+                            {(()=>{
+                              const mathOv=textbookOverrides[idx]?.["数学"];
+                              const engOv=textbookOverrides[idx]?.["英語"];
+                              return(<>
+                                <span style={{fontSize:"10px",background:mathOv?.startsWith("none_")?"#f3f4f6":mathOv?.includes("X")?"#dbeafe":"#dcfce7",color:mathOv?.startsWith("none_")?"#9ca3af":mathOv?.includes("X")?"#1e40af":"#166534",borderRadius:"3px",padding:"0 4px",fontWeight:"bold"}}>
+                                  数:{mathOv?.startsWith("none_")?"なし":(mathOv?.match(/中(\d)/)?.[1]&&mathOv.match(/中(\d)/)[1]!==extractGrade(name).replace(/[^0-9]/g,"")?mathOv.match(/中(\d)/)[1]+"年":"")+( mathOv?.includes("X")?"X":"Y")}
+                                </span>
+                                <span style={{fontSize:"10px",background:engOv?.startsWith("none_")?"#f3f4f6":engOv?.includes("X")?"#dbeafe":"#dcfce7",color:engOv?.startsWith("none_")?"#9ca3af":engOv?.includes("X")?"#1e40af":"#166534",borderRadius:"3px",padding:"0 4px",fontWeight:"bold"}}>
+                                  英:{engOv?.startsWith("none_")?"なし":(engOv?.match(/中(\d)/)?.[1]&&engOv.match(/中(\d)/)[1]!==extractGrade(name).replace(/[^0-9]/g,"")?engOv.match(/中(\d)/)[1]+"年":"")+( engOv?.includes("X")?"X":"Y")}
+                                </span>
+                              </>);
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:"2px",alignItems:"flex-end"}}>
+                        {extractGrade(name).startsWith("中")&&(
+                          <button onClick={e=>{e.stopPropagation();setActiveStudent(idx);setShowTextbookModal(true);}}
+                            style={{color:"#4f46e5",background:"#ede9fe",border:"none",borderRadius:"4px",padding:"2px 6px",fontSize:"10px",cursor:"pointer",fontWeight:"bold"}}>📚 X/Y</button>
+                        )}
+                        <button onClick={e=>{e.stopPropagation();deleteStudent(idx);}}
+                          style={{color:"#fca5a5",background:"none",border:"none",cursor:"pointer",fontSize:"13px"}}>🗑</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      {showAdd?(
+        <div style={{padding:"8px 12px",display:"flex",flexDirection:"column",gap:"4px"}}>
+          <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="例：山田 花子（中1Y）" style={{border:"1px solid #d1d5db",borderRadius:"4px",padding:"4px 8px",fontSize:"12px",width:"100%"}} onKeyDown={e=>e.key==='Enter'&&addStudent()}/>
+          <div style={{color:"#9ca3af",fontSize:"11px"}}>※（小1〜中3X/Y）をつけると学年別表示</div>
+          <div style={{display:"flex",gap:"4px"}}>
+            <button onClick={addStudent} style={{flex:1,background:"#4f46e5",color:"white",border:"none",borderRadius:"4px",padding:"4px",fontSize:"12px",cursor:"pointer"}}>追加</button>
+            <button onClick={()=>setShowAdd(false)} style={{background:"none",border:"none",color:"#9ca3af",cursor:"pointer",fontSize:"12px"}}>✕</button>
+          </div>
+        </div>
+      ):(
+        <button onClick={()=>setShowAdd(true)} style={{width:"100%",padding:"8px",color:"#4f46e5",background:"none",border:"none",fontSize:"12px",cursor:"pointer"}}>＋生徒追加</button>
+      )}
+    </div>
+  );
+}
+
+// ─── 一覧比較ビュー ───────────────────────────────────────────
+function SummaryView({students,getRecord,getSummary}){
+  const [page,setPage]=useState(0);
+  const [search,setSearch]=useState("");
+  const [selGrade,setSelGrade]=useState("全て");
+  const filtered=students.map((s,i)=>({name:s,idx:i})).filter(s=>{
+    const g=extractGrade(s.name);
+    return s.name.includes(search)&&(selGrade==="全て"||g===selGrade);
+  });
+  const total=Math.ceil(filtered.length/PAGE_SIZE)||1;
+  const paged=filtered.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
+  return(
+    <div style={{padding:"16px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px",flexWrap:"wrap"}}>
+        <span style={{fontWeight:"bold",color:"#4338ca",fontSize:"14px"}}>📊 生徒別 進捗一覧比較</span>
+        <input value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} placeholder="🔍 生徒名で絞り込み" style={{border:"1px solid #d1d5db",borderRadius:"4px",padding:"4px 8px",fontSize:"12px"}}/>
+        <select value={selGrade} onChange={e=>{setSelGrade(e.target.value);setPage(0);}} style={{border:"1px solid #d1d5db",borderRadius:"4px",padding:"4px 8px",fontSize:"12px"}}>
+          <option>全て</option>
+          {GRADE_ORDER.map(g=><option key={g}>{g}</option>)}
+        </select>
+        <div style={{marginLeft:"auto",display:"flex",gap:"4px",alignItems:"center"}}>
+          <button disabled={page===0} onClick={()=>setPage(p=>p-1)} style={{padding:"4px 8px",background:"#e0e7ff",color:"#3730a3",border:"none",borderRadius:"4px",fontSize:"12px",cursor:"pointer",opacity:page===0?0.3:1}}>◀ 前</button>
+          <span style={{fontSize:"12px",color:"#6b7280"}}>{page+1}/{total}ページ（{filtered.length}人）</span>
+          <button disabled={page>=total-1} onClick={()=>setPage(p=>p+1)} style={{padding:"4px 8px",background:"#e0e7ff",color:"#3730a3",border:"none",borderRadius:"4px",fontSize:"12px",cursor:"pointer",opacity:page>=total-1?0.3:1}}>次 ▶</button>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:"12px"}}>
+        {paged.map(({name,idx:si})=>{
+          const grade=extractGrade(name);
+          const col=GRADE_COLORS[grade]||"#4b5563";
+          const subjects=GRADE_SUBJECTS[grade]||[];
+          const sum=getSummary(si);
+          const pct=sum.total>0?Math.round(sum.done/sum.total*100):0;
+          return(
+            <div key={si} style={{background:"white",borderRadius:"8px",boxShadow:"0 1px 3px rgba(0,0,0,0.1)",overflow:"hidden"}}>
+              <div style={{background:col,color:"white",padding:"8px 12px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontWeight:"bold",fontSize:"13px"}}>{name.replace(/（.+?）/,"")} <span style={{opacity:0.8,fontSize:"11px"}}>({grade})</span></span>
+                <span style={{fontSize:"13px",fontWeight:"bold"}}>{pct}%</span>
+              </div>
+              <div style={{padding:"8px 12px"}}>
+                <div style={{height:"6px",background:"#e5e7eb",borderRadius:"999px",overflow:"hidden",marginBottom:"8px"}}>
+                  <div style={{height:"100%",width:`${pct}%`,background:col,borderRadius:"999px"}}/>
+                </div>
+                {subjects.map(subj=>{
+                  const key=`${grade}_${subj}`;
+                  const chs=CHAPTERS[key]||[];
+                  const done=chs.reduce((a,ch)=>a+ch.items.filter(it=>getRecord(si,`${subj}_${it.id}`).status==="◯").length,0);
+                  const tot=chs.reduce((a,ch)=>a+ch.items.length,0);
+                  const sp=tot>0?Math.round(done/tot*100):0;
+                  const sc=SUBJECT_COLOR[subj]||col;
+                  return(
+                    <div key={subj} style={{marginBottom:"6px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:"11px",marginBottom:"2px"}}>
+                        <span style={{color:sc,fontWeight:"bold"}}>{subj}</span>
+                        <span style={{color:"#9ca3af"}}>{done}/{tot}（{sp}%）</span>
+                      </div>
+                      {chs.length===0?(
+                        <div style={{color:"#d1d5db",fontSize:"11px"}}>準備中</div>
+                      ):(
+                        <div style={{height:"4px",background:"#e5e7eb",borderRadius:"999px",overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${sp}%`,background:sc,borderRadius:"999px"}}/>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── メインアプリ ─────────────────────────────────────────────
+function ItemRow({prefix,item,rec,onCycle,activeHint,setActiveHint,isSkipped,onSkipToggle}){
+  const key=`${prefix}_${item.id}`;
+  const r=rec[key]||{status:'未',teacher:'',date:''};
+  const st=isSkipped?'skip':r.status;
+  const isOpen=activeHint===key;
+  const lv=item.level||0;
+  return(
+    <div style={{borderBottom:'1px solid #f3f4f6',opacity:isSkipped?0.45:1}}>
+      <div style={{display:'flex',alignItems:'center',gap:'6px',padding:'7px 10px',
+        background:isSkipped?'#f3f4f6':st!=='未'?ST_BG[st]:lv?COMPASS_COLOR[lv]+'44':'white'}}>
+        <button onClick={()=>!isSkipped&&onCycle(key)}
+          style={{minWidth:'44px',padding:'4px 8px',borderRadius:'6px',border:'none',
+            background:isSkipped?'#e5e7eb':ST_BG[r.status],color:isSkipped?'#9ca3af':ST_COL[r.status],
+            fontWeight:'bold',fontSize:'13px',cursor:isSkipped?'default':'pointer'}}>
+          {isSkipped?'－':r.status}
+        </button>
+        <div style={{flex:1,fontSize:'13px',color:isSkipped?'#9ca3af':'#374151',lineHeight:1.4}}>
+          {item.num&&<span style={{color:'#9ca3af',marginRight:'4px',fontSize:'11px'}}>例{item.num}</span>}
+          {lv>0&&<span style={{fontSize:'9px',background:isSkipped?'#e5e7eb':COMPASS_COLOR[lv],borderRadius:'3px',padding:'1px 4px',marginRight:'4px',color:isSkipped?'#9ca3af':'#374151'}}>Lv{lv}</span>}
+          {item.title||item.text||''}
+          {!isSkipped&&r.status!=='未'&&r.teacher&&<span style={{marginLeft:'6px',fontSize:'10px',color:'#6b7280'}}>({r.teacher}{r.date?' · '+r.date:''})</span>}
+          {isSkipped&&<span style={{marginLeft:'6px',fontSize:'10px',color:'#9ca3af'}}>（スキップ）</span>}
+        </div>
+        {item.p1&&<span style={{fontSize:'10px',color:'#9ca3af',flexShrink:0}}>{item.p1}</span>}
+        {onSkipToggle&&(
+          <button onClick={()=>onSkipToggle(key)}
+            title={isSkipped?'スキップ解除':'この問題をスキップ'}
+            style={{width:'22px',height:'22px',borderRadius:'4px',border:`1px solid ${isSkipped?'#6b7280':'#d1d5db'}`,
+              background:isSkipped?'#6b7280':'white',color:isSkipped?'white':'#9ca3af',
+              fontSize:'10px',cursor:'pointer',flexShrink:0,fontWeight:'bold'}}>
+            {isSkipped?'↩':'✕'}
+          </button>
+        )}
+        {item.hint&&(
+          <button onClick={()=>setActiveHint(isOpen?null:key)}
+            style={{width:'24px',height:'24px',borderRadius:'50%',border:'1px solid #d1d5db',
+              background:isOpen?'#fef3c7':'white',color:isOpen?'#92400e':'#6b7280',
+              fontSize:'12px',cursor:'pointer',fontWeight:'bold',flexShrink:0}}>
+            ？
+          </button>
+        )}
+      </div>
+      {isOpen&&item.hint&&(
+        <div style={{padding:'8px 14px 10px',background:'#fffbeb',borderLeft:'3px solid #f59e0b',fontSize:'12px',color:'#78350f',lineHeight:1.7}}>
+          💬 {item.hint}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ChapterBlock ───────────────────────────────────────
+function ChapterBlock({nyumonChap,chartChap,chartSet,rec,onCycle,activeHint,setActiveHint,maxLevel,skipKeys,onSkipToggle}){
+  const [open,setOpen]=useState(false);
+  const lv=maxLevel||5;
+
+  const visNyumon=nyumonChap?nyumonChap.items:[];
+  const visChart=chartChap?chartChap.items.filter(it=>(it.level||1)<=lv):[];
+
+  const nd=visNyumon.filter(it=>(rec[`IA_${it.id}`]||{status:'未'}).status==='◯').length;
+  const cd=visChart.filter(it=>(rec[`CHART_${it.id}`]||{status:'未'}).status==='◯').length;
+  const total=visNyumon.length+visChart.length;
+  const done=nd+cd;
+  const pct=total>0?Math.round(done/total*100):0;
+
+  // 単元色塗り
+  const bgColor = pct===100?'#d1fae5':pct>=70?'#dbeafe':pct>=30?'#fef9c3':'white';
+  const borderColor = pct===100?'#10b981':pct>=70?'#3b82f6':pct>=30?'#f59e0b':'#e5e7eb';
+
+  if(total===0) return null; // 表示対象なし（章が絞り込みで非表示）
+
+  return(
+    <div style={{borderRadius:'10px',marginBottom:'10px',overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.06)',border:`2px solid ${borderColor}`,background:bgColor}}>
+      <button onClick={()=>setOpen(o=>!o)}
+        style={{width:'100%',padding:'12px 14px',display:'flex',alignItems:'center',gap:'10px',border:'none',background:'transparent',cursor:'pointer',textAlign:'left'}}>
+        <span style={{fontSize:'14px'}}>{open?'▼':'▶'}</span>
+        <div style={{flex:1}}>
+          {nyumonChap&&<p style={{fontWeight:'bold',fontSize:'14px',color:'#1e3a8a'}}>{nyumonChap.name}</p>}
+          {chartChap&&<p style={{fontSize:'11px',color:chartSet?.color||'#6b7280',marginTop:'1px'}}>＋ {chartChap.name}{visChart.length<chartChap.items.length?` (Lv${lv}以下 ${visChart.length}問)`:''}
+          </p>}
+        </div>
+        <div style={{textAlign:'right',flexShrink:0}}>
+          <p style={{fontSize:'13px',fontWeight:'bold',color:pct===100?'#065f46':'#374151'}}>{done}/{total}</p>
+          <div style={{display:'flex',alignItems:'center',gap:'4px',marginTop:'2px'}}>
+            <div style={{width:'60px',height:'6px',background:'rgba(0,0,0,0.1)',borderRadius:'3px',overflow:'hidden'}}>
+              <div style={{width:`${pct}%`,height:'100%',background:pct===100?'#10b981':pct>=70?'#3b82f6':'#f59e0b',borderRadius:'3px'}}/>
+            </div>
+            <span style={{fontSize:'11px',color:'#374151',fontWeight:'bold'}}>{pct}%</span>
+          </div>
+        </div>
+      </button>
+      {open&&(
+        <div style={{background:'white'}}>
+          {nyumonChap&&(
+            <>
+              <div style={{padding:'5px 14px',background:'#f0fdf4',fontSize:'11px',fontWeight:'bold',color:'#065f46',borderTop:'1px solid #e5e7eb'}}>
+                📗 入門問題精講
+              </div>
+              {visNyumon.map(it=>(
+                <ItemRow key={it.id} prefix="IA" item={it} rec={rec} onCycle={onCycle}
+                  activeHint={activeHint} setActiveHint={setActiveHint}
+                  isSkipped={skipKeys&&skipKeys.has(`IA_${it.id}`)}
+                  onSkipToggle={onSkipToggle}/>
+              ))}
+            </>
+          )}
+          {chartChap&&visChart.length>0&&(
+            <>
+              <div style={{padding:'5px 14px',background:chartSet?.bg||'#f8fafc',fontSize:'11px',fontWeight:'bold',color:chartSet?.color||'#64748b',borderTop:'2px solid #e5e7eb'}}>
+                📘 {chartChap.name}　<span style={{fontWeight:'normal'}}>（コンパスLv{lv}以下 {visChart.length}問）</span>
+              </div>
+              {visChart.map(it=>(
+                <ItemRow key={it.id} prefix="CHART" item={it} rec={rec} onCycle={onCycle}
+                  activeHint={activeHint} setActiveHint={setActiveHint}
+                  isSkipped={skipKeys&&skipKeys.has(`CHART_${it.id}`)}
+                  onSkipToggle={onSkipToggle}/>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── App ────────────────────────────────────────────────
+
+// ══════════════════════════════════════════
+// ログイン画面
+// ══════════════════════════════════════════
+function PasswordGate({onPass}){
+  const [pw,setPw]=useState('');
+  const [err,setErr]=useState('');
+  const chk=role=>{
+    if((role==='teacher'&&pw===PW_TEACHER)||(role==='director'&&pw===PW_DIRECTOR)){
+      onPass(role);
+    } else setErr('パスワードが違います');
+  };
+  const loading=false;
+  return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1e3a8a,#065f46)'}}>
+      <div style={{background:'white',borderRadius:'16px',padding:'40px',width:'340px',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+        <div style={{textAlign:'center',marginBottom:'24px'}}>
+          <div style={{fontSize:'44px',marginBottom:'8px'}}>📘</div>
+          <p style={{fontWeight:'bold',fontSize:'18px',color:'#1e3a8a'}}>明光義塾 新屋敷教室</p>
+          <p style={{color:'#6b7280',fontSize:'13px',marginTop:'4px'}}>チェックアプリ</p>
+        </div>
+        {err&&<p style={{color:'#dc2626',fontSize:'13px',marginBottom:'12px',textAlign:'center'}}>{err}</p>}
+        <input type="password" value={pw} onChange={e=>setPw(e.target.value)}
+          onKeyDown={e=>e.key==='Enter'&&chk('teacher')}
+          placeholder="パスワードを入力" autoFocus
+          style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'10px',padding:'12px 14px',fontSize:'15px',marginBottom:'12px',outline:'none'}}/>
+        <button onClick={()=>chk('teacher')} disabled={loading}
+          style={{width:'100%',background:loading?'#9ca3af':'#1e3a8a',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:loading?'wait':'pointer',marginBottom:'8px'}}>
+          {loading?'⏳ 読み込み中...':'講師としてログイン'}
+        </button>
+        <button onClick={()=>chk('director')} disabled={loading}
+          style={{width:'100%',background:loading?'#9ca3af':'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:loading?'wait':'pointer'}}>
+          {loading?'⏳ 読み込み中...':'教室長としてログイン'}
+        </button>
+        {loading&&<p style={{fontSize:'11px',color:'#6b7280',textAlign:'center',marginTop:'12px'}}>サーバーに接続中...数秒お待ちください</p>}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// 講師選択画面
+// ══════════════════════════════════════════
+function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd}){
+  const [editMode,setEditMode]=useState(false);
+  const [newName,setNewName]=useState('');
+  const handleDel=(t)=>{
+    if(window.confirm(`講師「${t}」を削除しますか？\n※この操作は取り消せません`)){
+      onDelete(t);
+    }
+  };
+  const handleAdd=()=>{
+    const name=(newName||'').trim();
+    if(!name){alert('講師名を入力してください');return;}
+    if(teachers.includes(name)){alert('同じ名前の講師が既に登録されています');return;}
+    onAdd(name);setNewName('');
+  };
+  return(
+    <div style={{minHeight:'100vh',background:'#f0f4f8',padding:'24px 16px'}}>
+      <div style={{maxWidth:'480px',margin:'0 auto'}}>
+        <p style={{textAlign:'center',fontWeight:'bold',fontSize:'20px',color:'#1e3a8a',marginBottom:'6px'}}>👨‍🏫 講師を選択</p>
+        <p style={{textAlign:'center',color:'#6b7280',fontSize:'13px',marginBottom:'16px'}}>{role==='director'?'🏫 教室長モード':'講師モード'}</p>
+        {role==='director'&&(
+          <div style={{display:'flex',justifyContent:'center',marginBottom:'16px'}}>
+            <button onClick={()=>setEditMode(!editMode)}
+              style={{background:editMode?'#dc2626':'#f59e0b',color:'white',border:'none',borderRadius:'8px',padding:'8px 16px',fontSize:'13px',cursor:'pointer',fontWeight:'bold'}}>
+              {editMode?'✕ 編集モード終了':'⚙ 講師リストを編集'}
+            </button>
+          </div>
+        )}
+        {editMode&&role==='director'&&(
+          <div style={{background:'#fef3c7',border:'1px solid #fbbf24',borderRadius:'10px',padding:'12px',marginBottom:'16px'}}>
+            <p style={{fontSize:'12px',color:'#78350f',marginBottom:'8px',fontWeight:'bold'}}>➕ 新しい講師を追加</p>
+            <div style={{display:'flex',gap:'6px'}}>
+              <input type="text" value={newName} onChange={e=>setNewName(e.target.value)} placeholder="例：山田 太郎"
+                onKeyDown={e=>e.key==='Enter'&&handleAdd()}
+                style={{flex:1,border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 10px',fontSize:'13px'}}/>
+              <button onClick={handleAdd} style={{background:'#065f46',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'13px',cursor:'pointer',fontWeight:'bold'}}>追加</button>
+            </div>
+            <p style={{fontSize:'11px',color:'#92400e',marginTop:'8px'}}>💡 各講師の右にある 🗑 ボタンで削除できます</p>
+          </div>
+        )}
+        <div style={{display:'grid',gap:'8px'}}>
+          {teachers.map((t,i)=>(
+            <div key={i} style={{display:'flex',gap:'4px'}}>
+              <button onClick={()=>!editMode&&onSelect(t)}
+                style={{flex:1,background:'white',border:'2px solid #e5e7eb',borderRadius:'10px',padding:'14px 18px',fontSize:'15px',cursor:editMode?'default':'pointer',textAlign:'left',fontWeight:'bold',color:'#374151'}}>
+                {t}
+              </button>
+              {editMode&&role==='director'&&(
+                <button onClick={()=>handleDel(t)} title="この講師を削除"
+                  style={{background:'#fee2e2',color:'#dc2626',border:'2px solid #fca5a5',borderRadius:'10px',padding:'0 14px',fontSize:'16px',cursor:'pointer',fontWeight:'bold'}}>
+                  🗑
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// 生徒選択画面（小中高全員統合）
+// ══════════════════════════════════════════
+function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onBack}){
+  const [sel,setSel]=useState([]);
+  const [filter,setFilter]=useState('all'); // 'all'|'hs'|'jh_chu'|'jh_sho'
+
+  const tog=(name,type)=>{
+    setSel(s=>{
+      const exists=s.find(x=>x.name===name);
+      return exists?s.filter(x=>x.name!==name):[...s,{name,type}];
+    });
+  };
+  const isSel=name=>sel.some(x=>x.name===name);
+  const gradeOf=name=>(name.match(/（(.+?)）/)||[])[1]||'';
+
+  // 学年順（上の学年から）
+  const HS_GRADE_ORDER = ['高3','高2','高1'];
+  const CHU_GRADE_ORDER = ['中3','中2','中1'];
+  const SHO_GRADE_ORDER = ['小6','小5','小4','小3','小2','小1'];
+
+  const groupBy=(list,orders)=>{
+    const map={};
+    orders.forEach(g=>{map[g]=[];});
+    list.forEach(s=>{
+      const g=gradeOf(s);
+      if(map[g]) map[g].push(s);
+    });
+    return orders.map(g=>({grade:g,students:map[g]})).filter(x=>x.students.length>0);
+  };
+
+  const hsGroups  = groupBy(hsStudents, HS_GRADE_ORDER);
+  const chuGroups = groupBy(jhStudents, CHU_GRADE_ORDER);
+  const shoGroups = groupBy(jhStudents, SHO_GRADE_ORDER);
+
+  const gradeColor=g=>{
+    if(g.startsWith('高')) return '#1e3a8a';
+    if(g.startsWith('中')) return '#065f46';
+    return '#0891b2';
+  };
+  const gradeBg=g=>{
+    if(g.startsWith('高')) return '#eff6ff';
+    if(g.startsWith('中')) return '#ecfdf5';
+    return '#f0f9ff';
+  };
+  const gradeBorder=g=>{
+    if(g.startsWith('高')) return '#1e3a8a';
+    if(g.startsWith('中')) return '#065f46';
+    return '#0891b2';
+  };
+
+  const renderGroup=(groups,type)=>groups.map(({grade,students})=>(
+    <div key={grade} style={{marginBottom:'12px'}}>
+      <p style={{fontSize:'12px',fontWeight:'bold',color:gradeColor(grade),marginBottom:'5px',
+        paddingLeft:'6px',borderLeft:`3px solid ${gradeColor(grade)}`}}>
+        {grade}　{students.length}人
+      </p>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'5px'}}>
+        {students.map((s,i)=>{
+          const sel_=isSel(s);
+          const gc=gradeColor(grade);
+          return(
+            <button key={i} onClick={()=>tog(s,type)}
+              style={{padding:'7px 6px',borderRadius:'8px',
+                border:`2px solid ${sel_?gc:'#e5e7eb'}`,
+                background:sel_?gradeBg(grade):'white',cursor:'pointer',textAlign:'left',transition:'all .1s'}}>
+              <div style={{fontWeight:sel_?'bold':'normal',fontSize:'12px',
+                color:sel_?gc:'#374151',lineHeight:1.3}}>
+                {sel_?'✓ ':''}{stripGrade(s)}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ));
+
+  const showHs  = filter==='all'||filter==='hs';
+  const showChu = filter==='all'||filter==='jh_chu';
+  const showSho = filter==='all'||filter==='jh_sho';
+
+  return(
+    <div style={{minHeight:'100vh',background:'#f0f4f8',padding:'12px'}}>
+      <div style={{maxWidth:'680px',margin:'0 auto'}}>
+        {/* ヘッダー */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+          <div>
+            <p style={{fontWeight:'bold',fontSize:'17px',color:'#1e3a8a'}}>今日担当する生徒を選択</p>
+            <p style={{color:'#6b7280',fontSize:'12px'}}>👨‍🏫 {teacherName}</p>
+          </div>
+          <button onClick={onBack} style={{background:'#e5e7eb',border:'none',borderRadius:'8px',padding:'8px 14px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
+        </div>
+
+        {/* フィルタータブ */}
+        <div style={{display:'flex',gap:'6px',marginBottom:'14px',flexWrap:'wrap'}}>
+          {[
+            ['all',    '全員',    '#1e3a8a'],
+            ['hs',     '📘 高校生','#1e3a8a'],
+            ['jh_chu', '📗 中学生','#065f46'],
+            ['jh_sho', '🔵 小学生','#0891b2'],
+          ].map(([v,l,c])=>(
+            <button key={v} onClick={()=>setFilter(v)}
+              style={{padding:'6px 14px',borderRadius:'20px',border:'none',cursor:'pointer',fontSize:'13px',
+                background:filter===v?c:'white',color:filter===v?'white':'#6b7280',
+                fontWeight:filter===v?'bold':'normal',boxShadow:'0 1px 3px rgba(0,0,0,.1)'}}>
+              {l}
+            </button>
+          ))}
+          {sel.length>0&&(
+            <span style={{marginLeft:'auto',alignSelf:'center',fontSize:'13px',color:'#1e3a8a',fontWeight:'bold',background:'#eff6ff',padding:'4px 10px',borderRadius:'20px'}}>
+              {sel.length}人選択中
+            </span>
+          )}
+        </div>
+
+        {/* 高校生グループ */}
+        {showHs&&hsGroups.length>0&&(
+          <div style={{background:'white',borderRadius:'12px',padding:'12px',marginBottom:'12px',boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}>
+            <p style={{fontSize:'13px',fontWeight:'bold',color:'#1e3a8a',marginBottom:'10px'}}>📘 高校生</p>
+            {renderGroup(hsGroups,'hs')}
+          </div>
+        )}
+
+        {/* 中学生グループ */}
+        {showChu&&chuGroups.length>0&&(
+          <div style={{background:'white',borderRadius:'12px',padding:'12px',marginBottom:'12px',boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}>
+            <p style={{fontSize:'13px',fontWeight:'bold',color:'#065f46',marginBottom:'10px'}}>📗 中学生</p>
+            {renderGroup(chuGroups,'jh')}
+          </div>
+        )}
+
+        {/* 小学生グループ */}
+        {showSho&&shoGroups.length>0&&(
+          <div style={{background:'white',borderRadius:'12px',padding:'12px',marginBottom:'80px',boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}>
+            <p style={{fontSize:'13px',fontWeight:'bold',color:'#0891b2',marginBottom:'10px'}}>🔵 小学生</p>
+            {renderGroup(shoGroups,'jh')}
+          </div>
+        )}
+
+        {/* 開始ボタン（固定） */}
+        <div style={{position:'fixed',bottom:'16px',left:'50%',transform:'translateX(-50%)',width:'calc(100% - 32px)',maxWidth:'680px',zIndex:10}}>
+          <button onClick={()=>sel.length>0&&onStart(sel)} disabled={sel.length===0}
+            style={{width:'100%',background:sel.length>0?'#1e3a8a':'#9ca3af',color:'white',border:'none',
+              borderRadius:'12px',padding:'16px',fontWeight:'bold',fontSize:'16px',
+              cursor:sel.length>0?'pointer':'not-allowed',boxShadow:'0 4px 16px rgba(0,0,0,.25)'}}>
+            {sel.length>0?`▶ ${sel.length}人のデータを読み込む`:'生徒を選択してください'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DirectorSetting({studentIdxs,allStudents,onBack}){
+  const [plans,setPlans]=useState({});
+  const [curIdx,setCurIdx]=useState(0);
+  const [msg,setMsg]=useState('');
+  const [tab,setTab]=useState('text'); // 'text'|'range'|'delete'
+  // 生徒・講師の削除管理
+  const [stList,setStList]=useState([]);
+  const [tcList,setTcList]=useState([]);
+  const [delMsg,setDelMsg]=useState('');
+
+  const students=studentIdxs.map(i=>allStudents[i]);
+  const curName=stripGrade(students[curIdx]||'');
+  const curPlan=plans[curName]||{};
+
+  useEffect(()=>{
+    (async()=>{
+      const p={};
+      for(const s of students){
+        const n=stripGrade(s);
+        const d=await hsGet(`koukou:plan:${n}`,null);
+        if(d) p[n]=d;
+      }
+      setPlans(p);
+      const t=await gasGet('koukou:teachers',INIT_TEACHERS);
+      const st=await gasGet('koukou:students',INIT_STUDENTS);
+      setTcList(t);setStList(st);
+    })();
+  },[]);
+
+  const setF=(field,val)=>setPlans(p=>({...p,[curName]:{...(p[curName]||{}),[field]:val}}));
+  const setNR=(f,v)=>setF('nyumonRange',{...(curPlan.nyumonRange||{}),[f]:v});
+  const setCR=(f,v)=>setF('chartRange', {...(curPlan.chartRange||{}), [f]:v});
+
+  const save=async()=>{
+    setMsg('保存中...');
+    await hsSet(`koukou:plan:${curName}`,plans[curName]||{});
+    setMsg('✅ 保存しました');
+    setTimeout(()=>setMsg(''),2000);
+  };
+
+  const hw = calcHomework(curPlan);
+  const sel=curPlan.textbookSet;
+  const selSet=sel?SETS[sel]:null;
+
+  // 削除系
+  const delStudent=async(s)=>{
+    if(!window.confirm(`「${s}」を削除しますか？`)) return;
+    const next=stList.filter(x=>x!==s);
+    setStList(next);
+    await gasSet('koukou:students',next);
+    setDelMsg(`✅ ${stripGrade(s)} を削除しました`);
+    setTimeout(()=>setDelMsg(''),3000);
+  };
+  const delTeacher=async(t)=>{
+    if(!window.confirm(`「${t}」を削除しますか？`)) return;
+    const next=tcList.filter(x=>x!==t);
+    setTcList(next);
+    await gasSet('koukou:teachers',next);
+    setDelMsg(`✅ ${t} を削除しました`);
+    setTimeout(()=>setDelMsg(''),3000);
+  };
+
+  const tabStyle=(t)=>({
+    padding:'8px 14px',border:'none',borderBottom:`3px solid ${tab===t?'#065f46':'transparent'}`,
+    background:'transparent',cursor:'pointer',fontWeight:tab===t?'bold':'normal',
+    color:tab===t?'#065f46':'#6b7280',fontSize:'13px',
+  });
+
+  return(
+    <div style={{minHeight:'100vh',background:'#f0f4f8',padding:'16px'}}>
+      <div style={{maxWidth:'720px',margin:'0 auto'}}>
+        <div style={{background:'#065f46',color:'white',borderRadius:'12px',padding:'14px 16px',marginBottom:'14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <p style={{fontWeight:'bold',fontSize:'16px'}}>🏫 教室長設定</p>
+          <button onClick={onBack} style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
+        </div>
+
+        {/* タブ */}
+        <div style={{background:'white',borderRadius:'12px',marginBottom:'12px',display:'flex',borderBottom:'1px solid #e5e7eb',overflow:'hidden'}}>
+          <button style={tabStyle('text')} onClick={()=>setTab('text')}>📚 テキスト設定</button>
+          <button style={tabStyle('range')} onClick={()=>setTab('range')}>🎯 絞り込み・宿題量</button>
+          <button style={tabStyle('delete')} onClick={()=>setTab('delete')}>🗑️ 生徒・講師削除</button>
+        </div>
+
+        {/* ── タブ：テキスト設定 ── */}
+        {tab==='text'&&(
+          <>
+          {/* 生徒タブ */}
+          <div style={{display:'flex',gap:'6px',marginBottom:'12px',overflowX:'auto',paddingBottom:'4px'}}>
+            {students.map((s,i)=>{
+              const n=stripGrade(s);
+              const hp=plans[n]?.textbookSet;
+              return(
+                <button key={i} onClick={()=>setCurIdx(i)}
+                  style={{padding:'8px 14px',borderRadius:'20px',border:`2px solid ${curIdx===i?'#065f46':hp?'#10b981':'#e5e7eb'}`,
+                    background:curIdx===i?'#065f46':'white',color:curIdx===i?'white':'#374151',cursor:'pointer',
+                    fontSize:'13px',flexShrink:0,fontWeight:curIdx===i?'bold':'normal'}}>
+                  {hp?'✅ ':''}{n}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
+            <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'16px',borderBottom:'2px solid #e5e7eb',paddingBottom:'10px'}}>
+              📋 {curName} の設定
+            </p>
+            {/* チャート選択 */}
+            <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>📚 使用チャートを選択</p>
+            {[
+              {group:'数ⅠA対応', keys:['yellow_1a','yellow_a','white_1a','blue_1a']},
+              {group:'数ⅡB対応', keys:['yellow_2','yellow_b','white_2b','white_2bc','blue_2b','blue_2bc']},
+              {group:'数C対応',  keys:['yellow_c','white_2bc_c','blue_2bc_c']},
+              {group:'数Ⅲ対応',  keys:['yellow_3','white_3','blue_3']},
+              {group:'数ⅢC対応（仮）', keys:['yellow_3c','white_3c','blue_3c']},
+            ].map(({group,keys})=>(
+              <div key={group} style={{marginBottom:'10px'}}>
+                <p style={{fontSize:'11px',fontWeight:'bold',color:'#6b7280',marginBottom:'4px'}}>{group}</p>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px'}}>
+                  {keys.map(key=>{
+                    const ts=SETS[key]; if(!ts) return null;
+                    const isSel=sel===key;
+                    return(
+                      <button key={key} onClick={()=>setF('textbookSet',isSel?'':key)}
+                        style={{padding:'10px',borderRadius:'8px',border:`2px solid ${isSel?ts.border:'#e5e7eb'}`,
+                          background:isSel?ts.bg:'white',cursor:'pointer',textAlign:'left',transition:'all .15s'}}>
+                        <p style={{fontWeight:'bold',fontSize:'12px',color:isSel?ts.color:'#374151',marginBottom:'1px'}}>
+                          {isSel?'✓ ':''}{ts.label}
+                        </p>
+                        <p style={{fontSize:'10px',color:'#9ca3af'}}>{ts.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {/* 日付 */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',margin:'16px 0'}}>
+              <div>
+                <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>📅 開始日</p>
+                <input type="date" value={curPlan.startDate||''}
+                  onChange={e=>setF('startDate',e.target.value)}
+                  style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
+              </div>
+              <div>
+                <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>🎯 完了目標日</p>
+                <input type="date" value={curPlan.deadline||''}
+                  onChange={e=>setF('deadline',e.target.value)}
+                  style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
+              </div>
+            </div>
+
+            {/* メモ */}
+            <div style={{marginBottom:'16px'}}>
+              <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>📝 講師へのメモ</p>
+              <textarea value={curPlan.memo||''} onChange={e=>setF('memo',e.target.value)}
+                placeholder="授業の注意点や目標など..."
+                style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px',height:'70px',resize:'vertical'}}/>
+            </div>
+
+            {/* スキップ問題の確認表示 */}
+            {selSet&&(curPlan.skipItems||[]).length>0&&(
+              <div style={{background:'#fef2f2',border:'1px solid #fca5a5',borderRadius:'8px',padding:'10px 12px',marginBottom:'12px'}}>
+                <p style={{fontSize:'12px',fontWeight:'bold',color:'#dc2626',marginBottom:'6px'}}>✕ スキップ設定中の問題：{(curPlan.skipItems||[]).length}問</p>
+                <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'6px'}}>チェックリスト画面で各問題の「✕」ボタンを押してスキップを設定できます</p>
+                <button onClick={()=>setF('skipItems',[])}
+                  style={{background:'#dc2626',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                  🔄 スキップを全解除
+                </button>
+              </div>
+            )}
+            {selSet&&!(curPlan.skipItems||[]).length&&(
+              <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'8px',padding:'10px 12px',marginBottom:'12px',fontSize:'12px',color:'#065f46'}}>
+                💡 チェックリスト画面で各問題の右端「✕」ボタンを押すとスキップ設定できます。スキップした問題はグレーになり講師が担当しない問題として表示されます。
+              </div>
+            )}
+            <button onClick={save}
+              style={{width:'100%',background:'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:'pointer'}}>
+              {msg||'💾 この生徒の設定を保存'}
+            </button>
+          </div>
+          </>
+        )}
+
+        {/* ── タブ：絞り込み・宿題量 ── */}
+        {tab==='range'&&(
+          <>
+          <div style={{display:'flex',gap:'6px',marginBottom:'12px',overflowX:'auto',paddingBottom:'4px'}}>
+            {students.map((s,i)=>{
+              const n=stripGrade(s);
+              const hp=plans[n]?.textbookSet;
+              return(
+                <button key={i} onClick={()=>setCurIdx(i)}
+                  style={{padding:'8px 14px',borderRadius:'20px',border:`2px solid ${curIdx===i?'#065f46':hp?'#10b981':'#e5e7eb'}`,
+                    background:curIdx===i?'#065f46':'white',color:curIdx===i?'white':'#374151',cursor:'pointer',
+                    fontSize:'13px',flexShrink:0}}>
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
+            <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'4px'}}>🎯 {curName} の絞り込み設定</p>
+            {!selSet&&<p style={{color:'#f59e0b',fontSize:'13px',marginBottom:'12px'}}>⚠️ まずテキスト設定タブでチャートを選択してください</p>}
+            {selSet&&(
+              <>
+              {/* コンパスレベル */}
+              <div style={{marginBottom:'18px'}}>
+                <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>🧭 チャートのコンパスレベル上限（この難易度まで表示）</p>
+                <div style={{display:'flex',gap:'8px'}}>
+                  {[1,2,3,4,5].map(lv=>{
+                    const cur=curPlan.maxLevel||5;
+                    const isActive=lv<=cur;
+                    return(
+                      <button key={lv} onClick={()=>setF('maxLevel',lv)}
+                        style={{flex:1,padding:'10px 4px',borderRadius:'8px',border:`2px solid ${cur===lv?selSet.border:'#e5e7eb'}`,
+                          background:isActive?COMPASS_COLOR[lv]:'#f9fafb',cursor:'pointer',
+                          fontWeight:cur===lv?'bold':'normal',fontSize:'12px',color:cur===lv?'#374151':'#9ca3af'}}>
+                        {lv}<br/><span style={{fontSize:'9px'}}>{COMPASS_LABEL[lv]}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{fontSize:'11px',color:'#6b7280',marginTop:'4px'}}>
+                  レベル{curPlan.maxLevel||5}以下の問題のみ表示（入門問題精講はレベル設定なし・全問表示）
+                </p>
+              </div>
+
+              {/* 入門問題精講の章範囲 */}
+              <div style={{marginBottom:'18px',background:'#f0fdf4',borderRadius:'10px',padding:'14px'}}>
+                <p style={{fontSize:'13px',fontWeight:'bold',color:'#065f46',marginBottom:'10px'}}>
+                  📗 入門問題精講（{NYUMON_SETS[selSet.nyumon]?.label}）の表示章範囲
+                </p>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <span style={{fontSize:'12px',color:'#374151'}}>第</span>
+                  <input type="number" min="1" max="20" value={curPlan.nyumonRange?.from||1}
+                    onChange={e=>setNR('from',Number(e.target.value))}
+                    style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
+                  <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
+                  <input type="number" min="1" max="20" value={curPlan.nyumonRange?.to||20}
+                    onChange={e=>setNR('to',Number(e.target.value))}
+                    style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
+                  <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
+                </div>
+              </div>
+
+              {/* チャートの章範囲 */}
+              <div style={{marginBottom:'18px',background:selSet.bg,borderRadius:'10px',padding:'14px'}}>
+                <p style={{fontSize:'13px',fontWeight:'bold',color:selSet.color,marginBottom:'10px'}}>
+                  📘 {selSet.label} の表示章範囲
+                </p>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <span style={{fontSize:'12px',color:'#374151'}}>第</span>
+                  <input type="number" min="1" max="20" value={curPlan.chartRange?.from||1}
+                    onChange={e=>setCR('from',Number(e.target.value))}
+                    style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
+                  <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
+                  <input type="number" min="1" max="20" value={curPlan.chartRange?.to||20}
+                    onChange={e=>setCR('to',Number(e.target.value))}
+                    style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
+                  <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
+                </div>
+              </div>
+
+              {/* 宿題量計算 */}
+              {hw?(
+                <div style={{background:'linear-gradient(135deg,#1e3a8a,#065f46)',borderRadius:'12px',padding:'16px',color:'white',marginBottom:'16px'}}>
+                  <p style={{fontWeight:'bold',fontSize:'14px',marginBottom:'10px'}}>📊 宿題量シミュレーション</p>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                    <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+                      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.8)',marginBottom:'2px'}}>入門精講</p>
+                      <p style={{fontSize:'20px',fontWeight:'bold'}}>{hw.nTotal}問</p>
+                    </div>
+                    <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+                      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.8)',marginBottom:'2px'}}>チャート（Lv{curPlan.maxLevel||5}以下）</p>
+                      <p style={{fontSize:'20px',fontWeight:'bold'}}>{hw.cTotal}問</p>
+                    </div>
+                  </div>
+                  <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'8px',padding:'10px',textAlign:'center',marginBottom:'8px'}}>
+                    <p style={{fontSize:'12px',color:'rgba(255,255,255,0.8)'}}>合計 {hw.total}問 ÷ {hw.weeks}週（{hw.days}日）</p>
+                    <p style={{fontSize:'24px',fontWeight:'bold',marginTop:'2px'}}>週{hw.perWeek}問 / 1日{hw.perDay}問</p>
+                  </div>
+                </div>
+              ):(
+                <div style={{background:'#f1f5f9',borderRadius:'8px',padding:'12px',marginBottom:'16px',fontSize:'12px',color:'#64748b',textAlign:'center'}}>
+                  💡 「テキスト設定」タブで開始日・完了目標日を入力すると宿題量が計算されます
+                </div>
+              )}
+              </>
+            )}
+            <button onClick={save}
+              style={{width:'100%',background:'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:'pointer'}}>
+              {msg||'💾 この生徒の設定を保存'}
+            </button>
+          </div>
+          </>
+        )}
+
+        {/* ── タブ：生徒・講師削除 ── */}
+        {tab==='delete'&&(
+          <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
+            <p style={{fontWeight:'bold',fontSize:'16px',color:'#dc2626',marginBottom:'4px'}}>🗑️ 生徒・講師の削除</p>
+            <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'16px'}}>退塾した生徒や卒業した講師を削除できます。削除すると記録が消えるため慎重に！</p>
+            {delMsg&&<div style={{background:'#ecfdf5',border:'1px solid #6ee7b7',borderRadius:'8px',padding:'10px',marginBottom:'12px',fontSize:'13px',color:'#065f46'}}>{delMsg}</div>}
+
+            <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>👤 生徒一覧</p>
+            <div style={{maxHeight:'240px',overflowY:'auto',border:'1px solid #e5e7eb',borderRadius:'8px',marginBottom:'20px'}}>
+              {stList.map((s,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',borderBottom:'1px solid #f3f4f6'}}>
+                  <span style={{fontSize:'13px',color:'#374151'}}>{s}</span>
+                  <button onClick={()=>delStudent(s)}
+                    style={{background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    削除
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>👨‍🏫 講師一覧</p>
+            <div style={{maxHeight:'240px',overflowY:'auto',border:'1px solid #e5e7eb',borderRadius:'8px'}}>
+              {tcList.map((t,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',borderBottom:'1px solid #f3f4f6'}}>
+                  <span style={{fontSize:'13px',color:'#374151'}}>{t}</span>
+                  <button onClick={()=>delTeacher(t)}
+                    style={{background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    削除
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── ItemRow ────────────────────────────────────────────
+
+// ══════════════════════════════════════════
+// メインApp（統合）
+// ══════════════════════════════════════════
+function App(){
+  const [phase,setPhase]=useState('login'); // login|teacher|students|loading|main|director
+  const [role,setRole]=useState('');
+  const [teachers,setTeachers]=useState(ALL_TEACHERS_DEFAULT);
+  const [hsStudents,setHsStudents]=useState(HS_STUDENTS_DEFAULT);
+  const [jhStudents,setJhStudents]=useState(JH_STUDENTS_DEFAULT);
+  const [selTeacher,setSelTeacher]=useState('');
+  const [selStudents,setSelStudents]=useState([]); // [{name,type:'hs'|'jh'}]
+  const [loadMsg,setLoadMsg]=useState('');
+
+  // 高校生データ
+  const [hsRecords,setHsRecords]=useState({});
+  const [hsPlans,setHsPlans]=useState({});
+
+  // 小中学生データ
+  const [jhRecords,setJhRecords]=useState({});
+  const [jhTextbookOverrides,setJhTextbookOverrides]=useState({});
+  const [jhTestRanges,setJhTestRanges]=useState({});
+  const [jhDirectives,setJhDirectives]=useState({});
+  const [jhSkipItems,setJhSkipItems]=useState({});
+
+  // 共通UI
+  const [activeStudentIdx,setActiveStudentIdx]=useState(0); // selStudentsの添字
+  const [saveMsg,setSaveMsg]=useState('');
+  const [activeHint,setActiveHint]=useState(null);
+  const [activeSubjMap,setActiveSubjMap]=useState({});
+  const [activeChapMap,setActiveChapMap]=useState({});
+  const [activeTestRound,setActiveTestRound]=useState('t1');
+  const [showTextbookModal,setShowTextbookModal]=useState(false);
+  const [showTestRangeModal,setShowTestRangeModal]=useState(false);
+  const [showDirectiveModal,setShowDirectiveModal]=useState(false);
+
+  const flash=msg=>{setSaveMsg(msg);setTimeout(()=>setSaveMsg(''),2500);};
+
+  // DB(chapters.json)ロード
+  useEffect(()=>{
+    fetch('chapters.json')
+      .then(r=>r.json())
+      .then(d=>{DB=d;})
+      .catch(()=>{});
+  },[]);
+
+  // ログイン後：講師・生徒リストと軽量設定を先読み
+  const handleLogin=async r=>{
+    setRole(r);
+    // ① まずキャッシュから即時読み込んで画面を進める（超高速）
+    const cT=hsGetCached('koukou:teachers',ALL_TEACHERS_DEFAULT);
+    const cHs=hsGetCached('koukou:students',HS_STUDENTS_DEFAULT);
+    const cJh=jhGetCached('students',JH_STUDENTS_DEFAULT);
+    const cTb=jhGetCached('textbookOverrides',{});
+    const cTr=jhGetCached('testRanges',{});
+    const cDv=jhGetCached('directives',{});
+    const cSk=jhGetCached('skipItems',{});
+    setTeachers(cT);setHsStudents(cHs);setJhStudents(cJh);
+    setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);
+    setPhase('teacher');  // すぐ遷移
+    // ② バックグラウンドで最新データを取得してUIを更新
+    (async()=>{
+      const [t,hs,jh]=await Promise.all([
+        hsGet('koukou:teachers',cT),
+        hsGet('koukou:students',cHs),
+        jhGet('students',cJh),
+      ]);
+      setTeachers(t);setHsStudents(hs);setJhStudents(jh);
+      const [tb,tr,dv,sk]=await Promise.all([
+        jhGet('textbookOverrides',cTb),
+        jhGet('testRanges',cTr),
+        jhGet('directives',cDv),
+        jhGet('skipItems',cSk),
+      ]);
+      setJhTextbookOverrides(tb);setJhTestRanges(tr);setJhDirectives(dv);setJhSkipItems(sk);
+    })();
+  };
+
+  // 生徒選択後：選んだ生徒のデータだけ読む
+  const handleStart=async selected=>{
+    if(role==='director'){setSelStudents(selected);setPhase('director');return;}
+    setSelStudents(selected);
+
+    // ① キャッシュから即時読み込んで画面を進める
+    const hsNames=selected.filter(x=>x.type==='hs').map(x=>x.name);
+    const jhNeeded=selected.some(x=>x.type==='jh');
+    const cNr={},cNp={};
+    for(const name of hsNames){
+      cNr[name]=hsGetCached(`koukou:records:${stripGrade(name)}`,{});
+      const p=hsGetCached(`koukou:plan:${stripGrade(name)}`,null);
+      if(p) cNp[name]=p;
+    }
+    if(jhNeeded){
+      const cJr=jhGetCached('records',{});
+      setJhRecords(cJr);
+    }
+    setHsRecords(cNr);setHsPlans(cNp);
+    setActiveStudentIdx(0);setPhase('main');
+
+    // ② バックグラウンドで最新データを取得して上書き
+    (async()=>{
+      const nr={...cNr},np={...cNp};
+      for(const name of hsNames){
+        nr[name]=await hsGet(`koukou:records:${stripGrade(name)}`,cNr[name]||{});
+        const p=await hsGet(`koukou:plan:${stripGrade(name)}`,cNp[name]||null);
+        if(p) np[name]=p;
+      }
+      if(jhNeeded){
+        const jr=await jhGet('records',{});
+        setJhRecords(jr);
+      }
+      setHsRecords(nr);setHsPlans(np);
+    })();
+  };
+
+  // 現在の生徒
+  const curStu=selStudents[activeStudentIdx]||null;
+  const curName=curStu?stripGrade(curStu.name):'';
+  const curType=curStu?.type||'hs';
+
+  // 高校生の記録操作
+  const hsCycleStatus=async key=>{
+    const cur=(hsRecords[curName]?.[key]||{status:'未'}).status;
+    const next=CYCLE[cur];
+    const nr={...(hsRecords[curName]||{}),[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
+    setHsRecords(r=>({...r,[curName]:nr}));
+    flash('💾 保存中...');
+    await hsSet(`koukou:records:${curName}`,nr);
+    flash('💾 保存しました');
+  };
+
+  const hsSkipToggle=role==='director'?async(key)=>{
+    const plan=hsPlans[curName]||{};
+    const cur=plan.skipItems||[];
+    const next=cur.includes(key)?cur.filter(k=>k!==key):[...cur,key];
+    const newPlan={...plan,skipItems:next};
+    setHsPlans(p=>({...p,[curName]:newPlan}));
+    await hsSet(`koukou:plan:${curName}`,newPlan);
+    flash('✕ スキップ設定を保存しました');
+  }:null;
+
+  // 小中学生の記録操作
+  // 小中学生のrecordキーは生徒index（jhStudents配列内の位置）
+  const getJhSi=name=>{
+    const full=jhStudents.find(s=>s.startsWith(name+'（')||s===name);
+    return jhStudents.indexOf(full);
+  };
+  const jhGetRecord=(si,key)=>jhRecords[si]?.[key]||{status:'未',teacher:'',date:''};
+  const jhCycleStatus=async(si,key)=>{
+    const cur=jhGetRecord(si,key).status;
+    const next=STATUS_CYCLE[cur];
+    const nr={...jhRecords,[si]:{...(jhRecords[si]||{}),[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}}};
+    setJhRecords(nr);flash('💾 保存中...');
+    await jhSet('records',nr);flash('💾 保存しました');
+  };
+
+  const jhSaveTextbook=async(si,vals)=>{
+    const newOv={...jhTextbookOverrides,[si]:vals};
+    setJhTextbookOverrides(newOv);
+    await jhSet('textbookOverrides',newOv);
+    setShowTextbookModal(false);flash('📚 テキスト設定を変更しました');
+  };
+  const jhSaveTestRange=async(key,data)=>{
+    const nd={...jhTestRanges,[key]:data};setJhTestRanges(nd);
+    await jhSet('testRanges',nd);flash('📝 テスト範囲を保存しました');
+  };
+  const jhSaveDirective=async(key,text)=>{
+    const nd={...jhDirectives,[key]:text};setJhDirectives(nd);
+    await jhSet('directives',nd);flash('📢 方針を保存しました');
+  };
+  const jhToggleSkip=async(grade,subjKey,itemId)=>{
+    const key=`${grade}_${subjKey}`;
+    const cur=jhSkipItems[key]||[];
+    const ns=cur.includes(itemId)?cur.filter(id=>id!==itemId):[...cur,itemId];
+    const updated={...jhSkipItems,[key]:ns};
+    setJhSkipItems(updated);
+    await jhSet('skipItems',updated);
+    flash(cur.includes(itemId)?'↩ スキップ解除':'⏭ スキップ設定');
+  };
+
+  // 高校生サイドバー用サマリー
+  const getHsSummary=idx=>{
+    const stu=selStudents[idx];
+    if(!stu||stu.type!=='hs') return{total:0,done:0};
+    const n=stripGrade(stu.name);
+    const rec=hsRecords[n]||{};
+    const plan=hsPlans[n]||{};
+    const ss=plan.textbookSet?SETS[plan.textbookSet]:null;
+    if(!ss) return{total:0,done:0};
+    const nyumonKey=ss.nyumon||'ia';
+    const lv=plan.maxLevel||5;
+    const nFrom=plan.nyumonRange?.from||1,nTo=plan.nyumonRange?.to||99;
+    const cFrom=plan.chartRange?.from||1, cTo=plan.chartRange?.to||99;
+    const skipSet=new Set(plan.skipItems||[]);
+    let t=0,d=0;
+    getNyumon(nyumonKey).forEach((ch,ci)=>{
+      if(ci+1<nFrom||ci+1>nTo) return;
+      ch.items.forEach(it=>{if(skipSet.has(`IA_${it.id}`)) return;t++;if((rec[`IA_${it.id}`]||{status:'未'}).status==='◯')d++;});
+    });
+    getChaps(ss.dataKey).forEach((ch,ci)=>{
+      if(ci+1<cFrom||ci+1>cTo) return;
+      ch.items.forEach(it=>{if((it.level||1)>lv||skipSet.has(`CHART_${it.id}`)) return;t++;if((rec[`CHART_${it.id}`]||{status:'未'}).status==='◯')d++;});
+    });
+    return{total:t,done:d};
+  };
+
+  const getJhSummary=idx=>{
+    const stu=selStudents[idx];
+    if(!stu||stu.type!=='jh') return{total:0,done:0};
+    const si=getJhSi(stripGrade(stu.name));
+    if(si<0) return{total:0,done:0};
+    const grade=extractGrade(jhStudents[si]||'');
+    const subjects=GRADE_SUBJECTS[grade]||[];
+    let t=0,d=0;
+    subjects.forEach(subj=>{
+      const override=jhTextbookOverrides[si]?.[subj];
+      const defaultKey=(grade.startsWith('中')||grade.startsWith('小'))?`${grade}Y_${subj}`:`${grade}_${subj}`;
+      const rawKey=override||defaultKey;
+      if(rawKey&&rawKey.startsWith('none_')) return;
+      const chs=CHAPTERS[rawKey]||[];
+      const skKey=`${grade}_${subj}`;
+      const skList=jhSkipItems[skKey]||[];
+      chs.forEach(ch=>ch.items.forEach(it=>{
+        if(skList.includes(it.id)) return;
+        t++;if(jhGetRecord(si,`${subj}_${it.id}`).status==='◯')d++;
+      }));
+    });
+    return{total:t,done:d};
+  };
+
+  const getSummary=idx=>{
+    const stu=selStudents[idx];
+    if(!stu) return{total:0,done:0};
+    return stu.type==='hs'?getHsSummary(idx):getJhSummary(idx);
+  };
+
+  // ── フェーズ分岐 ──
+  if(phase==='login') return <PasswordGate onPass={handleLogin}/>;
+  if(phase==='teacher') return <TeacherSelectScreen teachers={teachers} role={role}
+    onSelect={t=>{setSelTeacher(t);setPhase('students');}}
+    onDelete={async t=>{
+      const next=teachers.filter(x=>x!==t);
+      setTeachers(next);
+      await hsSet('koukou:teachers',next);
+      await jhSet('teachers',next);
+      flash('🗑 削除しました');
+    }}
+    onAdd={async name=>{
+      const next=[...teachers,name];
+      setTeachers(next);
+      await hsSet('koukou:teachers',next);
+      await jhSet('teachers',next);
+      flash('➕ 追加しました');
+    }}
+  />;
+  if(phase==='students') return(
+    <StudentSelectScreen hsStudents={hsStudents} jhStudents={jhStudents}
+      teacherName={selTeacher} role={role}
+      onStart={handleStart}
+      onBack={()=>setPhase('teacher')}/>
+  );
+  if(phase==='director') return(
+    <DirectorSetting studentIdxs={selStudents.filter(s=>s.type==='hs').map(s=>hsStudents.indexOf(s.name))}
+      allStudents={hsStudents} onBack={()=>setPhase('students')}/>
+  );
+  if(phase==='loading') return(
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#f0f4f8',gap:'16px'}}>
+      <div style={{fontSize:'40px'}}>📖</div>
+      <p style={{fontWeight:'bold',color:'#1e3a8a',fontSize:'18px'}}>データを読み込んでいます</p>
+      <p style={{color:'#6b7280',fontSize:'14px'}}>{loadMsg}</p>
+    </div>
+  );
+
+  // ── メイン画面 ──
+  // 高校生用変数
+  const curPlan=hsPlans[curName]||{};
+  const curSet=curPlan.textbookSet?SETS[curPlan.textbookSet]:null;
+  const chartChaps=curSet?getChaps(curSet.dataKey):null;
+  const nyumonKey=curSet?.nyumon||'ia';
+  const nyumonLabel=NYUMON_SETS[nyumonKey]?.label||'数ⅠA';
+  const iaChaps=getNyumon(nyumonKey);
+  const lv=curPlan.maxLevel||5;
+  const nFrom=curPlan.nyumonRange?.from||1, nTo=curPlan.nyumonRange?.to||99;
+  const cFrom=curPlan.chartRange?.from||1,  cTo=curPlan.chartRange?.to||99;
+  const curSkipSet=new Set(curPlan.skipItems||[]);
+  const hw=calcHomework(curPlan);
+
+  // 小中学生用変数
+  const jhSi=curType==='jh'?getJhSi(curName):-1;
+  const jhFullName=jhSi>=0?jhStudents[jhSi]||'':'';
+  const activeGrade=extractGrade(jhFullName);
+  const jhSubjects=GRADE_SUBJECTS[activeGrade]||[];
+  const activeSubj=activeSubjMap[activeGrade]||jhSubjects[0]||'';
+  const setActiveSubj=s=>setActiveSubjMap(p=>({...p,[activeGrade]:s}));
+  const jhTextbookKey=(si,subj)=>{
+    const grade=extractGrade(jhStudents[si]||'');
+    const override=jhTextbookOverrides[si]?.[subj];
+    if(override){if(override.startsWith('none_')) return null; return override;}
+    if(grade.startsWith('中')) return `${grade}Y_${subj}`;
+    // 小学生はデフォルトY（明光式ワーク）
+    if(grade.startsWith('小')) return `${grade}Y_${subj}`;
+    return `${grade}_${subj}`;
+  };
+  const chapKey=jhSi>=0?jhTextbookKey(jhSi,activeSubj):null;
+  const jhChapters=chapKey?CHAPTERS[chapKey]||[]:[];
+  const activeChapIdx=activeChapMap[chapKey]||0;
+  const setActiveChap=i=>setActiveChapMap(p=>({...p,[chapKey]:i}));
+  const activeChap=jhChapters[activeChapIdx];
+
+  // テスト範囲アラート計算
+  const getTestAlert=(si,subj,roundId)=>{
+    const fullName=jhStudents[si]||'';
+    const sName=fullName.replace(/（.+?）/,'');
+    const school=STUDENT_SCHOOLS[sName];
+    const grade=extractGrade(fullName);
+    if(!school||!grade.startsWith('中')) return null;
+    const key=`${school}_${grade}_${roundId}`;
+    const range=jhTestRanges[key];
+    if(!range) return null;
+    const endId=subj==='数学'?range.mathEnd:range.engEnd;
+    const startId=subj==='数学'?range.mathStart:range.engStart;
+    if(!endId&&!startId) return null;
+    const tKey=jhSi>=0?jhTextbookKey(jhSi,subj):null;
+    if(!tKey) return null;
+    const chs=CHAPTERS[tKey]||[];
+    const allItems=chs.flatMap(ch=>ch.items);
+    const endIdx=endId?allItems.findIndex(it=>it.id===endId):-1;
+    const startIdx=startId?allItems.findIndex(it=>it.id===startId):-1;
+    if(endIdx<0) return null;
+    const endRecord=jhGetRecord(si,`${subj}_${endId}`);
+    if(endRecord.status==='◯') return{type:'done',startId,endId,startIdx,endIdx,
+      msg:`🚨 ${subj}テスト範囲終了！折り返して復習してください`,color:'#fef2f2',border:'#f87171'};
+    let completedCount=0;
+    for(let i=0;i<=endIdx;i++){
+      if(jhGetRecord(si,`${subj}_${allItems[i].id}`).status==='◯') completedCount++;
+    }
+    const remaining=(endIdx+1)-completedCount;
+    if(remaining<=3) return{type:'warn',startId,endId,startIdx,endIdx,
+      msg:`⚠️ ${subj}テスト範囲まであと${remaining}項目！`,color:'#fefce8',border:'#fbbf24'};
+    return{type:'normal',startId,endId,startIdx,endIdx,
+      msg:null,color:null,border:null};
+  };
+  const curTestAlert=jhSi>=0&&isChu(activeGrade)?getTestAlert(jhSi,activeSubj,activeTestRound):null;
+
+  return(
+    <div style={{minHeight:'100vh',background:'#f9fafb',fontSize:'14px'}}>
+      {/* ヘッダー */}
+      <div style={{background:'#1e3a8a',color:'white',padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'8px',position:'sticky',top:0,zIndex:20}}>
+        <div>
+          <p style={{fontWeight:'bold',fontSize:'15px'}}>📘 明光義塾 新屋敷 チェックアプリ</p>
+          <p style={{color:'#93c5fd',fontSize:'11px'}}>👨‍🏫 {selTeacher}　｜　{selStudents.length}人表示中</p>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+          {saveMsg&&<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>}
+          {curType==='jh'&&isChu(activeGrade)&&(
+            <select value={activeTestRound} onChange={e=>setActiveTestRound(e.target.value)}
+              style={{background:'rgba(255,255,255,0.15)',color:'white',border:'1px solid rgba(255,255,255,0.3)',borderRadius:'6px',padding:'4px 8px',fontSize:'11px',cursor:'pointer'}}>
+              {TEST_ROUNDS.map(r=><option key={r.id} value={r.id} style={{color:'black'}}>{r.label}</option>)}
+            </select>
+          )}
+          <button onClick={()=>setPhase('students')}
+            style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 10px',fontSize:'12px',cursor:'pointer'}}>
+            ← 生徒選択
+          </button>
+        </div>
+      </div>
+
+      <div style={{display:'flex',minHeight:'calc(100vh - 50px)'}}>
+        {/* サイドバー */}
+        <div style={{width:'150px',background:'white',borderRight:'1px solid #e5e7eb',flexShrink:0,position:'sticky',top:'50px',height:'calc(100vh - 50px)',overflowY:'auto'}}>
+          <div style={{padding:'6px 10px',background:'#f3f4f6',fontWeight:'bold',fontSize:'11px',color:'#4b5563'}}>生徒 {selStudents.length}人</div>
+          {selStudents.map((stu,i)=>{
+            const n=stripGrade(stu.name);
+            const sum=getSummary(i);
+            const pct=sum.total>0?Math.round(sum.done/sum.total*100):0;
+            const isHs=stu.type==='hs';
+            const plan=isHs?(hsPlans[n]||{}):null;
+            const ss=plan?.textbookSet?SETS[plan.textbookSet]:null;
+            const g=(stu.name.match(/（(.+?)）/)||[])[1]||'';
+            return(
+              <button key={i} onClick={()=>setActiveStudentIdx(i)}
+                style={{width:'100%',padding:'8px 10px',border:'none',borderBottom:'1px solid #f3f4f6',
+                  background:activeStudentIdx===i?'#eff6ff':'white',cursor:'pointer',textAlign:'left'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'2px'}}>
+                  <span style={{fontSize:'9px',padding:'1px 4px',borderRadius:'3px',
+                    background:isHs?'#dbeafe':'#dcfce7',color:isHs?'#1e3a8a':'#065f46',fontWeight:'bold'}}>{g}</span>
+                </div>
+                <p style={{fontWeight:activeStudentIdx===i?'bold':'normal',fontSize:'12px',color:activeStudentIdx===i?'#1e3a8a':'#374151',marginBottom:'3px'}}>{n}</p>
+                {ss&&<p style={{fontSize:'9px',color:ss.color,marginBottom:'2px'}}>{ss.short}</p>}
+                <div style={{display:'flex',alignItems:'center',gap:'3px'}}>
+                  <div style={{flex:1,height:'3px',background:'#e5e7eb',borderRadius:'2px',overflow:'hidden'}}>
+                    <div style={{width:`${pct}%`,height:'100%',background:pct===100?'#10b981':'#3b82f6',borderRadius:'2px'}}/>
+                  </div>
+                  <span style={{fontSize:'9px',color:'#6b7280'}}>{pct}%</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* メインコンテンツ */}
+        <div style={{flex:1,padding:'12px',overflowY:'auto'}}>
+
+          {/* ── 高校生チェック画面 ── */}
+          {curType==='hs'&&(
+            <>
+              <div style={{background:'white',borderRadius:'10px',padding:'12px 14px',marginBottom:'10px',boxShadow:'0 1px 4px rgba(0,0,0,.07)'}}>
+                <p style={{fontWeight:'bold',fontSize:'17px',color:'#1e3a8a',marginBottom:'4px'}}>{curName}</p>
+                {curSet
+                  ?<div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
+                    <span style={{display:'inline-block',padding:'2px 10px',borderRadius:'4px',background:curSet.bg,color:curSet.color,border:`1px solid ${curSet.border}`,fontWeight:'bold',fontSize:'12px'}}>
+                      📖 入門精講（{nyumonLabel}）＋ {curSet.label}
+                    </span>
+                    {curPlan.maxLevel&&curPlan.maxLevel<5&&(
+                      <span style={{display:'inline-block',padding:'2px 8px',borderRadius:'4px',background:COMPASS_COLOR[curPlan.maxLevel],fontSize:'12px',color:'#374151'}}>
+                        🧭 コンパスLv{curPlan.maxLevel}まで
+                      </span>
+                    )}
+                    {hw&&<span style={{display:'inline-block',padding:'2px 8px',borderRadius:'4px',background:'#eff6ff',fontSize:'12px',color:'#1e3a8a',fontWeight:'bold'}}>📊 週{hw.perWeek}問/1日{hw.perDay}問</span>}
+                  </div>
+                  :<span style={{fontSize:'12px',color:'#f59e0b'}}>⚠️ テキスト未設定</span>
+                }
+                {curPlan.memo&&<p style={{marginTop:'6px',fontSize:'12px',color:'#374151',background:'#fffbeb',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fde68a'}}>📝 {curPlan.memo}</p>}
+              </div>
+              {!curSet&&<div style={{background:'white',borderRadius:'10px',padding:'32px',textAlign:'center',color:'#6b7280'}}><p style={{fontSize:'24px',marginBottom:'8px'}}>📚</p><p>テキストが未設定です</p></div>}
+              {curSet&&(()=>{
+                const maxLen=Math.max(iaChaps.length,chartChaps?chartChaps.length:0);
+                const blocks=[];
+                for(let i=0;i<maxLen;i++){
+                  const chNo=i+1;
+                  const nVis=(chNo>=nFrom&&chNo<=nTo);
+                  const cVis=(chNo>=cFrom&&chNo<=cTo);
+                  if(!nVis&&!cVis) continue;
+                  blocks.push(
+                    <ChapterBlock key={i}
+                      nyumonChap={nVis&&iaChaps[i]?iaChaps[i]:null}
+                      chartChap={cVis&&chartChaps&&chartChaps[i]?chartChaps[i]:null}
+                      chartSet={curSet}
+                      rec={hsRecords[curName]||{}}
+                      onCycle={hsCycleStatus}
+                      activeHint={activeHint}
+                      setActiveHint={setActiveHint}
+                      maxLevel={lv}
+                      skipKeys={curSkipSet}
+                      onSkipToggle={hsSkipToggle}
+                    />
+                  );
+                }
+                return blocks;
+              })()}
+            </>
+          )}
+
+          {/* ── 小中学生チェック画面 ── */}
+          {curType==='jh'&&(
+            <>
+              <div style={{background:'white',borderRadius:'10px',padding:'12px 14px',marginBottom:'10px',boxShadow:'0 1px 4px rgba(0,0,0,.07)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'8px'}}>
+                  <div>
+                    <p style={{fontWeight:'bold',fontSize:'17px',color:GRADE_COLORS[activeGrade]||'#4f46e5',marginBottom:'2px'}}>{jhFullName}</p>
+                  </div>
+                  <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                    <button onClick={()=>setShowTextbookModal(true)} style={{background:'#eef2ff',color:'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📚 テキスト</button>
+                    {isChu(activeGrade)&&<button onClick={()=>setShowTestRangeModal(true)} style={{background:'#fef3c7',color:'#92400e',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📝 テスト範囲</button>}
+                    <button onClick={()=>setShowDirectiveModal(true)} style={{background:'#f0fdf4',color:'#065f46',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📢 方針</button>
+                  </div>
+                </div>
+                {jhSubjects.length>1&&(
+                  <div style={{display:'flex',gap:'6px',marginTop:'10px'}}>
+                    {jhSubjects.map(subj=>(
+                      <button key={subj} onClick={()=>setActiveSubj(subj)}
+                        style={{padding:'5px 14px',borderRadius:'20px',border:'none',
+                          background:activeSubj===subj?SUBJECT_COLOR[subj]:'#e5e7eb',
+                          color:activeSubj===subj?'white':'#6b7280',fontWeight:activeSubj===subj?'bold':'normal',cursor:'pointer',fontSize:'13px'}}>
+                        {subj}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* モーダル */}
+              {showTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhStudents} textbookOverrides={jhTextbookOverrides} onSave={jhSaveTextbook} onClose={()=>setShowTextbookModal(false)}/>}
+              {showTestRangeModal&&<TestRangeModal onClose={()=>setShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={jhSaveTestRange}/>}
+              {showDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{jhSaveDirective(k,v);setShowDirectiveModal(false);}} onClose={()=>setShowDirectiveModal(false)}/>}
+
+              {/* テスト範囲アラートバナー */}
+              {curTestAlert&&curTestAlert.color&&(
+                <div style={{marginBottom:'8px',padding:'10px 14px',borderRadius:'8px',
+                  background:curTestAlert.color,border:`1px solid ${curTestAlert.border}`,
+                  fontSize:'13px',fontWeight:'bold',color:'#374151'}}>
+                  {curTestAlert.msg}
+                </div>
+              )}
+              {curTestAlert&&!curTestAlert.color&&(
+                <div style={{marginBottom:'8px',padding:'8px 14px',borderRadius:'8px',
+                  background:'#eff6ff',border:'1px solid #bfdbfe',fontSize:'12px',color:'#1e3a8a'}}>
+                  🎯 テスト予測範囲：設定済み（{activeSubj}）
+                </div>
+              )}
+
+              {/* 章タブ */}
+              {jhChapters.length>0&&(
+                <div style={{display:'flex',gap:'6px',overflowX:'auto',paddingBottom:'6px',marginBottom:'10px'}}>
+                  {jhChapters.map((ch,i)=>{
+                    const done=ch.items.filter(it=>jhGetRecord(jhSi,`${activeSubj}_${it.id}`).status==='◯').length;
+                    const pct=ch.items.length>0?Math.round(done/ch.items.length*100):0;
+                    const isAct=activeChapIdx===i;
+                    const col=SUBJECT_COLOR[activeSubj]||'#4f46e5';
+                    // 章がテスト範囲内かチェック
+                    const chapInRange=curTestAlert&&curTestAlert.startIdx>=0&&curTestAlert.endIdx>=0&&(()=>{
+                      const tKey=jhTextbookKey(jhSi,activeSubj);
+                      const chs2=CHAPTERS[tKey]||[];
+                      const allItems=chs2.flatMap(c=>c.items);
+                      const startGlobal=allItems.findIndex(x=>x.id===ch.items[0]?.id);
+                      const endGlobal=allItems.findIndex(x=>x.id===ch.items[ch.items.length-1]?.id);
+                      return endGlobal>=curTestAlert.startIdx&&startGlobal<=curTestAlert.endIdx;
+                    })();
+                    return(
+                      <button key={i} onClick={()=>setActiveChap(i)}
+                        style={{flexShrink:0,padding:'8px 12px',borderRadius:'8px',
+                          border:`2px solid ${isAct?col:chapInRange?'#f59e0b':'#e0e7ff'}`,
+                          background:isAct?col:chapInRange?'#fffde7':'white',
+                          color:isAct?'white':'#374151',cursor:'pointer',fontSize:'12px',fontWeight:isAct?'bold':'normal',minWidth:'80px',textAlign:'center'}}>
+                        <div>{ch.name}</div>
+                        <div style={{fontSize:'10px',opacity:.8}}>{pct}%</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* テスト範囲バナー（どの単元からどの単元か表示） */}
+              {jhSi>=0&&isChu(activeGrade)&&(()=>{
+                const sName=(jhFullName||'').replace(/（.+?）/,'');
+                const school=STUDENT_SCHOOLS[sName];
+                if(!school) return null;
+                const rk=`${school}_${activeGrade}_${activeTestRound}`;
+                const rng=jhTestRanges[rk];
+                if(!rng) return null;
+                const isEng=activeSubj==='英語';
+                const startId=isEng?rng.engStart:rng.mathStart;
+                const endId=isEng?rng.engEnd:rng.mathEnd;
+                if(!endId&&!startId) return null;
+                const tKey=jhTextbookKey(jhSi,activeSubj);
+                const allItems=(CHAPTERS[tKey]||[]).flatMap(c=>c.items);
+                const startItem=allItems.find(it=>it.id===startId);
+                const endItem=allItems.find(it=>it.id===endId);
+                const rLabel=TEST_ROUNDS.find(r=>r.id===activeTestRound)?.label||'';
+                return(
+                  <div style={{background:'#fff7ed',border:'2px solid #f97316',borderRadius:'8px',padding:'8px 14px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+                    <span style={{fontSize:'14px'}}>🎯</span>
+                    <span style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{rLabel} {activeSubj}テスト予想範囲</span>
+                    <span style={{fontSize:'12px',color:'#9a3412'}}>
+                      {startItem?startItem.text.slice(0,14)+'…':'（開始未設定）'}
+                      　〜　
+                      <span style={{fontWeight:'bold',textDecoration:'underline'}}>{endItem?endItem.text.slice(0,14)+'…':'（終了未設定）'}</span>
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* 項目リスト */}
+              {activeChap&&jhSi>=0&&(()=>{
+                const sName=(jhFullName||'').replace(/（.+?）/,'');
+                const school=STUDENT_SCHOOLS[sName];
+                const rk=school?`${school}_${activeGrade}_${activeTestRound}`:null;
+                const rng=rk?jhTestRanges[rk]:null;
+                const isEng=activeSubj==='英語';
+                const rangeStartId=rng?(isEng?rng.engStart:rng.mathStart):'';
+                const rangeEndId=rng?(isEng?rng.engEnd:rng.mathEnd):'';
+                const items=activeChap.items||[];
+                const skKey=`${activeGrade}_${activeSubj}`;
+                const skList=jhSkipItems[skKey]||[];
+                const isSkipped=id=>skList.includes(id);
+                const tKey=jhTextbookKey(jhSi,activeSubj);
+                const allItemsGlobal=(CHAPTERS[tKey]||[]).flatMap(c=>c.items);
+                const globalStartIdx=rangeStartId?allItemsGlobal.findIndex(x=>x.id===rangeStartId):-1;
+                const globalEndIdx=rangeEndId?allItemsGlobal.findIndex(x=>x.id===rangeEndId):-1;
+                const chapFirstGlobal=items.length>0?allItemsGlobal.findIndex(x=>x.id===items[0].id):-1;
+                return(
+                <div style={{background:'white',borderRadius:'10px',overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,.06)'}}>
+                  <div style={{padding:'8px 14px',background:SUBJECT_COLOR[activeSubj]||'#4f46e5',color:'white',fontWeight:'bold',fontSize:'14px'}}>
+                    {activeChap.name}
+                  </div>
+                  {items.map((it,idx)=>{
+                    const r=jhGetRecord(jhSi,`${activeSubj}_${it.id}`);
+                    const st=r.status;
+                    const skipped=isSkipped(it.id);
+                    let inRange=false;
+                    if(globalStartIdx>=0&&globalEndIdx>=0&&chapFirstGlobal>=0){
+                      const globalIdx=chapFirstGlobal+idx;
+                      inRange=globalIdx>=globalStartIdx&&globalIdx<=globalEndIdx;
+                    }
+                    const isStart=rangeStartId&&it.id===rangeStartId;
+                    const isEnd=rangeEndId&&it.id===rangeEndId;
+                    const rowBg=skipped?'#f3f4f6':isEnd?'#fff7ed':inRange?'#fefce8':st!=='未'?STATUS_BG[st]:'white';
+                    const borderBottom=isEnd?'2px solid #f97316':'1px solid #f3f4f6';
+                    return(
+                      <div key={it.id} style={{borderBottom,background:rowBg,opacity:skipped?0.65:1}}>
+                        <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 12px'}}>
+                          <span style={{color:'#9ca3af',fontSize:'11px',minWidth:'20px'}}>{idx+1}</span>
+                          {skipped?(
+                            <span style={{minWidth:'44px',padding:'4px 8px',borderRadius:'6px',background:'#e5e7eb',color:'#9ca3af',fontWeight:'bold',fontSize:'13px',textAlign:'center'}}>—</span>
+                          ):(
+                            <button onClick={()=>jhCycleStatus(jhSi,`${activeSubj}_${it.id}`)}
+                              style={{minWidth:'44px',padding:'4px 8px',borderRadius:'6px',border:'none',
+                                background:STATUS_BG[st],color:STATUS_COLOR[st],fontWeight:'bold',fontSize:'13px',cursor:'pointer'}}>
+                              {st}
+                            </button>
+                          )}
+                          <div style={{flex:1,fontSize:'13px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                            {isEnd&&!skipped&&<span style={{background:'#f97316',color:'white',fontSize:'10px',fontWeight:'bold',borderRadius:'4px',padding:'1px 6px',whiteSpace:'nowrap'}}>🎯ゴール</span>}
+                            {isStart&&!isEnd&&!skipped&&<span style={{background:'#3b82f6',color:'white',fontSize:'10px',fontWeight:'bold',borderRadius:'4px',padding:'1px 6px',whiteSpace:'nowrap'}}>📌スタート</span>}
+                            {skipped&&<span style={{background:'#9ca3af',color:'white',fontSize:'10px',fontWeight:'bold',borderRadius:'4px',padding:'1px 6px',whiteSpace:'nowrap'}}>⏭ 飛ばして次へ</span>}
+                            <span style={{color:skipped?'#9ca3af':'#1f2937',textDecoration:skipped?'line-through':'none'}}>{it.text}</span>
+                          </div>
+                          {!skipped&&st!=='未'&&r.teacher&&<span style={{fontSize:'10px',color:'#9ca3af',flexShrink:0}}>{r.teacher}{r.date?' · '+r.date:''}</span>}
+                          <button onClick={()=>jhToggleSkip(activeGrade,activeSubj,it.id)}
+                            title={skipped?'スキップ解除':'この単元をスキップ'}
+                            style={{background:skipped?'#fee2e2':'#f3f4f6',color:skipped?'#dc2626':'#9ca3af',
+                              border:'none',borderRadius:'4px',padding:'3px 8px',fontSize:'11px',cursor:'pointer',
+                              fontWeight:skipped?'bold':'normal',flexShrink:0}}>
+                            {skipped?'✕解除':'⏭'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                );
+              })()}
+              {jhChapters.length===0&&<div style={{background:'white',borderRadius:'10px',padding:'24px',textAlign:'center',color:'#6b7280'}}><p>受講なし（{activeSubj}）</p></div>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);</script>
+</body>
+</html>
