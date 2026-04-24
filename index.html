@@ -2255,10 +2255,11 @@ function App(){
     const hsNames=selected.filter(x=>x.type==='hs').map(x=>x.name);
     const jhNeeded=selected.some(x=>x.type==='jh');
     const cNr={},cNp={};
-    for(const name of hsNames){
-      cNr[name]=hsGetCached(`koukou:records:${stripGrade(name)}`,{});
-      const p=hsGetCached(`koukou:plan:${stripGrade(name)}`,null);
-      if(p) cNp[name]=p;
+    for(const fullName of hsNames){
+      const n=stripGrade(fullName);  // ← stripGradeした名前をキーに統一
+      cNr[n]=hsGetCached(`koukou:records:${n}`,{});
+      const p=hsGetCached(`koukou:plan:${n}`,null);
+      if(p) cNp[n]=p;
     }
     if(jhNeeded){
       const cJr=jhGetCached('records',{});
@@ -2271,10 +2272,11 @@ function App(){
     setBgLoading(true);
     (async()=>{
       const nr={...cNr},np={...cNp};
-      for(const name of hsNames){
-        nr[name]=await hsGet(`koukou:records:${stripGrade(name)}`,cNr[name]||{});
-        const p=await hsGet(`koukou:plan:${stripGrade(name)}`,cNp[name]||null);
-        if(p) np[name]=p;
+      for(const fullName of hsNames){
+        const n=stripGrade(fullName);
+        nr[n]=await hsGet(`koukou:records:${n}`,cNr[n]||{});
+        const p=await hsGet(`koukou:plan:${n}`,cNp[n]||null);
+        if(p) np[n]=p;
       }
       if(jhNeeded){
         const jr=await jhGet('records',{});
