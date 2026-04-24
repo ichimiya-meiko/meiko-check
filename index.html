@@ -88,7 +88,11 @@ function hsGetCached(key,fb){
   return fb;
 }
 async function hsSet(key,val){
-  try{await fetch(`${GAS_HS}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(JSON.stringify(val))}`);}catch{}
+  try{
+    // 保存前にキャッシュも更新（即時反映のため）
+    try{localStorage.setItem('cache:hs:'+key,JSON.stringify({v:val,t:Date.now()}));}catch{}
+    await fetch(`${GAS_HS}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(JSON.stringify(val))}`);
+  }catch{}
 }
 async function jhGet(key,fb){
   try{const r=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+key)}`);const d=await r.json();const v=d.value?JSON.parse(d.value):fb;
@@ -100,7 +104,10 @@ function jhGetCached(key,fb){
   return fb;
 }
 async function jhSet(key,val){
-  try{await fetch(`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(JSON.stringify(val))}`);}catch{}
+  try{
+    try{localStorage.setItem('cache:jh:'+key,JSON.stringify({v:val,t:Date.now()}));}catch{}
+    await fetch(`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(JSON.stringify(val))}`);
+  }catch{}
 }
 
 function calcHomework(plan){
@@ -2274,8 +2281,9 @@ function App(){
       const nr={...cNr},np={...cNp};
       for(const fullName of hsNames){
         const n=stripGrade(fullName);
+        if(!n) continue;
         nr[n]=await hsGet(`koukou:records:${n}`,cNr[n]||{});
-        const p=await hsGet(`koukou:plan:${n}`,cNp[n]||null);
+        const p=await hsGet(`koukou:plan:${n}`,null);
         if(p) np[n]=p;
       }
       if(jhNeeded){
