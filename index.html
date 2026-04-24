@@ -75,7 +75,7 @@ function getChaps(k){return DB?DB[k]||[]:[]}
 function getNyumon(k){return DB?DB[NYUMON_SETS[k]?.dataKey]||[]:[]}
 
 function toDay(){return new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});}
-function stripGrade(s){return s.replace(/（.+?）/,'');}
+function stripGrade(s){return (s||'').replace(/（.+?）/,'');}
 
 // GASアクセス
 async function hsGet(key,fb){
@@ -963,7 +963,8 @@ const STATUS_BG    = {"未":"#f3f4f6","◯":"#d1fae5","△":"#fef3c7","✗":"#fe
 const STATUS_COLOR = {"未":"#6b7280","◯":"#065f46","△":"#92400e","✗":"#991b1b"};
 const PAGE_SIZE = 6;
 
-function extractGrade(name){ const m=name.match(/（(.+?)）/); return m?m[1]:"その他"; }
+function extractGrade(name){
+  name = name || ''; const m=name.match(/（(.+?)）/); return m?m[1]:"その他"; }
 function today(){ return new Date().toISOString().slice(0,10); }
 function isChu(grade){ return grade&&grade.startsWith("中"); }
 
@@ -1825,9 +1826,10 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
   const [tcList,setTcList]=useState([]);
   const [delMsg,setDelMsg]=useState('');
 
-  const students=studentIdxs.map(i=>allStudents[i]);
+  const students=studentIdxs.map(i=>allStudents[i]).filter(Boolean);
   const curName=stripGrade(students[curIdx]||'');
   const curPlan=plans[curName]||{};
+  const noStudents=students.length===0;
 
   useEffect(()=>{
     (async()=>{
@@ -1882,6 +1884,19 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
     background:'transparent',cursor:'pointer',fontWeight:tab===t?'bold':'normal',
     color:tab===t?'#065f46':'#6b7280',fontSize:'13px',
   });
+
+  if(noStudents) return(
+    <div style={{minHeight:'100vh',background:'#f0f4f8',padding:'24px 16px'}}>
+      <div style={{maxWidth:'540px',margin:'0 auto'}}>
+        <div style={{background:'white',borderRadius:'12px',padding:'24px',textAlign:'center',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
+          <p style={{fontSize:'32px',marginBottom:'12px'}}>📚</p>
+          <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'6px'}}>高校生が選択されていません</p>
+          <p style={{fontSize:'13px',color:'#6b7280',marginBottom:'16px'}}>教室長設定（テキスト・宿題量・講師削除）は高校生が対象です。<br/>高校生を選択してから入り直してください。</p>
+          <button onClick={onBack} style={{background:'#065f46',color:'white',border:'none',borderRadius:'8px',padding:'10px 20px',fontSize:'14px',cursor:'pointer',fontWeight:'bold'}}>← 生徒選択に戻る</button>
+        </div>
+      </div>
+    </div>
+  );
 
   return(
     <div style={{minHeight:'100vh',background:'#f0f4f8',padding:'16px'}}>
