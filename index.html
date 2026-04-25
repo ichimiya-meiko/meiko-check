@@ -964,11 +964,21 @@ const STUDENT_SCHOOLS = {
 };
 
 const TEST_ROUNDS = [
-  {id:"t1", label:"第1回（6月）"},
-  {id:"t2", label:"第2回（9月）"},
-  {id:"t3", label:"第3回（11月）"},
-  {id:"t4", label:"第4回（2月）"},
+  {id:"m4", label:"4月", month:4},
+  {id:"m5", label:"5月", month:5},
+  {id:"m6", label:"6月", month:6},
+  {id:"m7", label:"7月", month:7},
+  {id:"m8", label:"8月", month:8},
+  {id:"m9", label:"9月", month:9},
+  {id:"m10", label:"10月", month:10},
+  {id:"m11", label:"11月", month:11},
+  {id:"m12", label:"12月", month:12},
+  {id:"m1", label:"翌1月", month:1},
+  {id:"m2", label:"翌2月", month:2},
+  {id:"m3", label:"翌3月", month:3},
 ];
+// 旧形式（t1〜t4）→新形式（m6,m9,m11,m2）の移行マッピング
+const LEGACY_TEST_ROUND_MAP = {t1:"m6",t2:"m9",t3:"m11",t4:"m2"};
 
 const SCHOOLS = ["白川中","藤園中","マリスト中","九州学院中","長嶺中","桜山中","信愛女学院中","真和中"];
 
@@ -1174,34 +1184,41 @@ function DirectiveModal({directives, onSave, onClose}){
 function TestRangeModal({onClose, testRanges, onSave}){
   const [school, setSchool] = useState(SCHOOLS[0]);
   const [grade, setGrade] = useState("中1");
-  const [round, setRound] = useState("t1");
-  const [mathStart, setMathStart] = useState("");
-  const [mathEnd, setMathEnd] = useState("");
-  const [engStart, setEngStart] = useState("");
-  const [engEnd, setEngEnd] = useState("");
+  const [round, setRound] = useState("m6");
+  const [s1, setS1] = useState("");
+  const [e1, setE1] = useState("");
+  const [s2, setS2] = useState("");
+  const [e2, setE2] = useState("");
 
+  const isElem = grade.startsWith("小");
+  const subj1 = isElem ? "算数" : "数学";
+  const subj2 = isElem ? "国語" : "英語";
 
   // 現在の設定を読み込む
   React.useEffect(() => {
     const key = `${school}_${grade}_${round}`;
     const existing = testRanges[key] || {};
-    setMathStart(existing.mathStart || "");
-    setMathEnd(existing.mathEnd || "");
-    setEngStart(existing.engStart || "");
-    setEngEnd(existing.engEnd || "");
+    setS1(existing.mathStart || existing.s1 || "");
+    setE1(existing.mathEnd || existing.e1 || "");
+    setS2(existing.engStart || existing.s2 || "");
+    setE2(existing.engEnd || existing.e2 || "");
   }, [school, grade, round]);
 
   const gradeNum = grade.replace(/[^0-9]/g, "");
-  const mathKey = `中${gradeNum}Y_数学`;
-  const engKey = `中${gradeNum}Y_英語`;
-  const mathChapters = CHAPTERS[mathKey] || [];
-  const engChapters = CHAPTERS[engKey] || [];
-  const mathItems = mathChapters.flatMap(ch => ch.items);
-  const engItems = engChapters.flatMap(ch => ch.items);
+  // 中学生：中{N}Y_{科目}, 小学生：小{N}Y_{科目}
+  const k1 = isElem ? `小${gradeNum}Y_算数` : `中${gradeNum}Y_数学`;
+  const k2 = isElem ? `小${gradeNum}Y_国語` : `中${gradeNum}Y_英語`;
+  const c1 = CHAPTERS[k1] || [];
+  const c2 = CHAPTERS[k2] || [];
+  const i1 = c1.flatMap(ch => ch.items);
+  const i2 = c2.flatMap(ch => ch.items);
+  const mathStart = s1, mathEnd = e1, engStart = s2, engEnd = e2;
+  const mathItems = i1, engItems = i2;
+  const setMathStart = setS1, setMathEnd = setE1, setEngStart = setS2, setEngEnd = setE2;
 
   const handleSave = () => {
     const key = `${school}_${grade}_${round}`;
-    onSave(key, {mathStart, mathEnd, engStart, engEnd, school, grade, round});
+    onSave(key, {mathStart, mathEnd, engStart, engEnd, school, grade, round, updatedAt: new Date().toISOString()});
     onClose();
   };
 
@@ -1232,7 +1249,7 @@ function TestRangeModal({onClose, testRanges, onSave}){
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学年</div>
             <select value={grade} onChange={e=>setGrade(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
-              {["中1","中2","中3"].map(g=><option key={g}>{g}</option>)}
+              {["小1","小2","小3","小4","小5","小6","中1","中2","中3"].map(g=><option key={g}>{g}</option>)}
             </select>
           </div>
           <div>
@@ -1246,7 +1263,7 @@ function TestRangeModal({onClose, testRanges, onSave}){
 
         {/* 数学範囲 */}
         <div style={{background:"#eff6ff",borderRadius:"8px",padding:"12px",marginBottom:"10px"}}>
-          <div style={{fontWeight:"bold",fontSize:"12px",color:"#1e40af",marginBottom:"8px"}}>📐 数学の予測範囲</div>
+          <div style={{fontWeight:"bold",fontSize:"12px",color:"#1e40af",marginBottom:"8px"}}>📐 {subj1}の予測範囲</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
             <div>
               <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>開始項目</div>
@@ -1263,7 +1280,7 @@ function TestRangeModal({onClose, testRanges, onSave}){
 
         {/* 英語範囲 */}
         <div style={{background:"#f0fdf4",borderRadius:"8px",padding:"12px",marginBottom:"14px"}}>
-          <div style={{fontWeight:"bold",fontSize:"12px",color:"#166534",marginBottom:"8px"}}>📖 英語の予測範囲</div>
+          <div style={{fontWeight:"bold",fontSize:"12px",color:"#166534",marginBottom:"8px"}}>📖 {subj2}の予測範囲</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
             <div>
               <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>開始項目</div>
@@ -2360,6 +2377,87 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
             const isM=isChu(activeGrade);
             return(
               <>
+              {/* テスト範囲アラート（全生徒共通） */}
+              {(()=>{
+                // 選択した生徒の(学校,学年)を抽出
+                const targets=new Set();
+                jhSelStudents.forEach(s=>{
+                  const n=stripGrade(s);
+                  const g=extractGrade(s);
+                  const sch=STUDENT_SCHOOLS[n];
+                  if(sch) targets.add(`${sch}|${g}`);
+                });
+                const today=new Date();
+                const curMonth=today.getMonth()+1;
+                const curYear=today.getFullYear();
+                const missing=[]; // 未登録
+                const stale=[]; // 古い（前月以前）
+                targets.forEach(t=>{
+                  const [sch,g]=t.split('|');
+                  const isElem=g.startsWith('小');
+                  // 該当月だけチェック（4月〜現在月）
+                  TEST_ROUNDS.forEach(r=>{
+                    const key=`${sch}_${g}_${r.id}`;
+                    const data=jhTestRanges[key];
+                    // 現在より過去または当月のテストのみアラート対象
+                    if(r.month>curMonth&&r.month<=3) return; // 翌1〜3月は未来扱い
+                    if(r.month>curMonth) return; // 未来の月は対象外
+                    if(!data){
+                      missing.push({sch,g,round:r.label});
+                    }else if(data.updatedAt){
+                      const upd=new Date(data.updatedAt);
+                      // テスト月の翌月以降に更新されていなければ古い
+                      const updMonth=upd.getMonth()+1;
+                      const updYear=upd.getFullYear();
+                      // r.month より後に更新されているかチェック
+                      const monthsSinceUpdate=(curYear-updYear)*12+(curMonth-updMonth);
+                      if(monthsSinceUpdate>=1){
+                        stale.push({sch,g,round:r.label,updated:upd.toLocaleDateString('ja-JP')});
+                      }
+                    }else{
+                      // updatedAt がない古いデータ
+                      stale.push({sch,g,round:r.label,updated:'不明'});
+                    }
+                  });
+                });
+                if(missing.length===0&&stale.length===0) return null;
+                return(
+                  <div style={{marginBottom:'14px'}}>
+                    {missing.length>0&&(
+                      <div style={{background:'#fef2f2',border:'2px solid #fca5a5',borderRadius:'10px',padding:'12px 14px',marginBottom:'8px'}}>
+                        <p style={{fontWeight:'bold',fontSize:'13px',color:'#991b1b',marginBottom:'6px'}}>
+                          ⚠️ テスト範囲が未登録 ({missing.length}件)
+                        </p>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+                          {missing.slice(0,20).map((m2,i)=>(
+                            <span key={i} style={{background:'white',color:'#991b1b',fontSize:'11px',padding:'2px 8px',borderRadius:'4px',border:'1px solid #fca5a5'}}>
+                              {m2.sch} {m2.g} {m2.round}
+                            </span>
+                          ))}
+                          {missing.length>20&&<span style={{fontSize:'11px',color:'#991b1b'}}>...他{missing.length-20}件</span>}
+                        </div>
+                      </div>
+                    )}
+                    {stale.length>0&&(
+                      <div style={{background:'#fffbeb',border:'2px solid #fbbf24',borderRadius:'10px',padding:'12px 14px'}}>
+                        <p style={{fontWeight:'bold',fontSize:'13px',color:'#92400e',marginBottom:'6px'}}>
+                          🔄 テスト範囲の更新が必要 ({stale.length}件)
+                        </p>
+                        <p style={{fontSize:'10px',color:'#78350f',marginBottom:'6px'}}>1ヶ月以上更新されていない設定です。最新のテスト情報に更新してください。</p>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+                          {stale.slice(0,20).map((m2,i)=>(
+                            <span key={i} style={{background:'white',color:'#92400e',fontSize:'11px',padding:'2px 8px',borderRadius:'4px',border:'1px solid #fbbf24'}}>
+                              {m2.sch} {m2.g} {m2.round}（{m2.updated}）
+                            </span>
+                          ))}
+                          {stale.length>20&&<span style={{fontSize:'11px',color:'#92400e'}}>...他{stale.length-20}件</span>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* 生徒タブ */}
               <div style={{display:'flex',gap:'6px',marginBottom:'12px',overflowX:'auto',paddingBottom:'4px'}}>
                 {jhSelStudents.map((s,i)=>{
@@ -2625,7 +2723,10 @@ function App(){
   const [activeHint,setActiveHint]=useState(null);
   const [activeSubjMap,setActiveSubjMap]=useState({});
   const [activeChapMap,setActiveChapMap]=useState({});
-  const [activeTestRound,setActiveTestRound]=useState('t1');
+  const [activeTestRound,setActiveTestRound]=useState(()=>{
+    const m=new Date().getMonth()+1; // 1〜12
+    return `m${m}`;
+  });
   const [showTextbookModal,setShowTextbookModal]=useState(false);
   const [showTestRangeModal,setShowTestRangeModal]=useState(false);
   const [showDirectiveModal,setShowDirectiveModal]=useState(false);
@@ -2989,12 +3090,6 @@ function App(){
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
           {saveMsg&&<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>}
           {bgLoading&&<span style={{color:'#fde68a',fontSize:'11px',fontWeight:'bold',background:'rgba(0,0,0,0.2)',padding:'3px 8px',borderRadius:'10px'}}>⏳ 最新データ取得中...</span>}
-          {curType==='jh'&&isChu(activeGrade)&&(
-            <select value={activeTestRound} onChange={e=>setActiveTestRound(e.target.value)}
-              style={{background:'rgba(255,255,255,0.15)',color:'white',border:'1px solid rgba(255,255,255,0.3)',borderRadius:'6px',padding:'4px 8px',fontSize:'11px',cursor:'pointer'}}>
-              {TEST_ROUNDS.map(r=><option key={r.id} value={r.id} style={{color:'black'}}>{r.label}</option>)}
-            </select>
-          )}
           <button onClick={()=>setPhase('students')}
             style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 10px',fontSize:'12px',cursor:'pointer'}}>
             ← 生徒選択
