@@ -73,16 +73,16 @@ const NYUMON_SETS = {
 };
 const SETS = {
   // ── 白チャート ──
-  'white_1a':  {label:'白チャート ⅠA',  short:'白ⅠA', color:'#374151',bg:'#f9fafb',border:'#9ca3af',dataKey:'CHAPTERS_WHITE',   nyumon:'ia',  desc:'数学ⅠA対応'},
-  'white_2bc': {label:'白チャート ⅡBC', short:'白ⅡBC',color:'#581c87',bg:'#faf5ff',border:'#d8b4fe',dataKey:'CHAPTERS_WHITE_C', nyumon:'iib', desc:'数学ⅡBC対応'},
+  'white_1a':  {label:'白チャート ⅠA',  short:'白ⅠA', color:'#374151',bg:'#f9fafb',border:'#9ca3af',dataKey:'CHAPTERS_WHITE,CHAPTERS_WHITE_A',   nyumon:'ia',  desc:'数学ⅠA対応'},
+  'white_2bc': {label:'白チャート ⅡBC', short:'白ⅡBC',color:'#581c87',bg:'#faf5ff',border:'#d8b4fe',dataKey:'CHAPTERS_WHITE_2,CHAPTERS_WHITE_B,CHAPTERS_WHITE_C', nyumon:'iib', desc:'数学ⅡBC対応'},
   'white_3':   {label:'白チャート Ⅲ',   short:'白Ⅲ',  color:'#831843',bg:'#fff1f2',border:'#fda4af',dataKey:'CHAPTERS_WHITE_3', nyumon:'iiic',desc:'数学Ⅲ対応'},
   // ── 黄チャート ──
-  'yellow_1a': {label:'黄チャート ⅠA',  short:'黄ⅠA', color:'#92400e',bg:'#fffbeb',border:'#fbbf24',dataKey:'CHAPTERS_YELLOW_1',nyumon:'ia',  desc:'数学ⅠA対応'},
-  'yellow_2bc':{label:'黄チャート ⅡBC', short:'黄ⅡBC',color:'#713f12',bg:'#fefce8',border:'#facc15',dataKey:'CHAPTERS_YELLOW_C',nyumon:'iib', desc:'数学ⅡBC対応'},
+  'yellow_1a': {label:'黄チャート ⅠA',  short:'黄ⅠA', color:'#92400e',bg:'#fffbeb',border:'#fbbf24',dataKey:'CHAPTERS_YELLOW_1,CHAPTERS_YELLOW_A',nyumon:'ia',  desc:'数学ⅠA対応'},
+  'yellow_2bc':{label:'黄チャート ⅡBC', short:'黄ⅡBC',color:'#713f12',bg:'#fefce8',border:'#facc15',dataKey:'CHAPTERS_YELLOW_2,CHAPTERS_YELLOW_B,CHAPTERS_YELLOW_C',nyumon:'iib', desc:'数学ⅡBC対応'},
   'yellow_3':  {label:'黄チャート Ⅲ',   short:'黄Ⅲ',  color:'#7c2d12',bg:'#fff7ed',border:'#c2410c',dataKey:'CHAPTERS_YELLOW_3',nyumon:'iiic',desc:'数学Ⅲ対応'},
   // ── 青チャート ──
-  'blue_1a':   {label:'青チャート ⅠA',  short:'青ⅠA', color:'#1d4ed8',bg:'#eff6ff',border:'#3b82f6',dataKey:'CHAPTERS_BLUE_1',  nyumon:'ia',  desc:'数学ⅠA対応'},
-  'blue_2bc':  {label:'青チャート ⅡBC', short:'青ⅡBC',color:'#1a1a5e',bg:'#eef2ff',border:'#a5b4fc',dataKey:'CHAPTERS_BLUE_C',  nyumon:'iib', desc:'数学ⅡBC対応'},
+  'blue_1a':   {label:'青チャート ⅠA',  short:'青ⅠA', color:'#1d4ed8',bg:'#eff6ff',border:'#3b82f6',dataKey:'CHAPTERS_BLUE_1,CHAPTERS_BLUE_A',  nyumon:'ia',  desc:'数学ⅠA対応'},
+  'blue_2bc':  {label:'青チャート ⅡBC', short:'青ⅡBC',color:'#1a1a5e',bg:'#eef2ff',border:'#a5b4fc',dataKey:'CHAPTERS_BLUE_2,CHAPTERS_BLUE_B,CHAPTERS_BLUE_C',  nyumon:'iib', desc:'数学ⅡBC対応'},
   'blue_3':    {label:'青チャート Ⅲ',   short:'青Ⅲ',  color:'#312e81',bg:'#f5f3ff',border:'#c4b5fd',dataKey:'CHAPTERS_BLUE_3',  nyumon:'iiic',desc:'数学Ⅲ対応'},
 };
 const CYCLE     = {'未':'◯','◯':'△','△':'✗','✗':'未'};
@@ -104,7 +104,14 @@ function isHS(name){
 }
 
 let DB = null;
-function getChaps(k){return DB?DB[k]||[]:[]}
+function getChaps(k){
+  if(!DB||!k) return [];
+  // カンマ区切りで複数キーを結合できる（例：'CHAPTERS_BLUE_2,CHAPTERS_BLUE_B,CHAPTERS_BLUE_C'）
+  if(k.includes(',')){
+    return k.split(',').flatMap(key=>DB[key.trim()]||[]);
+  }
+  return DB[k]||[];
+}
 function getNyumon(k){return DB?DB[NYUMON_SETS[k]?.dataKey]||[]:[]}
 
 function toDay(){return new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});}
