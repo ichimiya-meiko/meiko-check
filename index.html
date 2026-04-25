@@ -110,14 +110,111 @@ async function jhSet(key,val){
   }catch{}
 }
 
+
+// ── ロードマップヘルパー ──
+// 旧形式（textbookSet単体）を新形式（roadmap配列）に変換
+function migratePlan(plan){
+  if(!plan) return {roadmap:[],currentIdx:null};
+  if(plan.roadmap&&Array.isArray(plan.roadmap)) return plan;
+  // 旧データ：単一textbookSetをroadmapに変換
+  if(plan.textbookSet){
+    return {
+      ...plan,
+      roadmap:[{
+        textbookSet:plan.textbookSet,
+        maxLevel:plan.maxLevel||5,
+        nyumonRange:plan.nyumonRange||{from:1,to:99},
+        chartRange:plan.chartRange||{from:1,to:99},
+        startDate:plan.startDate||'',
+        deadline:plan.deadline||'',
+      }],
+      currentIdx:null,
+    };
+  }
+  return {...plan,roadmap:[],currentIdx:null};
+}
+
+// 完了判定：1つのステップの全項目を◯にしているか
+function isStepDone(step,records,skipItems){
+  if(!step||!step.textbookSet) return false;
+  const ss=SETS[step.textbookSet];
+  if(!ss) return false;
+  const skipSet=new Set(skipItems||[]);
+  const lv=step.maxLevel||5;
+  const nFrom=step.nyumonRange?.from||1, nTo=step.nyumonRange?.to||999;
+  const cFrom=step.chartRange?.from||1,  cTo=step.chartRange?.to||999;
+  const nyumonChaps=getNyumon(ss.nyumon||'ia');
+  const chartChaps=getChaps(ss.dataKey);
+  let total=0,done=0;
+  nyumonChaps.forEach((ch,ci)=>{
+    if(ci+1<nFrom||ci+1>nTo) return;
+    ch.items.forEach(it=>{
+      if(skipSet.has(`IA_${it.id}`)) return;
+      total++;
+      if((records[`IA_${it.id}`]||{status:'未'}).status==='◯') done++;
+    });
+  });
+  chartChaps.forEach((ch,ci)=>{
+    if(ci+1<cFrom||ci+1>cTo) return;
+    ch.items.forEach(it=>{
+      if((it.level||1)>lv||skipSet.has(`CHART_${it.id}`)) return;
+      total++;
+      if((records[`CHART_${it.id}`]||{status:'未'}).status==='◯') done++;
+    });
+  });
+  return total>0&&done>=total;
+}
+
+// 自動的に「現在のステップ」を判定：完了していないうちで一番最初のもの
+function getAutoCurrentIdx(roadmap,records,skipItems){
+  if(!roadmap||roadmap.length===0) return -1;
+  for(let i=0;i<roadmap.length;i++){
+    if(!isStepDone(roadmap[i],records,skipItems)) return i;
+  }
+  return roadmap.length-1; // 全部完了したら最後
+}
+
+// 1つのステップの進捗率
+function getStepProgress(step,records,skipItems){
+  if(!step||!step.textbookSet) return {done:0,total:0,pct:0};
+  const ss=SETS[step.textbookSet];
+  if(!ss) return {done:0,total:0,pct:0};
+  const skipSet=new Set(skipItems||[]);
+  const lv=step.maxLevel||5;
+  const nFrom=step.nyumonRange?.from||1, nTo=step.nyumonRange?.to||999;
+  const cFrom=step.chartRange?.from||1,  cTo=step.chartRange?.to||999;
+  let total=0,done=0;
+  getNyumon(ss.nyumon||'ia').forEach((ch,ci)=>{
+    if(ci+1<nFrom||ci+1>nTo) return;
+    ch.items.forEach(it=>{
+      if(skipSet.has(`IA_${it.id}`)) return;
+      total++;
+      if((records[`IA_${it.id}`]||{status:'未'}).status==='◯') done++;
+    });
+  });
+  getChaps(ss.dataKey).forEach((ch,ci)=>{
+    if(ci+1<cFrom||ci+1>cTo) return;
+    ch.items.forEach(it=>{
+      if((it.level||1)>lv||skipSet.has(`CHART_${it.id}`)) return;
+      total++;
+      if((records[`CHART_${it.id}`]||{status:'未'}).status==='◯') done++;
+    });
+  });
+  return {done,total,pct:total>0?Math.round(done/total*100):0};
+}
+
 function calcHomework(plan){
   const {startDate,deadline,maxLevel,nyumonRange,chartRange,textbookSet}=plan||{};
   if(!startDate||!deadline||!textbookSet) return null;
   const ss=SETS[textbookSet];if(!ss) return null;
   const nyumonKey=ss.nyumon||'ia';
   const lv=maxLevel||5;
-  const nFrom=nyumonRange?.from||1, nTo=nyumonRange?.to||99;
-  const cFrom=chartRange?.from||1,  cTo=chartRange?.to||99;
+  const nyumonLen=getNyumon(nyumonKey).length;
+  const chartLen=getChaps(ss.dataKey).length;
+  const nFrom=Math.min(nyumonRange?.from||1,nyumonLen);
+  const nTo=Math.min(nyumonRange?.to||nyumonLen,nyumonLen);
+  const cFrom=Math.min(chartRange?.from||1,chartLen);
+  const cTo=Math.min(chartRange?.to||chartLen,chartLen);
   const skipSet=new Set(plan.skipItems||[]);
   let nTotal=0,cTotal=0;
   getNyumon(nyumonKey).forEach((ch,ci)=>{
@@ -1859,9 +1956,62 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
 
   const save=async()=>{
     setMsg('保存中...');
-    await hsSet(`koukou:plan:${curName}`,plans[curName]||{});
+    const p=plans[curName]||{};
+    // 旧形式の値もroadmapに同期させる
+    const migrated=migratePlan(p);
+    await hsSet(`koukou:plan:${curName}`,migrated);
+    setPlans(prev=>({...prev,[curName]:migrated}));
     setMsg('✅ 保存しました');
     setTimeout(()=>setMsg(''),2000);
+  };
+
+  // ロードマップ操作
+  const getRoadmap=()=>{
+    const mp=migratePlan(plans[curName]||{});
+    return mp.roadmap||[];
+  };
+  const updateRoadmap=(newRoadmap)=>{
+    const mp=migratePlan(plans[curName]||{});
+    setPlans(p=>({...p,[curName]:{...mp,roadmap:newRoadmap}}));
+  };
+  const addRoadmapStep=(textbookSet)=>{
+    const ts=SETS[textbookSet];
+    if(!ts) return;
+    const nyumonLen=getNyumon(ts.nyumon||'ia').length;
+    const chartLen=getChaps(ts.dataKey).length;
+    const newStep={
+      textbookSet,
+      maxLevel:5,
+      nyumonRange:{from:1,to:nyumonLen||99},
+      chartRange:{from:1,to:chartLen||99},
+      startDate:'',
+      deadline:'',
+    };
+    updateRoadmap([...getRoadmap(),newStep]);
+  };
+  const removeRoadmapStep=(idx)=>{
+    if(!window.confirm('このテキストを削除しますか？')) return;
+    const r=getRoadmap();
+    updateRoadmap(r.filter((_,i)=>i!==idx));
+  };
+  const moveRoadmapStep=(idx,dir)=>{
+    const r=[...getRoadmap()];
+    const j=idx+dir;
+    if(j<0||j>=r.length) return;
+    [r[idx],r[j]]=[r[j],r[idx]];
+    updateRoadmap(r);
+  };
+  const updateRoadmapStep=(idx,field,value)=>{
+    const r=[...getRoadmap()];
+    if(!r[idx]) return;
+    r[idx]={...r[idx],[field]:value};
+    updateRoadmap(r);
+  };
+  const updateRoadmapRange=(idx,rangeKey,field,value)=>{
+    const r=[...getRoadmap()];
+    if(!r[idx]) return;
+    r[idx]={...r[idx],[rangeKey]:{...(r[idx][rangeKey]||{}),[field]:value}};
+    updateRoadmap(r);
   };
 
   const hw = calcHomework(curPlan);
@@ -1940,29 +2090,123 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
           </div>
           <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
             <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'16px',borderBottom:'2px solid #e5e7eb',paddingBottom:'10px'}}>
-              📋 {curName} の設定
+              🛣️ {curName} のロードマップ
             </p>
-            {/* チャート選択 */}
-            <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>📚 使用チャートを選択</p>
+
+            {/* ロードマップ：登録済みテキスト一覧 */}
+            <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'10px'}}>
+              📚 受験までに使うテキスト（順序付き）
+            </p>
+            {(()=>{
+              const roadmap=getRoadmap();
+              if(roadmap.length===0) return(
+                <div style={{padding:'24px',textAlign:'center',background:'#f9fafb',borderRadius:'10px',marginBottom:'14px',color:'#9ca3af',fontSize:'13px'}}>
+                  まだテキストが登録されていません<br/>下から追加してください
+                </div>
+              );
+              return roadmap.map((step,idx)=>{
+                const ts=SETS[step.textbookSet];
+                if(!ts) return null;
+                const nyumonLen=getNyumon(ts.nyumon||'ia').length;
+                const chartLen=getChaps(ts.dataKey).length;
+                const nFrom=Math.min(step.nyumonRange?.from||1,nyumonLen||999);
+                const nTo=Math.min(step.nyumonRange?.to||nyumonLen,nyumonLen||999);
+                const cFrom=Math.min(step.chartRange?.from||1,chartLen||999);
+                const cTo=Math.min(step.chartRange?.to||chartLen,chartLen||999);
+                return(
+                  <div key={idx} style={{background:ts.bg,border:`2px solid ${ts.border}`,borderRadius:'10px',padding:'12px',marginBottom:'10px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                        <span style={{background:ts.color,color:'white',width:'24px',height:'24px',borderRadius:'50%',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:'bold'}}>{idx+1}</span>
+                        <p style={{fontWeight:'bold',fontSize:'14px',color:ts.color}}>📖 入門精講{NYUMON_SETS[ts.nyumon]?.label} + {ts.label}</p>
+                      </div>
+                      <div style={{display:'flex',gap:'4px'}}>
+                        <button onClick={()=>moveRoadmapStep(idx,-1)} disabled={idx===0}
+                          style={{background:idx===0?'#e5e7eb':'white',color:idx===0?'#9ca3af':ts.color,border:`1px solid ${idx===0?'#e5e7eb':ts.border}`,borderRadius:'4px',padding:'2px 6px',cursor:idx===0?'default':'pointer',fontSize:'12px'}}>↑</button>
+                        <button onClick={()=>moveRoadmapStep(idx,1)} disabled={idx===roadmap.length-1}
+                          style={{background:idx===roadmap.length-1?'#e5e7eb':'white',color:idx===roadmap.length-1?'#9ca3af':ts.color,border:`1px solid ${idx===roadmap.length-1?'#e5e7eb':ts.border}`,borderRadius:'4px',padding:'2px 6px',cursor:idx===roadmap.length-1?'default':'pointer',fontSize:'12px'}}>↓</button>
+                        <button onClick={()=>removeRoadmapStep(idx)}
+                          style={{background:'#fee2e2',color:'#dc2626',border:'1px solid #fca5a5',borderRadius:'4px',padding:'2px 8px',cursor:'pointer',fontSize:'11px',fontWeight:'bold'}}>🗑</button>
+                      </div>
+                    </div>
+
+                    {/* コンパスレベル */}
+                    <div style={{marginBottom:'8px'}}>
+                      <p style={{fontSize:'11px',fontWeight:'bold',color:'#6b7280',marginBottom:'4px'}}>🧭 コンパスLv上限</p>
+                      <div style={{display:'flex',gap:'4px'}}>
+                        {[1,2,3,4,5].map(lv=>{
+                          const cur=step.maxLevel||5;
+                          return(
+                            <button key={lv} onClick={()=>updateRoadmapStep(idx,'maxLevel',lv)}
+                              style={{flex:1,padding:'4px 2px',borderRadius:'4px',border:`1px solid ${cur===lv?ts.border:'#e5e7eb'}`,
+                                background:lv<=cur?COMPASS_COLOR[lv]:'#f9fafb',cursor:'pointer',
+                                fontWeight:cur===lv?'bold':'normal',fontSize:'10px',color:cur===lv?'#374151':'#9ca3af'}}>
+                              {lv}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 章範囲：入門精講 */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
+                      <div>
+                        <p style={{fontSize:'10px',color:'#6b7280',marginBottom:'2px'}}>📗 入門精講章範囲（全{nyumonLen}章）</p>
+                        <div style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'11px'}}>
+                          <input type="number" min="1" max={nyumonLen} value={nFrom}
+                            onChange={e=>updateRoadmapRange(idx,'nyumonRange','from',Number(e.target.value))}
+                            style={{width:'42px',border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'2px',fontSize:'11px',textAlign:'center'}}/>
+                          <span>〜</span>
+                          <input type="number" min="1" max={nyumonLen} value={nTo}
+                            onChange={e=>updateRoadmapRange(idx,'nyumonRange','to',Number(e.target.value))}
+                            style={{width:'42px',border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'2px',fontSize:'11px',textAlign:'center'}}/>
+                        </div>
+                      </div>
+                      <div>
+                        <p style={{fontSize:'10px',color:'#6b7280',marginBottom:'2px'}}>📘 チャート章範囲（全{chartLen}章）</p>
+                        <div style={{display:'flex',alignItems:'center',gap:'4px',fontSize:'11px'}}>
+                          <input type="number" min="1" max={chartLen} value={cFrom}
+                            onChange={e=>updateRoadmapRange(idx,'chartRange','from',Number(e.target.value))}
+                            style={{width:'42px',border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'2px',fontSize:'11px',textAlign:'center'}}/>
+                          <span>〜</span>
+                          <input type="number" min="1" max={chartLen} value={cTo}
+                            onChange={e=>updateRoadmapRange(idx,'chartRange','to',Number(e.target.value))}
+                            style={{width:'42px',border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'2px',fontSize:'11px',textAlign:'center'}}/>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 日付 */}
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                      <input type="date" value={step.startDate||''} onChange={e=>updateRoadmapStep(idx,'startDate',e.target.value)}
+                        title="開始日"
+                        style={{border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'4px',fontSize:'11px'}}/>
+                      <input type="date" value={step.deadline||''} onChange={e=>updateRoadmapStep(idx,'deadline',e.target.value)}
+                        title="完了目標日"
+                        style={{border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'4px',fontSize:'11px'}}/>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+
+            {/* テキスト追加ボタン */}
+            <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'8px',marginTop:'16px'}}>➕ テキストを追加</p>
             {[
               {group:'📘 数ⅠA対応',   keys:['white_1a','yellow_1a','blue_1a']},
               {group:'📗 数ⅡBC対応', keys:['white_2bc','yellow_2bc','blue_2bc']},
               {group:'📕 数Ⅲ対応',   keys:['white_3','yellow_3','blue_3']},
             ].map(({group,keys})=>(
-              <div key={group} style={{marginBottom:'10px'}}>
-                <p style={{fontSize:'11px',fontWeight:'bold',color:'#6b7280',marginBottom:'4px'}}>{group}</p>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px'}}>
+              <div key={group} style={{marginBottom:'8px'}}>
+                <p style={{fontSize:'10px',fontWeight:'bold',color:'#6b7280',marginBottom:'3px'}}>{group}</p>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'4px'}}>
                   {keys.map(key=>{
                     const ts=SETS[key]; if(!ts) return null;
-                    const isSel=sel===key;
                     return(
-                      <button key={key} onClick={()=>setF('textbookSet',isSel?'':key)}
-                        style={{padding:'10px',borderRadius:'8px',border:`2px solid ${isSel?ts.border:'#e5e7eb'}`,
-                          background:isSel?ts.bg:'white',cursor:'pointer',textAlign:'left',transition:'all .15s'}}>
-                        <p style={{fontWeight:'bold',fontSize:'12px',color:isSel?ts.color:'#374151',marginBottom:'1px'}}>
-                          {isSel?'✓ ':''}{ts.label}
-                        </p>
-                        <p style={{fontSize:'10px',color:'#9ca3af'}}>{ts.desc}</p>
+                      <button key={key} onClick={()=>addRoadmapStep(key)}
+                        style={{padding:'8px 4px',borderRadius:'6px',border:`1px solid ${ts.border}`,
+                          background:'white',cursor:'pointer',transition:'all .15s'}}>
+                        <p style={{fontWeight:'bold',fontSize:'11px',color:ts.color}}>+ {ts.short}</p>
                       </button>
                     );
                   })}
@@ -1970,24 +2214,8 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
               </div>
             ))}
 
-            {/* 日付 */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',margin:'16px 0'}}>
-              <div>
-                <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>📅 開始日</p>
-                <input type="date" value={curPlan.startDate||''}
-                  onChange={e=>setF('startDate',e.target.value)}
-                  style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
-              </div>
-              <div>
-                <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>🎯 完了目標日</p>
-                <input type="date" value={curPlan.deadline||''}
-                  onChange={e=>setF('deadline',e.target.value)}
-                  style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
-              </div>
-            </div>
-
             {/* メモ */}
-            <div style={{marginBottom:'16px'}}>
+            <div style={{marginTop:'16px',marginBottom:'16px'}}>
               <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>📝 講師へのメモ</p>
               <textarea value={curPlan.memo||''} onChange={e=>setF('memo',e.target.value)}
                 placeholder="授業の注意点や目標など..."
@@ -2073,7 +2301,7 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
                     onChange={e=>setNR('from',Number(e.target.value))}
                     style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
-                  <input type="number" min="1" max={getNyumon(selSet.nyumon).length} value={curPlan.nyumonRange?.to||getNyumon(selSet.nyumon).length}
+                  <input type="number" min="1" max={getNyumon(selSet.nyumon).length} value={Math.min(curPlan.nyumonRange?.to||getNyumon(selSet.nyumon).length,getNyumon(selSet.nyumon).length)}
                     onChange={e=>setNR('to',Number(e.target.value))}
                     style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
@@ -2091,7 +2319,7 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
                     onChange={e=>setCR('from',Number(e.target.value))}
                     style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
-                  <input type="number" min="1" max={getChaps(selSet.dataKey).length} value={curPlan.chartRange?.to||getChaps(selSet.dataKey).length}
+                  <input type="number" min="1" max={getChaps(selSet.dataKey).length} value={Math.min(curPlan.chartRange?.to||getChaps(selSet.dataKey).length,getChaps(selSet.dataKey).length)}
                     onChange={e=>setCR('to',Number(e.target.value))}
                     style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
                   <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
@@ -2232,7 +2460,7 @@ function HsAdjustModal({curName,curPlan,setF,setNR,setCR,selSet,hw,save,msg,onCl
               onChange={e=>setNR('from',Number(e.target.value))}
               style={{width:'56px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
             <span style={{fontSize:'12px'}}>章 〜 第</span>
-            <input type="number" min="1" max={nyumonLen} value={curPlan.nyumonRange?.to||nyumonLen}
+            <input type="number" min="1" max={nyumonLen} value={Math.min(curPlan.nyumonRange?.to||nyumonLen,nyumonLen)}
               onChange={e=>setNR('to',Number(e.target.value))}
               style={{width:'56px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
             <span style={{fontSize:'12px'}}>章まで</span>
@@ -2250,7 +2478,7 @@ function HsAdjustModal({curName,curPlan,setF,setNR,setCR,selSet,hw,save,msg,onCl
               onChange={e=>setCR('from',Number(e.target.value))}
               style={{width:'56px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
             <span style={{fontSize:'12px'}}>章 〜 第</span>
-            <input type="number" min="1" max={chartLen} value={curPlan.chartRange?.to||chartLen}
+            <input type="number" min="1" max={chartLen} value={Math.min(curPlan.chartRange?.to||chartLen,chartLen)}
               onChange={e=>setCR('to',Number(e.target.value))}
               style={{width:'56px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'5px',fontSize:'13px',textAlign:'center'}}/>
             <span style={{fontSize:'12px'}}>章まで</span>
@@ -2422,7 +2650,7 @@ function App(){
     flash('💾 保存しました');
   };
 
-  const hsSkipToggle=role==='director'?async(key)=>{
+  const hsSkipToggle=async(key)=>{
     const plan=hsPlans[curName]||{};
     const cur=plan.skipItems||[];
     const next=cur.includes(key)?cur.filter(k=>k!==key):[...cur,key];
@@ -2430,7 +2658,7 @@ function App(){
     setHsPlans(p=>({...p,[curName]:newPlan}));
     await hsSet(`koukou:plan:${curName}`,newPlan);
     flash('✕ スキップ設定を保存しました');
-  }:null;
+  };
 
   // 小中学生の記録操作
   // 小中学生のrecordキーは生徒index（jhStudents配列内の位置）
@@ -2482,8 +2710,9 @@ function App(){
     if(!ss) return{total:0,done:0};
     const nyumonKey=ss.nyumon||'ia';
     const lv=plan.maxLevel||5;
-    const nFrom=plan.nyumonRange?.from||1,nTo=plan.nyumonRange?.to||99;
-    const cFrom=plan.chartRange?.from||1, cTo=plan.chartRange?.to||99;
+    const nL=getNyumon(nyumonKey).length, cL=getChaps(ss.dataKey).length;
+    const nFrom=Math.min(plan.nyumonRange?.from||1,nL),nTo=Math.min(plan.nyumonRange?.to||nL,nL);
+    const cFrom=Math.min(plan.chartRange?.from||1,cL), cTo=Math.min(plan.chartRange?.to||cL,cL);
     const skipSet=new Set(plan.skipItems||[]);
     let t=0,d=0;
     getNyumon(nyumonKey).forEach((ch,ci)=>{
@@ -2566,17 +2795,38 @@ function App(){
 
   // ── メイン画面 ──
   // 高校生用変数
-  const curPlan=hsPlans[curName]||{};
+  // ロードマップ対応：現在のステップを判定
+  const curPlanRaw=hsPlans[curName]||{};
+  const curPlanFull=migratePlan(curPlanRaw);
+  const curRoadmap=curPlanFull.roadmap||[];
+  const curRecords=hsRecords[curName]||{};
+  const curSkipItems=curPlanFull.skipItems||[];
+  const autoCurIdx=getAutoCurrentIdx(curRoadmap,curRecords,curSkipItems);
+  // 手動上書きがあればそれを優先、なければ自動
+  const stepIdx=(curPlanFull.currentIdx!==null&&curPlanFull.currentIdx!==undefined&&curPlanFull.currentIdx>=0&&curPlanFull.currentIdx<curRoadmap.length)?curPlanFull.currentIdx:autoCurIdx;
+  const curStep=curRoadmap[stepIdx]||null;
+  // 現在のステップを「curPlan」として扱う（既存コードとの互換のため）
+  const curPlan=curStep?{...curStep,memo:curPlanFull.memo,skipItems:curPlanFull.skipItems}:curPlanFull;
   const curSet=curPlan.textbookSet?SETS[curPlan.textbookSet]:null;
   const chartChaps=curSet?getChaps(curSet.dataKey):null;
   const nyumonKey=curSet?.nyumon||'ia';
   const nyumonLabel=NYUMON_SETS[nyumonKey]?.label||'数ⅠA';
   const iaChaps=getNyumon(nyumonKey);
   const lv=curPlan.maxLevel||5;
-  const nFrom=curPlan.nyumonRange?.from||1, nTo=curPlan.nyumonRange?.to||99;
-  const cFrom=curPlan.chartRange?.from||1,  cTo=curPlan.chartRange?.to||99;
+  const nFromRaw=curPlan.nyumonRange?.from||1, nToRaw=curPlan.nyumonRange?.to||iaChaps.length;
+  const cFromRaw=curPlan.chartRange?.from||1,  cToRaw=curPlan.chartRange?.to||(chartChaps?chartChaps.length:0);
+  const nFrom=Math.min(nFromRaw,iaChaps.length), nTo=Math.min(nToRaw,iaChaps.length);
+  const cFrom=Math.min(cFromRaw,chartChaps?chartChaps.length:0), cTo=Math.min(cToRaw,chartChaps?chartChaps.length:0);
   const curSkipSet=new Set(curPlan.skipItems||[]);
   const hw=calcHomework(curPlan);
+
+  // 手動でstepを切り替える関数
+  const setStepIdx=async(idx)=>{
+    const newPlan={...curPlanFull,currentIdx:idx===autoCurIdx?null:idx};
+    setHsPlans(p=>({...p,[curName]:newPlan}));
+    await hsSet(`koukou:plan:${curName}`,newPlan);
+    flash(idx===autoCurIdx?'🔄 自動判定に戻しました':'📍 表示テキストを変更');
+  };
 
   // 小中学生用変数
   const jhSi=curType==='jh'?getJhSi(curName):-1;
@@ -2724,23 +2974,71 @@ function App(){
                 }}
                 msg={saveMsg}
                 onClose={()=>setShowHsAdjustModal(false)}/>}
-              <div style={{background:'white',borderRadius:'10px',padding:'12px 14px',marginBottom:'10px',boxShadow:'0 1px 4px rgba(0,0,0,.07)'}}>
-                <p style={{fontWeight:'bold',fontSize:'17px',color:'#1e3a8a',marginBottom:'4px'}}>{curName}</p>
-                {curSet
-                  ?<div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
-                    <span style={{display:'inline-block',padding:'2px 10px',borderRadius:'4px',background:curSet.bg,color:curSet.color,border:`1px solid ${curSet.border}`,fontWeight:'bold',fontSize:'12px'}}>
-                      📖 入門精講（{nyumonLabel}）＋ {curSet.label}
-                    </span>
-                    {curPlan.maxLevel&&curPlan.maxLevel<5&&(
-                      <span style={{display:'inline-block',padding:'2px 8px',borderRadius:'4px',background:COMPASS_COLOR[curPlan.maxLevel],fontSize:'12px',color:'#374151'}}>
-                        🧭 コンパスLv{curPlan.maxLevel}まで
+              {/* 上段：生徒情報（左）＋ロードマップミニ（右上） */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'10px',alignItems:'stretch'}}>
+                {/* 左：生徒名と現在テキスト */}
+                <div style={{background:'white',borderRadius:'10px',padding:'12px 14px',boxShadow:'0 1px 4px rgba(0,0,0,.07)'}}>
+                  <p style={{fontWeight:'bold',fontSize:'17px',color:'#1e3a8a',marginBottom:'4px'}}>{curName}</p>
+                  {curSet
+                    ?<div style={{display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center'}}>
+                      <span style={{display:'inline-block',padding:'3px 10px',borderRadius:'4px',background:curSet.bg,color:curSet.color,border:`1px solid ${curSet.border}`,fontWeight:'bold',fontSize:'12px'}}>
+                        📖 入門精講（{nyumonLabel}）＋ {curSet.label}
                       </span>
+                      {curPlan.maxLevel&&curPlan.maxLevel<5&&(
+                        <span style={{display:'inline-block',padding:'2px 8px',borderRadius:'4px',background:COMPASS_COLOR[curPlan.maxLevel],fontSize:'12px',color:'#374151'}}>
+                          🧭 Lv{curPlan.maxLevel}まで
+                        </span>
+                      )}
+                    </div>
+                    :<span style={{fontSize:'12px',color:'#f59e0b'}}>⚠️ テキスト未設定</span>
+                  }
+                  {curPlanFull.memo&&<p style={{marginTop:'6px',fontSize:'12px',color:'#374151',background:'#fffbeb',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fde68a'}}>📝 {curPlanFull.memo}</p>}
+                </div>
+
+                {/* 右：ロードマップミニ */}
+                <div style={{background:'white',borderRadius:'10px',padding:'10px 12px',boxShadow:'0 1px 4px rgba(0,0,0,.07)'}}>
+                  <p style={{fontSize:'11px',fontWeight:'bold',color:'#1e3a8a',marginBottom:'6px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span>🛣️ 受験までのロードマップ</span>
+                    {curPlanFull.currentIdx!==null&&curPlanFull.currentIdx!==undefined&&(
+                      <button onClick={()=>setStepIdx(autoCurIdx)} style={{fontSize:'9px',background:'#fef3c7',color:'#92400e',border:'none',borderRadius:'4px',padding:'2px 6px',cursor:'pointer'}}>🔄 自動に戻す</button>
                     )}
-                    {hw&&<span style={{display:'inline-block',padding:'2px 8px',borderRadius:'4px',background:'#eff6ff',fontSize:'12px',color:'#1e3a8a',fontWeight:'bold'}}>📊 週{hw.perWeek}問/1日{hw.perDay}問</span>}
-                  </div>
-                  :<span style={{fontSize:'12px',color:'#f59e0b'}}>⚠️ テキスト未設定</span>
-                }
-                {curPlan.memo&&<p style={{marginTop:'6px',fontSize:'12px',color:'#374151',background:'#fffbeb',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fde68a'}}>📝 {curPlan.memo}</p>}
+                  </p>
+                  {curRoadmap.length===0?(
+                    <div style={{padding:'8px',background:'#fef3c7',borderRadius:'6px',fontSize:'11px',color:'#92400e',textAlign:'center'}}>
+                      ⚠️ 教室長にテキスト登録を依頼してください
+                    </div>
+                  ):(
+                    <div style={{display:'flex',gap:'4px',alignItems:'center',flexWrap:'wrap'}}>
+                      {curRoadmap.map((step,i)=>{
+                        const ts=SETS[step.textbookSet];
+                        if(!ts) return null;
+                        const isCur=i===stepIdx;
+                        const isDone=isStepDone(step,curRecords,curSkipItems);
+                        const prog=getStepProgress(step,curRecords,curSkipItems);
+                        return(
+                          <React.Fragment key={i}>
+                            <button onClick={()=>setStepIdx(i)}
+                              title={`${ts.label} : ${prog.done}/${prog.total} (${prog.pct}%)`}
+                              style={{
+                                padding:'4px 8px',borderRadius:'6px',
+                                border:isCur?`2px solid ${ts.color}`:`1px solid ${ts.border}`,
+                                background:isCur?ts.bg:isDone?'#dcfce7':'white',
+                                opacity:!isCur&&!isDone?0.5:1,
+                                cursor:'pointer',fontSize:'10px',fontWeight:isCur?'bold':'normal',
+                                color:isCur?ts.color:isDone?'#065f46':'#9ca3af',
+                                minWidth:'52px'
+                              }}>
+                              <div style={{fontSize:'9px',opacity:0.8}}>{i+1}</div>
+                              <div>{isDone?'✓ ':''}{ts.short}</div>
+                              <div style={{fontSize:'8px',marginTop:'1px'}}>{prog.pct}%</div>
+                            </button>
+                            {i<curRoadmap.length-1&&<span style={{fontSize:'10px',color:'#9ca3af'}}>→</span>}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 講師用：宿題量シミュレーション＆絞り込み調整パネル */}
