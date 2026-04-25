@@ -1201,15 +1201,32 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
   const subj1 = isElem ? "算数" : "数学";
   const subj2 = isElem ? "国語" : "英語";
 
-  // 現在の設定を読み込む
+  // 現在の設定を読み込む（新形式優先、なければ旧形式から）
   React.useEffect(() => {
-    const key = `${school}_${grade}_${round}`;
-    const existing = testRanges[key] || {};
+    // 新形式：学校・学年単位
+    const newKey = `${school}_${grade}`;
+    let existing = testRanges[newKey];
+    // 旧形式のいずれか（学校_学年_テスト回ID）を探す
+    if(!existing){
+      const allKeys=Object.keys(testRanges).filter(k=>k.startsWith(`${school}_${grade}_`));
+      if(allKeys.length>0){
+        // 最新更新のものを採用
+        const sorted=allKeys.sort((a,b)=>{
+          const da=testRanges[a]?.updatedAt||'';
+          const db=testRanges[b]?.updatedAt||'';
+          return db.localeCompare(da);
+        });
+        existing=testRanges[sorted[0]];
+        // round も復元
+        if(existing&&existing.round) setRound(existing.round);
+      }
+    }
+    existing=existing||{};
     setS1(existing.mathStart || existing.s1 || "");
     setE1(existing.mathEnd || existing.e1 || "");
     setS2(existing.engStart || existing.s2 || "");
     setE2(existing.engEnd || existing.e2 || "");
-  }, [school, grade, round]);
+  }, [school, grade]);
 
   const gradeNum = grade.replace(/[^0-9]/g, "");
   // 中学生：中{N}Y_{科目}, 小学生：小{N}Y_{科目}
@@ -1224,7 +1241,8 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
   const setMathStart = setS1, setMathEnd = setE1, setEngStart = setS2, setEngEnd = setE2;
 
   const handleSave = () => {
-    const key = `${school}_${grade}_${round}`;
+    // 学校・学年につき1つだけのキー（テスト回IDは含めない）
+    const key = `${school}_${grade}`;
     onSave(key, {mathStart, mathEnd, engStart, engEnd, school, grade, round, updatedAt: new Date().toISOString()});
     onClose();
   };
@@ -2513,16 +2531,24 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   const isElem=g.startsWith('小');
                   // 該当月だけチェック（4月〜現在月）
                   // 「次のテスト範囲」が登録されているかチェック
-                  // - 一切登録なし or 最新更新が1ヶ月以上前 → アラート
+                  // 新形式キー（学校_学年）または旧形式キー（学校_学年_round）を全部見る
                   let hasAnyData=false;
                   let latestUpdate=null;
-                  TEST_ROUNDS.forEach(r=>{
-                    const key=`${sch}_${g}_${r.id}`;
-                    const data=jhTestRanges[key];
-                    if(data){
+                  // 新形式
+                  const newKey=`${sch}_${g}`;
+                  if(jhTestRanges[newKey]){
+                    hasAnyData=true;
+                    if(jhTestRanges[newKey].updatedAt){
+                      latestUpdate=new Date(jhTestRanges[newKey].updatedAt);
+                    }
+                  }
+                  // 旧形式キー
+                  Object.keys(jhTestRanges).forEach(k=>{
+                    if(k.startsWith(`${sch}_${g}_`)){
                       hasAnyData=true;
-                      if(data.updatedAt){
-                        const upd=new Date(data.updatedAt);
+                      const d=jhTestRanges[k];
+                      if(d?.updatedAt){
+                        const upd=new Date(d.updatedAt);
                         if(!latestUpdate||upd>latestUpdate) latestUpdate=upd;
                       }
                     }
@@ -2682,54 +2708,58 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                       </p>
                     );
                     const subjects=GRADE_SUBJECTS[activeGrade]||[];
-                    const sortedRounds=[...TEST_ROUNDS].sort((a,b)=>{
-                      const ord=m=>m>=4?m-3:m+9;
-                      return ord(a.month)-ord(b.month);
-                    });
-                    const rounds=sortedRounds.filter(r=>{
-                      const key=`${sch}_${activeGrade}_${r.id}`;
-                      return jhTestRanges[key];
-                    });
-                    if(rounds.length===0) return(
+                    // 新形式キー → 旧形式キー（最新更新分） の優先順で1件取得
+                    const newKey=`${sch}_${activeGrade}`;
+                    let data=jhTestRanges[newKey];
+                    let usedKey=newKey;
+                    if(!data){
+                      // 旧形式キーから最新を取得
+                      const oldKeys=Object.keys(jhTestRanges).filter(k=>k.startsWith(`${sch}_${activeGrade}_`));
+                      if(oldKeys.length>0){
+                        const sorted=oldKeys.sort((a,b)=>{
+                          const da=jhTestRanges[a]?.updatedAt||'';
+                          const db=jhTestRanges[b]?.updatedAt||'';
+                          return db.localeCompare(da);
+                        });
+                        usedKey=sorted[0];
+                        data=jhTestRanges[usedKey];
+                      }
+                    }
+                    if(!data) return(
                       <p style={{fontSize:'12px',color:'#9ca3af',background:'white',padding:'8px',borderRadius:'4px',textAlign:'center',marginBottom:'8px'}}>
                         📝 まだテスト範囲が登録されていません
                       </p>
                     );
+                    const updTxt=data.updatedAt?new Date(data.updatedAt).toLocaleDateString('ja-JP'):'不明';
+                    const monthInfo=data.round?(TEST_ROUNDS.find(r=>r.id===data.round)?.label||''):'';
                     return(
                       <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'8px'}}>
                         <p style={{fontSize:'11px',color:'#78350f'}}>🎯 {sch}・{activeGrade}・現状のテスト予想範囲</p>
-                        {rounds.map(r=>{
-                          const key=`${sch}_${activeGrade}_${r.id}`;
-                          const data=jhTestRanges[key];
-                          const updTxt=data.updatedAt?new Date(data.updatedAt).toLocaleDateString('ja-JP'):'不明';
-                          return(
-                            <div key={r.id} style={{background:'white',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fed7aa'}}>
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
-                                <p style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{r.label}</p>
-                                <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
-                              </div>
-                              {subjects.map(subj=>{
-                                const isFirst=(subj==='数学'||subj==='算数');
-                                const sId=isFirst?data.mathStart:data.engStart;
-                                const eId=isFirst?data.mathEnd:data.engEnd;
-                                if(!sId&&!eId) return null;
-                                const isElem=activeGrade.startsWith('小');
-                                const tk=`${activeGrade}Y_${subj}`;
-                                const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
-                                const sItem=items.find(it=>it.id===sId);
-                                const eItem=items.find(it=>it.id===eId);
-                                return(
-                                  <p key={subj} style={{fontSize:'11px',color:'#78350f',marginTop:'2px'}}>
-                                    <span style={{fontWeight:'bold'}}>{subj}：</span>
-                                    {sItem?sItem.text.slice(0,16):'（開始未設定）'}
-                                    　〜　
-                                    {eItem?eItem.text.slice(0,16):'（終了未設定）'}
-                                  </p>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
+                        <div style={{background:'white',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fed7aa'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                            <p style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{monthInfo||'次回テスト'}</p>
+                            <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
+                          </div>
+                          {subjects.map(subj=>{
+                            const isFirst=(subj==='数学'||subj==='算数');
+                            const sId=isFirst?data.mathStart:data.engStart;
+                            const eId=isFirst?data.mathEnd:data.engEnd;
+                            if(!sId&&!eId) return null;
+                            const isElem=activeGrade.startsWith('小');
+                            const tk=`${activeGrade}Y_${subj}`;
+                            const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
+                            const sItem=items.find(it=>it.id===sId);
+                            const eItem=items.find(it=>it.id===eId);
+                            return(
+                              <p key={subj} style={{fontSize:'11px',color:'#78350f',marginTop:'2px'}}>
+                                <span style={{fontWeight:'bold'}}>{subj}：</span>
+                                {sItem?sItem.text.slice(0,16):'（開始未設定）'}
+                                　〜　
+                                {eItem?eItem.text.slice(0,16):'（終了未設定）'}
+                              </p>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })()}
@@ -3094,13 +3124,14 @@ function App(){
         jhGet('students',cJh),
       ]);
       setTeachers(t);setHsStudents(hs);setJhStudents(jh);
-      const [tb,tr,dv,sk]=await Promise.all([
+      const [tb,tr,dv,sk,sov]=await Promise.all([
         jhGet('textbookOverrides',cTb),
         jhGet('testRanges',cTr),
         jhGet('directives',cDv),
         jhGet('skipItems',cSk),
+        jhGet('schoolOverrides',cSov),
       ]);
-      setJhTextbookOverrides(tb);setJhTestRanges(tr);setJhDirectives(dv);setJhSkipItems(sk);
+      setJhTextbookOverrides(tb);setJhTestRanges(tr);setJhDirectives(dv);setJhSkipItems(sk);setJhSchoolOverrides(sov);
       setBgLoading(false);
     })();
   };
@@ -3855,24 +3886,19 @@ function App(){
                 // データ存在するキーを優先順で探す（新形式m6 → 旧形式t1 → LEGACY_TEST_ROUND_MAP変換）
                 let rng=null;
                 if(school){
-                  // 新形式キー
-                  const kNew=`${school}_${activeGrade}_${activeTestRound}`;
+                  // 学校・学年単位の新形式キー（最優先）
+                  const kNew=`${school}_${activeGrade}`;
                   rng=jhTestRanges[kNew];
-                  // 旧形式キー（t1〜t4）も検索（過去データ互換）
+                  // 旧形式キー（学校_学年_テスト回ID）から最新のものを取得
                   if(!rng){
-                    for(const [oldId,newId] of Object.entries(LEGACY_TEST_ROUND_MAP)){
-                      if(newId===activeTestRound){
-                        const kOld=`${school}_${activeGrade}_${oldId}`;
-                        if(jhTestRanges[kOld]){rng=jhTestRanges[kOld];break;}
-                      }
-                    }
-                  }
-                  // どの月でもいいので登録あれば直近のものを使う（フォールバック）
-                  if(!rng){
-                    // 同じ学校・学年で最新のテスト範囲を探す
-                    for(const r of TEST_ROUNDS){
-                      const k=`${school}_${activeGrade}_${r.id}`;
-                      if(jhTestRanges[k]){rng=jhTestRanges[k];break;}
+                    const oldKeys=Object.keys(jhTestRanges).filter(k=>k.startsWith(`${school}_${activeGrade}_`));
+                    if(oldKeys.length>0){
+                      const sorted=oldKeys.sort((a,b)=>{
+                        const da=jhTestRanges[a]?.updatedAt||'';
+                        const db=jhTestRanges[b]?.updatedAt||'';
+                        return db.localeCompare(da);
+                      });
+                      rng=jhTestRanges[sorted[0]];
                     }
                   }
                 }
