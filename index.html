@@ -983,7 +983,7 @@ const TEST_ROUNDS = [
 // 旧形式（t1〜t4）→新形式（m6,m9,m11,m2）の移行マッピング
 const LEGACY_TEST_ROUND_MAP = {t1:"m6",t2:"m9",t3:"m11",t4:"m2"};
 
-const SCHOOLS = ["白川中","藤園中","マリスト中","九州学院中","長嶺中","桜山中","信愛女学院中","真和中"];
+const SCHOOLS = ["附属小","白川小","城東小","大江小","碩台小","白川中","藤園中","マリスト中","九州学院中","長嶺中","桜山中","信愛中","真和中"];
 
 const INITIAL_TEXTBOOK_OVERRIDES = {"25": {"数学": "中1X_数学", "英語": "中1X_英語"}, "45": {"数学": "中2X_数学", "英語": "中2X_英語"}, "46": {"数学": "中2X_数学", "英語": "中2X_英語"}, "60": {"数学": "中3X_数学", "英語": "中3X_英語"}};
 
@@ -1132,7 +1132,7 @@ function DirectiveModal({directives, onSave, onClose}){
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
             <select value={school} onChange={e=>setSchool(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
-              {SCHOOLS.map(s=><option key={s} value={s}>{s}</option>)}
+              {SCHOOLS.filter(s=>grade.startsWith('小')?s.endsWith('小'):s.endsWith('中')).map(s=><option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
@@ -1249,7 +1249,7 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
             <select value={school} onChange={e=>setSchool(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
-              {SCHOOLS.map(s=><option key={s} value={s}>{s}</option>)}
+              {SCHOOLS.filter(s=>grade.startsWith('小')?s.endsWith('小'):s.endsWith('中')).map(s=><option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
@@ -1947,7 +1947,13 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
 function AddStudentForm({type,onAdd,onCancel}){
   const [name,setName]=useState('');
   const [grade,setGrade]=useState(type==='hs'?'高1':'中1');
-  const [school,setSchool]=useState(SCHOOLS[0]);
+  const [school,setSchool]=useState('');
+  React.useEffect(()=>{
+    // 学年に応じてデフォルト学校をセット
+    const isElem=grade.startsWith('小');
+    const list=SCHOOLS.filter(s=>isElem?s.endsWith('小'):s.endsWith('中'));
+    if(list.length>0&&!list.includes(school)) setSchool(list[0]);
+  },[grade]);
   const grades=type==='hs'?['高1','高2','高3']:['小1','小2','小3','小4','小5','小6','中1','中2','中3'];
   const submit=()=>{
     if(!name.trim()){alert('名前を入力してください');return;}
@@ -1977,7 +1983,7 @@ function AddStudentForm({type,onAdd,onCancel}){
             <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'2px'}}>学校</p>
             <select value={school} onChange={e=>setSchool(e.target.value)}
               style={{width:'100%',border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 8px',fontSize:'13px',boxSizing:'border-box'}}>
-              {SCHOOLS.map(s=><option key={s} value={s}>{s}</option>)}
+              {SCHOOLS.filter(s=>grade.startsWith('小')?s.endsWith('小'):s.endsWith('中')).map(s=><option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         )}
@@ -2626,6 +2632,32 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   </button>
                 </div>
 
+                {/* 通学校（教室長がここで設定） */}
+                <div style={{marginBottom:'12px',padding:'12px',background:'#f5f3ff',borderRadius:'10px',border:'1px solid #c4b5fd'}}>
+                  <p style={{fontWeight:'bold',fontSize:'14px',color:'#5b21b6',marginBottom:'4px'}}>🏫 通学校</p>
+                  {(()=>{
+                    const sName=stripGrade(jhFullName);
+                    const sch=getSchoolOf(sName);
+                    return(
+                      <>
+                        {sch?(
+                          <p style={{fontSize:'13px',color:'#374151',marginBottom:'8px',background:'white',padding:'6px 10px',borderRadius:'4px'}}>
+                            <span style={{fontWeight:'bold'}}>{sch}</span>
+                          </p>
+                        ):(
+                          <p style={{fontSize:'12px',color:'#dc2626',marginBottom:'8px',background:'#fef2f2',padding:'6px 10px',borderRadius:'4px',border:'1px solid #fca5a5'}}>
+                            ⚠️ 学校が登録されていません
+                          </p>
+                        )}
+                        <button onClick={()=>setEditSchoolName(sName)}
+                          style={{background:'#7c3aed',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                          🏫 学校を{sch?'変更':'設定'}
+                        </button>
+                      </>
+                    );
+                  })()}
+                </div>
+
                 {/* テスト範囲（中学生・小学生どちらも） */}
                 <div style={{marginBottom:'12px',padding:'12px',background:'#fef3c7',borderRadius:'10px',border:'1px solid #fbbf24'}}>
                   <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📝 テスト範囲設定</p>
@@ -2716,6 +2748,33 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
               {jhShowTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhAllStudents} textbookOverrides={jhTextbookOverrides} onSave={(si,vals)=>{onSaveTextbook(si,vals);setJhShowTextbookModal(false);}} onClose={()=>setJhShowTextbookModal(false)}/>}
               {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange} defaultSchool={getSchoolOf(stripGrade(jhFullName))} defaultGrade={activeGrade}/>}
               {jhShowDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{onSaveDirective(k,v);setJhShowDirectiveModal(false);}} onClose={()=>setJhShowDirectiveModal(false)}/>}
+              {/* 学校変更ダイアログ（jhタブからも開ける） */}
+              {editSchoolName&&(
+                <div onClick={()=>setEditSchoolName('')} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'20px',width:'100%',maxWidth:'400px'}}>
+                    <p style={{fontWeight:'bold',fontSize:'15px',color:'#5b21b6',marginBottom:'12px'}}>🏫 {editSchoolName} の学校を選択</p>
+                    <div style={{display:'flex',flexDirection:'column',gap:'4px',marginBottom:'12px'}}>
+                      {(()=>{
+                        // 編集中の生徒の学年から、表示すべき学校種別を判定
+                        const fullEntry=jhAllStudents.find(s=>stripGrade(s)===editSchoolName);
+                        const grade=fullEntry?extractGrade(fullEntry):'';
+                        const isElem=grade.startsWith('小');
+                        const filtered=SCHOOLS.filter(s=>isElem?s.endsWith('小'):s.endsWith('中'));
+                        return filtered;
+                      })().map(s=>(
+                        <button key={s} onClick={()=>{jhSaveSchool(editSchoolName,s);setEditSchoolName('');}}
+                          style={{padding:'8px 12px',background:getSchoolOf(editSchoolName)===s?'#ede9fe':'white',border:`1px solid ${getSchoolOf(editSchoolName)===s?'#7c3aed':'#e5e7eb'}`,borderRadius:'6px',cursor:'pointer',textAlign:'left',fontSize:'13px'}}>
+                          {getSchoolOf(editSchoolName)===s?'✓ ':''}{s}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={()=>setEditSchoolName('')}
+                      style={{width:'100%',background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'8px',cursor:'pointer'}}>
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              )}
               </>
             );
           })()}
@@ -2798,7 +2857,12 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'20px',width:'100%',maxWidth:'400px'}}>
                     <p style={{fontWeight:'bold',fontSize:'15px',color:'#1e3a8a',marginBottom:'12px'}}>🏫 {editSchoolName} の学校を選択</p>
                     <div style={{display:'flex',flexDirection:'column',gap:'4px',marginBottom:'12px'}}>
-                      {SCHOOLS.map(s=>(
+                      {(()=>{
+                        const fullEntry=jhAllStudents.find(s=>stripGrade(s)===editSchoolName);
+                        const grade=fullEntry?extractGrade(fullEntry):'';
+                        const isElem=grade.startsWith('小');
+                        return SCHOOLS.filter(s=>isElem?s.endsWith('小'):s.endsWith('中'));
+                      })().map(s=>(
                         <button key={s} onClick={()=>{jhSaveSchool(editSchoolName,s);setEditSchoolName('');}}
                           style={{padding:'8px 12px',background:getSchoolOf(editSchoolName)===s?'#dbeafe':'white',border:`1px solid ${getSchoolOf(editSchoolName)===s?'#3b82f6':'#e5e7eb'}`,borderRadius:'6px',cursor:'pointer',textAlign:'left',fontSize:'13px'}}>
                           {getSchoolOf(editSchoolName)===s?'✓ ':''}{s}
