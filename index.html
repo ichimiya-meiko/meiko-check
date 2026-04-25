@@ -1920,7 +1920,7 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,onBack}){
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -1930,6 +1930,11 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
   const [delMsg,setDelMsg]=useState('');
   // 絞り込み・宿題量タブ：対象ロードマップステップ
   const [rangeStepIdx,setRangeStepIdx]=useState(0);
+  // 小中学生設定タブ用
+  const [jhCurIdx,setJhCurIdx]=useState(0);
+  const [jhShowTextbookModal,setJhShowTextbookModal]=useState(false);
+  const [jhShowTestRangeModal,setJhShowTestRangeModal]=useState(false);
+  const [jhShowDirectiveModal,setJhShowDirectiveModal]=useState(false);
 
   const students=studentIdxs.map(i=>allStudents[i]).filter(Boolean);
   const curName=stripGrade(students[curIdx]||'');
@@ -1941,7 +1946,9 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
   // ※「テキスト設定」タブはplan直下を参照、「絞り込み」タブはステップ参照
   // textタブで使うcurPlanはplans[curName]（互換のため）
   const curPlan=tab==='range'&&curStep?curStep:(plans[curName]||{});
-  const noStudents=students.length===0;
+  const hasJh=(jhStudentIdxs||[]).length>0;
+  const hasHs=students.length>0;
+  const noStudents=!hasHs&&!hasJh;
 
   useEffect(()=>{
     (async()=>{
@@ -2090,8 +2097,8 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
       <div style={{maxWidth:'540px',margin:'0 auto'}}>
         <div style={{background:'white',borderRadius:'12px',padding:'24px',textAlign:'center',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
           <p style={{fontSize:'32px',marginBottom:'12px'}}>📚</p>
-          <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'6px'}}>高校生が選択されていません</p>
-          <p style={{fontSize:'13px',color:'#6b7280',marginBottom:'16px'}}>教室長設定（テキスト・宿題量・講師削除）は高校生が対象です。<br/>高校生を選択してから入り直してください。</p>
+          <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'6px'}}>生徒が選択されていません</p>
+          <p style={{fontSize:'13px',color:'#6b7280',marginBottom:'16px'}}>戻って生徒を選択してから設定してください。</p>
           <button onClick={onBack} style={{background:'#065f46',color:'white',border:'none',borderRadius:'8px',padding:'10px 20px',fontSize:'14px',cursor:'pointer',fontWeight:'bold'}}>← 生徒選択に戻る</button>
         </div>
       </div>
@@ -2108,12 +2115,21 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
 
         {/* タブ */}
         <div style={{background:'white',borderRadius:'12px',marginBottom:'12px',display:'flex',borderBottom:'1px solid #e5e7eb',overflow:'hidden'}}>
-          <button style={tabStyle('text')} onClick={()=>setTab('text')}>📚 テキスト設定</button>
+          <button style={tabStyle('text')} onClick={()=>setTab('text')}>📘 高校生設定</button>
+          <button style={tabStyle('jh')} onClick={()=>setTab('jh')}>📗 小中学生設定</button>
           <button style={tabStyle('delete')} onClick={()=>setTab('delete')}>🗑️ 生徒・講師削除</button>
         </div>
 
         {/* ── タブ：テキスト設定 ── */}
         {tab==='text'&&(
+          <>
+          {!hasHs?(
+            <div style={{background:'#fef3c7',border:'1px solid #fbbf24',borderRadius:'10px',padding:'24px',textAlign:'center',color:'#92400e'}}>
+              <p style={{fontSize:'24px',marginBottom:'8px'}}>📘</p>
+              <p style={{fontWeight:'bold',marginBottom:'4px'}}>高校生が選択されていません</p>
+              <p style={{fontSize:'12px'}}>戻るボタンから生徒選択画面に戻り、高校生を選択してください</p>
+            </div>
+          ):(
           <>
           {/* 生徒タブ */}
           <div style={{display:'flex',gap:'6px',marginBottom:'12px',overflowX:'auto',paddingBottom:'4px'}}>
@@ -2318,6 +2334,112 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
               {msg||'💾 この生徒の設定を保存'}
             </button>
           </div>
+          </>
+          )}
+          </>
+        )}
+
+        {/* ── タブ：小中学生設定 ── */}
+        {tab==='jh'&&(
+          <>
+          {/* 小中学生 生徒タブ */}
+          {(jhStudentIdxs||[]).length===0?(
+            <div style={{background:'#fef3c7',border:'1px solid #fbbf24',borderRadius:'10px',padding:'24px',textAlign:'center',color:'#92400e'}}>
+              <p style={{fontSize:'24px',marginBottom:'8px'}}>📗</p>
+              <p style={{fontWeight:'bold',marginBottom:'4px'}}>小中学生が選択されていません</p>
+              <p style={{fontSize:'12px'}}>戻るボタンから生徒選択画面に戻り、小中学生を選択してください</p>
+            </div>
+          ):(
+          <>
+          {(()=>{
+            const jhSelStudents=jhStudentIdxs.map(i=>jhAllStudents[i]).filter(Boolean);
+            const safeJhCurIdx=Math.min(jhCurIdx,Math.max(0,jhSelStudents.length-1));
+            const jhFullName=jhSelStudents[safeJhCurIdx]||'';
+            const jhSi=jhAllStudents.indexOf(jhFullName);
+            const activeGrade=extractGrade(jhFullName);
+            const isM=isChu(activeGrade);
+            return(
+              <>
+              {/* 生徒タブ */}
+              <div style={{display:'flex',gap:'6px',marginBottom:'12px',overflowX:'auto',paddingBottom:'4px'}}>
+                {jhSelStudents.map((s,i)=>{
+                  const n=stripGrade(s);
+                  const g=extractGrade(s);
+                  return(
+                    <button key={i} onClick={()=>setJhCurIdx(i)}
+                      style={{padding:'8px 14px',borderRadius:'20px',border:`2px solid ${safeJhCurIdx===i?'#065f46':'#e5e7eb'}`,
+                        background:safeJhCurIdx===i?'#065f46':'white',color:safeJhCurIdx===i?'white':'#374151',cursor:'pointer',
+                        fontSize:'13px',flexShrink:0,fontWeight:safeJhCurIdx===i?'bold':'normal'}}>
+                      {n}（{g}）
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* メイン操作カード */}
+              <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
+                <p style={{fontWeight:'bold',fontSize:'16px',color:'#065f46',marginBottom:'16px',borderBottom:'2px solid #e5e7eb',paddingBottom:'10px'}}>
+                  🎯 {jhFullName} の設定
+                </p>
+
+                {/* テキスト設定ボタン */}
+                <div style={{marginBottom:'12px',padding:'12px',background:'#eef2ff',borderRadius:'10px',border:'1px solid #c7d2fe'}}>
+                  <p style={{fontWeight:'bold',fontSize:'14px',color:'#4f46e5',marginBottom:'4px'}}>📚 使用テキスト</p>
+                  <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'8px'}}>
+                    {(()=>{
+                      const subjects=GRADE_SUBJECTS[activeGrade]||[];
+                      return subjects.map(subj=>{
+                        const ov=jhTextbookOverrides[jhSi]?.[subj];
+                        const def=isM?`${activeGrade}Y_${subj}`:`${activeGrade}Y_${subj}`;
+                        const key=ov||def;
+                        if(key.startsWith('none_')) return `${subj}：受講なし`;
+                        const txt=key.includes('Y_')?'Y':key.includes('X_')?'X':key.includes('W_')?'W':'';
+                        return `${subj}：${txt}生`;
+                      }).join('　');
+                    })()}
+                  </p>
+                  <button onClick={()=>setJhShowTextbookModal(true)}
+                    style={{background:'#4f46e5',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    📚 テキストを変更
+                  </button>
+                </div>
+
+                {/* テスト範囲（中学生のみ） */}
+                {isM&&(
+                  <div style={{marginBottom:'12px',padding:'12px',background:'#fef3c7',borderRadius:'10px',border:'1px solid #fbbf24'}}>
+                    <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📝 テスト範囲設定</p>
+                    <p style={{fontSize:'12px',color:'#78350f',marginBottom:'8px'}}>
+                      学校・テスト回ごとに、X生・Y生別のテスト範囲を登録できます。
+                    </p>
+                    <button onClick={()=>setJhShowTestRangeModal(true)}
+                      style={{background:'#d97706',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                      📝 テスト範囲を編集
+                    </button>
+                  </div>
+                )}
+
+                {/* 方針設定 */}
+                <div style={{padding:'12px',background:'#f0fdf4',borderRadius:'10px',border:'1px solid #6ee7b7'}}>
+                  <p style={{fontWeight:'bold',fontSize:'14px',color:'#065f46',marginBottom:'4px'}}>📢 学習方針</p>
+                  <p style={{fontSize:'12px',color:'#374151',marginBottom:'8px',whiteSpace:'pre-wrap',background:'white',padding:'6px',borderRadius:'4px',minHeight:'40px'}}>
+                    {jhDirectives[`directive_${stripGrade(jhFullName)}`]||'（未設定）'}
+                  </p>
+                  <button onClick={()=>setJhShowDirectiveModal(true)}
+                    style={{background:'#059669',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    📢 方針を編集
+                  </button>
+                </div>
+              </div>
+
+              {/* モーダル */}
+              {jhShowTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhAllStudents} textbookOverrides={jhTextbookOverrides} onSave={(si,vals)=>{onSaveTextbook(si,vals);setJhShowTextbookModal(false);}} onClose={()=>setJhShowTextbookModal(false)}/>}
+              {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange}/>}
+              {jhShowDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{onSaveDirective(k,v);setJhShowDirectiveModal(false);}} onClose={()=>setJhShowDirectiveModal(false)}/>}
+              </>
+            );
+          })()}
+          </>
+          )}
           </>
         )}
 
@@ -2743,8 +2865,18 @@ function App(){
       onBack={()=>setPhase('teacher')}/>
   );
   if(phase==='director') return(
-    <DirectorSetting studentIdxs={selStudents.filter(s=>s.type==='hs').map(s=>hsStudents.indexOf(s.name))}
-      allStudents={hsStudents} onBack={()=>setPhase('students')}/>
+    <DirectorSetting 
+      studentIdxs={selStudents.filter(s=>s.type==='hs').map(s=>hsStudents.indexOf(s.name))}
+      allStudents={hsStudents}
+      jhStudentIdxs={selStudents.filter(s=>s.type==='jh').map(s=>jhStudents.indexOf(s.name))}
+      jhAllStudents={jhStudents}
+      jhTextbookOverrides={jhTextbookOverrides}
+      jhTestRanges={jhTestRanges}
+      jhDirectives={jhDirectives}
+      onSaveTextbook={jhSaveTextbook}
+      onSaveTestRange={jhSaveTestRange}
+      onSaveDirective={jhSaveDirective}
+      onBack={()=>setPhase('students')}/>
   );
   if(phase==='loading') return(
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#f0f4f8',gap:'16px'}}>
@@ -3122,11 +3254,7 @@ function App(){
                   <div>
                     <p style={{fontWeight:'bold',fontSize:'17px',color:GRADE_COLORS[activeGrade]||'#4f46e5',marginBottom:'2px'}}>{jhFullName}</p>
                   </div>
-                  <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
-                    <button onClick={()=>setShowTextbookModal(true)} style={{background:'#eef2ff',color:'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📚 テキスト</button>
-                    {isChu(activeGrade)&&<button onClick={()=>setShowTestRangeModal(true)} style={{background:'#fef3c7',color:'#92400e',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📝 テスト範囲</button>}
-                    <button onClick={()=>setShowDirectiveModal(true)} style={{background:'#f0fdf4',color:'#065f46',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer'}}>📢 方針</button>
-                  </div>
+                  <div></div>
                 </div>
                 {jhSubjects.length>1&&(
                   <div style={{display:'flex',gap:'6px',marginTop:'10px'}}>
