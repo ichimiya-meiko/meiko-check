@@ -3096,6 +3096,11 @@ function App(){
                                     <div style={{width:`${prog.pct}%`,height:'100%',background:isDone?'#10b981':ts.color}}/>
                                   </div>
                                   <p style={{fontSize:'9px',color:'#9ca3af',marginTop:'2px'}}>{prog.done}/{prog.total}問 ({prog.pct}%)</p>
+                                  {(step.startDate||step.deadline)&&(
+                                    <p style={{fontSize:'9px',color:isCur?ts.color:'#9ca3af',marginTop:'2px',fontWeight:isCur?'bold':'normal'}}>
+                                      📅 {step.startDate?step.startDate.slice(5).replace('-','/'):'未設定'} 〜 {step.deadline?step.deadline.slice(5).replace('-','/'):'未設定'}
+                                    </p>
+                                  )}
                                 </div>
                               </button>
                               {i<curRoadmap.length-1&&(
