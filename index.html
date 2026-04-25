@@ -2042,12 +2042,22 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   const [rangeStepIdx,setRangeStepIdx]=useState(0);
   // 学校情報取得（カスタム > デフォルト）
   const getSchoolOf=name=>(jhSchoolOverrides||{})[name]||STUDENT_SCHOOLS[name]||'';
+  // 学校保存ラッパー：保存中表示
+  const saveSchoolWithFeedback=async(name,school)=>{
+    setSavingSchool(name);
+    try{
+      await jhSaveSchool(name,school);
+    }finally{
+      setSavingSchool('');
+    }
+  };
   // 生徒・講師の追加用state
   const [showAddHs,setShowAddHs]=useState(false);
   const [showAddJh,setShowAddJh]=useState(false);
   const [showAddTc,setShowAddTc]=useState(false);
   // 学校変更ダイアログ
   const [editSchoolName,setEditSchoolName]=useState('');
+  const [savingSchool,setSavingSchool]=useState('');
   // 小中学生設定タブ用
   const [jhCurIdx,setJhCurIdx]=useState(0);
   const [jhShowTextbookModal,setJhShowTextbookModal]=useState(false);
@@ -2762,7 +2772,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                         const filtered=SCHOOLS.filter(s=>isElem?s.endsWith('小'):s.endsWith('中'));
                         return filtered;
                       })().map(s=>(
-                        <button key={s} onClick={()=>{jhSaveSchool(editSchoolName,s);setEditSchoolName('');}}
+                        <button key={s} onClick={async()=>{await saveSchoolWithFeedback(editSchoolName,s);setEditSchoolName('');}}
                           style={{padding:'8px 12px',background:getSchoolOf(editSchoolName)===s?'#ede9fe':'white',border:`1px solid ${getSchoolOf(editSchoolName)===s?'#7c3aed':'#e5e7eb'}`,borderRadius:'6px',cursor:'pointer',textAlign:'left',fontSize:'13px'}}>
                           {getSchoolOf(editSchoolName)===s?'✓ ':''}{s}
                         </button>
@@ -2842,9 +2852,9 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                       )}
                     </div>
                     <div style={{display:'flex',gap:'4px'}}>
-                      <button onClick={()=>setEditSchoolName(n)}
-                        style={{background:'#eef2ff',color:'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
-                        🏫 学校設定
+                      <button onClick={()=>setEditSchoolName(n)} disabled={savingSchool===n}
+                        style={{background:savingSchool===n?'#fef3c7':'#eef2ff',color:savingSchool===n?'#92400e':'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:savingSchool===n?'wait':'pointer',fontWeight:'bold'}}>
+                        {savingSchool===n?'⏳ 保存中...':'🏫 学校設定'}
                       </button>
                     </div>
                   </div>
@@ -2863,7 +2873,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                         const isElem=grade.startsWith('小');
                         return SCHOOLS.filter(s=>isElem?s.endsWith('小'):s.endsWith('中'));
                       })().map(s=>(
-                        <button key={s} onClick={()=>{jhSaveSchool(editSchoolName,s);setEditSchoolName('');}}
+                        <button key={s} onClick={async()=>{await saveSchoolWithFeedback(editSchoolName,s);setEditSchoolName('');}}
                           style={{padding:'8px 12px',background:getSchoolOf(editSchoolName)===s?'#dbeafe':'white',border:`1px solid ${getSchoolOf(editSchoolName)===s?'#3b82f6':'#e5e7eb'}`,borderRadius:'6px',cursor:'pointer',textAlign:'left',fontSize:'13px'}}>
                           {getSchoolOf(editSchoolName)===s?'✓ ':''}{s}
                         </button>
@@ -3187,18 +3197,36 @@ function App(){
   // 学校情報取得（カスタム > デフォルト）
   const getSchool=name=>jhSchoolOverrides[name]||STUDENT_SCHOOLS[name]||'';
   const jhSaveSchool=async(name,school)=>{
-    const nd={...jhSchoolOverrides,[name]:school};
-    setJhSchoolOverrides(nd);
-    await jhSet('schoolOverrides',nd);
+    // 競合防止：functional updateで確実に最新stateベースで更新
+    let updated;
+    setJhSchoolOverrides(prev=>{
+      updated={...prev,[name]:school};
+      return updated;
+    });
+    // 少し待ってstateが反映されてから保存（state更新後の値を使う）
+    await new Promise(r=>setTimeout(r,0));
+    await jhSet('schoolOverrides',updated);
     flash(`🏫 ${name}の学校を「${school}」に設定しました`);
   };
   const jhSaveTestRange=async(key,data)=>{
-    const nd={...jhTestRanges,[key]:data};setJhTestRanges(nd);
-    await jhSet('testRanges',nd);flash('📝 テスト範囲を保存しました');
+    let updated;
+    setJhTestRanges(prev=>{
+      updated={...prev,[key]:data};
+      return updated;
+    });
+    await new Promise(r=>setTimeout(r,0));
+    await jhSet('testRanges',updated);
+    flash('📝 テスト範囲を保存しました');
   };
   const jhSaveDirective=async(key,text)=>{
-    const nd={...jhDirectives,[key]:text};setJhDirectives(nd);
-    await jhSet('directives',nd);flash('📢 方針を保存しました');
+    let updated;
+    setJhDirectives(prev=>{
+      updated={...prev,[key]:text};
+      return updated;
+    });
+    await new Promise(r=>setTimeout(r,0));
+    await jhSet('directives',updated);
+    flash('📢 方針を保存しました');
   };
   const jhToggleSkip=async(grade,subjKey,itemId)=>{
     const key=`${grade}_${subjKey}`;
@@ -3305,26 +3333,45 @@ function App(){
       jhSaveSchool={jhSaveSchool}
       onAddJhStudent={async(name,grade,school)=>{
         const fullName=`${name}（${grade}）`;
-        const newList=[...jhStudents,fullName];
-        setJhStudents(newList);
-        await jhSet('students',newList);
+        let newStudents;
+        setJhStudents(prev=>{
+          if(prev.includes(fullName)){newStudents=prev;return prev;}
+          newStudents=[...prev,fullName];
+          return newStudents;
+        });
+        await new Promise(r=>setTimeout(r,0));
+        await jhSet('students',newStudents);
         if(school){
-          const nd={...jhSchoolOverrides,[name]:school};
-          setJhSchoolOverrides(nd);
-          await jhSet('schoolOverrides',nd);
+          let newSch;
+          setJhSchoolOverrides(prev=>{
+            newSch={...prev,[name]:school};
+            return newSch;
+          });
+          await new Promise(r=>setTimeout(r,0));
+          await jhSet('schoolOverrides',newSch);
         }
         flash(`✅ ${fullName} を追加しました`);
       }}
       onAddHsStudent={async(name,grade)=>{
         const fullName=`${name}（${grade}）`;
-        const newList=[...hsStudents,fullName];
-        setHsStudents(newList);
+        let newList;
+        setHsStudents(prev=>{
+          if(prev.includes(fullName)){newList=prev;return prev;}
+          newList=[...prev,fullName];
+          return newList;
+        });
+        await new Promise(r=>setTimeout(r,0));
         await hsSet('koukou:students',newList);
         flash(`✅ ${fullName} を追加しました`);
       }}
       onAddTeacher={async(name)=>{
-        const newList=[...teachers,name];
-        setTeachers(newList);
+        let newList;
+        setTeachers(prev=>{
+          if(prev.includes(name)){newList=prev;return prev;}
+          newList=[...prev,name];
+          return newList;
+        });
+        await new Promise(r=>setTimeout(r,0));
         await hsSet('koukou:teachers',newList);
         flash(`✅ ${name} を追加しました`);
       }}
