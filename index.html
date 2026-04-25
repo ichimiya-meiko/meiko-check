@@ -1129,21 +1129,21 @@ function DirectiveModal({directives, onSave, onClose}){
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
             <select value={school} onChange={e=>setSchool(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
-              {SCHOOLS.map(s=><option key={s}>{s}</option>)}
+              {SCHOOLS.map(s=><option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学年</div>
             <select value={grade} onChange={e=>setGrade(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
-              {["全学年","中1","中2","中3"].map(g=><option key={g}>{g}</option>)}
+              {["全学年","中1","中2","中3"].map(g=><option key={g} value={g}>{g}</option>)}
             </select>
           </div>
           <div>
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>教科</div>
             <select value={subj} onChange={e=>setSubj(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
-              {["全教科","数学","英語"].map(s=><option key={s}>{s}</option>)}
+              {["全教科","数学","英語"].map(s=><option key={s} value={s}>{s}</option>)}
             </select>
           </div>
         </div>
@@ -1246,14 +1246,14 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
             <select value={school} onChange={e=>setSchool(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
-              {SCHOOLS.map(s=><option key={s}>{s}</option>)}
+              {SCHOOLS.map(s=><option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
             <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学年</div>
             <select value={grade} onChange={e=>setGrade(e.target.value)}
               style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"11px",boxSizing:"border-box"}}>
-              {["小1","小2","小3","小4","小5","小6","中1","中2","中3"].map(g=><option key={g}>{g}</option>)}
+              {["小1","小2","小3","小4","小5","小6","中1","中2","中3"].map(g=><option key={g} value={g}>{g}</option>)}
             </select>
           </div>
           <div>
@@ -1499,7 +1499,7 @@ function SummaryView({students,getRecord,getSummary}){
         <input value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} placeholder="🔍 生徒名で絞り込み" style={{border:"1px solid #d1d5db",borderRadius:"4px",padding:"4px 8px",fontSize:"12px"}}/>
         <select value={selGrade} onChange={e=>{setSelGrade(e.target.value);setPage(0);}} style={{border:"1px solid #d1d5db",borderRadius:"4px",padding:"4px 8px",fontSize:"12px"}}>
           <option>全て</option>
-          {GRADE_ORDER.map(g=><option key={g}>{g}</option>)}
+          {GRADE_ORDER.map(g=><option key={g} value={g}>{g}</option>)}
         </select>
         <div style={{marginLeft:"auto",display:"flex",gap:"4px",alignItems:"center"}}>
           <button disabled={page===0} onClick={()=>setPage(p=>p-1)} style={{padding:"4px 8px",background:"#e0e7ff",color:"#3730a3",border:"none",borderRadius:"4px",fontSize:"12px",cursor:"pointer",opacity:page===0?0.3:1}}>◀ 前</button>
@@ -2400,36 +2400,40 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   const [sch,g]=t.split('|');
                   const isElem=g.startsWith('小');
                   // 該当月だけチェック（4月〜現在月）
-                  // 「学年4月時点」を起点とした学習進度月の判定用：
-                  // 4月=月1, 5月=月2,...3月=月12
-                  const academicOrder=m=>m>=4?m-3:m+9;
-                  const curAcademic=academicOrder(curMonth);
+                  // 「次のテスト範囲」が登録されているかチェック
+                  // - 一切登録なし or 最新更新が1ヶ月以上前 → アラート
+                  let hasAnyData=false;
+                  let latestUpdate=null;
                   TEST_ROUNDS.forEach(r=>{
                     const key=`${sch}_${g}_${r.id}`;
                     const data=jhTestRanges[key];
-                    const rAcademic=academicOrder(r.month);
-                    // 未登録：全テスト回が対象（紗耶佳先生の計画的な準備のため）
-                    if(!data){
-                      missing.push({sch,g,round:r.label,academic:rAcademic});
-                    }else if(data.updatedAt){
-                      // 古い：更新から1ヶ月以上経過 かつ 当月以前のテスト
-                      const upd=new Date(data.updatedAt);
-                      const updMonth=upd.getMonth()+1;
-                      const updYear=upd.getFullYear();
-                      const monthsSinceUpdate=(curYear-updYear)*12+(curMonth-updMonth);
-                      if(monthsSinceUpdate>=1&&rAcademic<=curAcademic){
-                        stale.push({sch,g,round:r.label,updated:upd.toLocaleDateString('ja-JP'),academic:rAcademic});
+                    if(data){
+                      hasAnyData=true;
+                      if(data.updatedAt){
+                        const upd=new Date(data.updatedAt);
+                        if(!latestUpdate||upd>latestUpdate) latestUpdate=upd;
                       }
-                    }else{
-                      // updatedAt がない古いデータ
-                      if(rAcademic<=curAcademic) stale.push({sch,g,round:r.label,updated:'不明',academic:rAcademic});
                     }
                   });
+                  if(!hasAnyData){
+                    // この学校・学年は1件も登録なし → 未登録
+                    missing.push({sch,g});
+                  }else if(latestUpdate){
+                    const updMonth=latestUpdate.getMonth()+1;
+                    const updYear=latestUpdate.getFullYear();
+                    const monthsSinceUpdate=(curYear-updYear)*12+(curMonth-updMonth);
+                    if(monthsSinceUpdate>=1){
+                      stale.push({sch,g,updated:latestUpdate.toLocaleDateString('ja-JP')});
+                    }
+                  }else{
+                    // updatedAtなし古いデータ
+                    stale.push({sch,g,updated:'不明'});
+                  }
                 });
                 if(missing.length===0&&stale.length===0) return null;
                 // 月順（4月→3月）でソート
-                missing.sort((a,b)=>a.academic-b.academic);
-                stale.sort((a,b)=>a.academic-b.academic);
+                missing.sort((a,b)=>(a.sch+a.g).localeCompare(b.sch+b.g));
+                stale.sort((a,b)=>(a.sch+a.g).localeCompare(b.sch+b.g));
                 return(
                   <div style={{marginBottom:'14px'}}>
                     {missing.length>0&&(
@@ -2439,8 +2443,8 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                         </p>
                         <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
                           {missing.slice(0,20).map((m2,i)=>(
-                            <span key={i} style={{background:'white',color:'#991b1b',fontSize:'11px',padding:'2px 8px',borderRadius:'4px',border:'1px solid #fca5a5'}}>
-                              {m2.sch} {m2.g} {m2.round}
+                            <span key={i} style={{background:'white',color:'#991b1b',fontSize:'12px',padding:'4px 10px',borderRadius:'4px',border:'1px solid #fca5a5',fontWeight:'bold'}}>
+                              {m2.sch} {m2.g}
                             </span>
                           ))}
                           {missing.length>20&&<span style={{fontSize:'11px',color:'#991b1b'}}>...他{missing.length-20}件</span>}
@@ -2455,8 +2459,8 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                         <p style={{fontSize:'10px',color:'#78350f',marginBottom:'6px'}}>1ヶ月以上更新されていない設定です。最新のテスト情報に更新してください。</p>
                         <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
                           {stale.slice(0,20).map((m2,i)=>(
-                            <span key={i} style={{background:'white',color:'#92400e',fontSize:'11px',padding:'2px 8px',borderRadius:'4px',border:'1px solid #fbbf24'}}>
-                              {m2.sch} {m2.g} {m2.round}（{m2.updated}）
+                            <span key={i} style={{background:'white',color:'#92400e',fontSize:'12px',padding:'4px 10px',borderRadius:'4px',border:'1px solid #fbbf24',fontWeight:'bold'}}>
+                              {m2.sch} {m2.g}（最終更新：{m2.updated}）
                             </span>
                           ))}
                           {stale.length>20&&<span style={{fontSize:'11px',color:'#92400e'}}>...他{stale.length-20}件</span>}
