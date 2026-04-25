@@ -2997,8 +2997,8 @@ function App(){
                 msg={saveMsg}
                 onClose={()=>setShowHsAdjustModal(false)}/>}
 
-              {/* 左右2:1 レイアウト */}
-              <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'10px',alignItems:'start'}}>
+              {/* 左右2:1 レイアウト（最小幅900pxで強制グリッド） */}
+              <div style={{display:'grid',gridTemplateColumns:'minmax(0,2fr) minmax(280px,1fr)',gap:'12px',alignItems:'start'}}>
 
                 {/* 左2/3：チェック画面エリア */}
                 <div>
