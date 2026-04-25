@@ -13,6 +13,36 @@
   <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;}</style>
 </head>
 <body>
+  <script>
+    // === キャッシュ自動更新システム ===
+    (function(){
+      const APP_VERSION = "v1777119915";
+      const STORAGE_KEY = '_meiko_app_version';
+      try{
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if(stored !== APP_VERSION){
+          // バージョン変更を検知 → キャッシュクリア
+          if(stored){
+            console.log('[App Update] 新しいバージョンを検出。キャッシュをクリアします。');
+            // localStorageの一時データをクリア（永続データは保持）
+            const keysToKeep = ['_meiko_app_version'];
+            // ServiceWorkerキャッシュもクリア（あれば）
+            if('caches' in window){
+              caches.keys().then(names=>{
+                names.forEach(n=>caches.delete(n));
+              });
+            }
+          }
+          localStorage.setItem(STORAGE_KEY, APP_VERSION);
+          // バージョン変更後はリロード
+          if(stored){
+            window.location.reload(true);
+            return;
+          }
+        }
+      }catch(e){console.error('Version check error:', e);}
+    })();
+  </script>
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useCallback}=React;
@@ -1187,63 +1217,79 @@ function DirectiveModal({directives, onSave, onClose}){
 function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrade}){
   const [school, setSchool] = useState(defaultSchool||SCHOOLS[0]);
   const [grade, setGrade] = useState(defaultGrade||"中1");
-  // 現在月をデフォルトのテスト回に
   const [round, setRound] = useState(()=>{
     const m=new Date().getMonth()+1;
     return `m${m}`;
   });
-  const [s1, setS1] = useState("");
-  const [e1, setE1] = useState("");
-  const [s2, setS2] = useState("");
-  const [e2, setE2] = useState("");
+  // X生・Y生別々の範囲
+  const [xs1, setXs1] = useState(""); // X生 数学/算数 開始
+  const [xe1, setXe1] = useState(""); // X生 数学/算数 終了
+  const [xs2, setXs2] = useState(""); // X生 英語/国語 開始
+  const [xe2, setXe2] = useState(""); // X生 英語/国語 終了
+  const [ys1, setYs1] = useState(""); // Y生 数学/算数 開始
+  const [ye1, setYe1] = useState(""); // Y生 数学/算数 終了
+  const [ys2, setYs2] = useState(""); // Y生 英語/国語 開始
+  const [ye2, setYe2] = useState(""); // Y生 英語/国語 終了
 
   const isElem = grade.startsWith("小");
   const subj1 = isElem ? "算数" : "数学";
   const subj2 = isElem ? "国語" : "英語";
 
+  // テキスト名（表示用）
+  const xLabel = isElem ? "X生（ウィンパス）" : "X生（ウィンパス）";
+  const yLabel = isElem ? "Y生（明光式ワーク）" : "Y生（明光式ワーク）";
+
   // 現在の設定を読み込む（新形式優先、なければ旧形式から）
   React.useEffect(() => {
-    // 新形式：学校・学年単位
     const newKey = `${school}_${grade}`;
     let existing = testRanges[newKey];
-    // 旧形式のいずれか（学校_学年_テスト回ID）を探す
     if(!existing){
-      const allKeys=Object.keys(testRanges).filter(k=>k.startsWith(`${school}_${grade}_`));
+      const allKeys = Object.keys(testRanges).filter(k=>k.startsWith(`${school}_${grade}_`));
       if(allKeys.length>0){
-        // 最新更新のものを採用
-        const sorted=allKeys.sort((a,b)=>{
-          const da=testRanges[a]?.updatedAt||'';
-          const db=testRanges[b]?.updatedAt||'';
+        const sorted = allKeys.sort((a,b)=>{
+          const da = testRanges[a]?.updatedAt||'';
+          const db = testRanges[b]?.updatedAt||'';
           return db.localeCompare(da);
         });
-        existing=testRanges[sorted[0]];
-        // round も復元
+        existing = testRanges[sorted[0]];
         if(existing&&existing.round) setRound(existing.round);
       }
     }
-    existing=existing||{};
-    setS1(existing.mathStart || existing.s1 || "");
-    setE1(existing.mathEnd || existing.e1 || "");
-    setS2(existing.engStart || existing.s2 || "");
-    setE2(existing.engEnd || existing.e2 || "");
+    existing = existing || {};
+    // X生範囲（新フィールド）
+    setXs1(existing.xMathStart || "");
+    setXe1(existing.xMathEnd || "");
+    setXs2(existing.xEngStart || "");
+    setXe2(existing.xEngEnd || "");
+    // Y生範囲（旧フィールド mathStart / engStart も兼用：マイグレーション）
+    setYs1(existing.yMathStart || existing.mathStart || existing.s1 || "");
+    setYe1(existing.yMathEnd || existing.mathEnd || existing.e1 || "");
+    setYs2(existing.yEngStart || existing.engStart || existing.s2 || "");
+    setYe2(existing.yEngEnd || existing.engEnd || existing.e2 || "");
   }, [school, grade]);
 
   const gradeNum = grade.replace(/[^0-9]/g, "");
-  // 中学生：中{N}Y_{科目}, 小学生：小{N}Y_{科目}
-  const k1 = isElem ? `小${gradeNum}Y_算数` : `中${gradeNum}Y_数学`;
-  const k2 = isElem ? `小${gradeNum}Y_国語` : `中${gradeNum}Y_英語`;
-  const c1 = CHAPTERS[k1] || [];
-  const c2 = CHAPTERS[k2] || [];
-  const i1 = c1.flatMap(ch => ch.items);
-  const i2 = c2.flatMap(ch => ch.items);
-  const mathStart = s1, mathEnd = e1, engStart = s2, engEnd = e2;
-  const mathItems = i1, engItems = i2;
-  const setMathStart = setS1, setMathEnd = setE1, setEngStart = setS2, setEngEnd = setE2;
+  const prefix = isElem ? "小" : "中";
+  // X生用テキスト（ウィンパス）
+  const xK1 = `${prefix}${gradeNum}X_${subj1}`;
+  const xK2 = `${prefix}${gradeNum}X_${subj2}`;
+  // Y生用テキスト（明光式ワーク）
+  const yK1 = `${prefix}${gradeNum}Y_${subj1}`;
+  const yK2 = `${prefix}${gradeNum}Y_${subj2}`;
+  const xItems1 = (CHAPTERS[xK1] || []).flatMap(ch => ch.items);
+  const xItems2 = (CHAPTERS[xK2] || []).flatMap(ch => ch.items);
+  const yItems1 = (CHAPTERS[yK1] || []).flatMap(ch => ch.items);
+  const yItems2 = (CHAPTERS[yK2] || []).flatMap(ch => ch.items);
 
   const handleSave = () => {
-    // 学校・学年につき1つだけのキー（テスト回IDは含めない）
     const key = `${school}_${grade}`;
-    onSave(key, {mathStart, mathEnd, engStart, engEnd, school, grade, round, updatedAt: new Date().toISOString()});
+    onSave(key, {
+      xMathStart: xs1, xMathEnd: xe1, xEngStart: xs2, xEngEnd: xe2,
+      yMathStart: ys1, yMathEnd: ye1, yEngStart: ys2, yEngEnd: ye2,
+      // 旧形式互換のため、Y生をmathStart等にも保存
+      mathStart: ys1, mathEnd: ye1, engStart: ys2, engEnd: ye2,
+      school, grade, round, updatedAt: new Date().toISOString()
+    });
     onClose();
   };
 
@@ -1255,11 +1301,54 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
     </select>
   );
 
+  // X生・Y生の範囲ブロック（再利用コンポーネント）
+  const TextSection = ({label, color, bgColor, borderColor, items1, items2, s1, e1, s2, e2, setS1, setE1, setS2, setE2, hasItems1, hasItems2}) => (
+    <div style={{background:bgColor,borderRadius:"8px",padding:"12px",marginBottom:"10px",border:`1px solid ${borderColor}`}}>
+      <div style={{fontWeight:"bold",fontSize:"13px",color,marginBottom:"10px"}}>📚 {label}</div>
+      {/* 教科1 */}
+      <div style={{marginBottom:"8px"}}>
+        <div style={{fontWeight:"bold",fontSize:"11px",color,marginBottom:"4px"}}>📐 {subj1}</div>
+        {hasItems1?(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}}>
+            <div>
+              <div style={{fontSize:"10px",color:"#6b7280",marginBottom:"2px"}}>開始</div>
+              <ItemSelect value={s1} onChange={setS1} items={items1} placeholder="開始を選択"/>
+            </div>
+            <div>
+              <div style={{fontSize:"10px",color:"#6b7280",marginBottom:"2px"}}>終了</div>
+              <ItemSelect value={e1} onChange={setE1} items={items1} placeholder="終了を選択"/>
+            </div>
+          </div>
+        ):(
+          <p style={{fontSize:"10px",color:"#9ca3af",background:"white",padding:"6px",borderRadius:"4px",textAlign:"center"}}>このテキストは未登録です</p>
+        )}
+      </div>
+      {/* 教科2 */}
+      <div>
+        <div style={{fontWeight:"bold",fontSize:"11px",color,marginBottom:"4px"}}>📖 {subj2}</div>
+        {hasItems2?(
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px"}}>
+            <div>
+              <div style={{fontSize:"10px",color:"#6b7280",marginBottom:"2px"}}>開始</div>
+              <ItemSelect value={s2} onChange={setS2} items={items2} placeholder="開始を選択"/>
+            </div>
+            <div>
+              <div style={{fontSize:"10px",color:"#6b7280",marginBottom:"2px"}}>終了</div>
+              <ItemSelect value={e2} onChange={setE2} items={items2} placeholder="終了を選択"/>
+            </div>
+          </div>
+        ):(
+          <p style={{fontSize:"10px",color:"#9ca3af",background:"white",padding:"6px",borderRadius:"4px",textAlign:"center"}}>このテキストは未登録です</p>
+        )}
+      </div>
+    </div>
+  );
+
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"12px"}} onClick={onClose}>
-      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"420px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"480px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
         <div style={{fontWeight:"bold",fontSize:"15px",color:"#1e3a8a",marginBottom:"4px"}}>📝 テスト予測範囲設定</div>
-        <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"14px"}}>教室長専用 ・ 同じ学校・学年の生徒全員に反映されます</div>
+        <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"14px"}}>教室長専用 ・ 同じ学校・学年・テキストの生徒全員に反映されます</div>
 
         {/* 学校・学年・テスト回選択 */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"14px"}}>
@@ -1286,37 +1375,23 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
           </div>
         </div>
 
-        {/* 数学範囲 */}
-        <div style={{background:"#eff6ff",borderRadius:"8px",padding:"12px",marginBottom:"10px"}}>
-          <div style={{fontWeight:"bold",fontSize:"12px",color:"#1e40af",marginBottom:"8px"}}>📐 {subj1}の予測範囲</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-            <div>
-              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>開始項目</div>
-              <ItemSelect value={mathStart} onChange={setMathStart} items={mathItems} placeholder="開始を選択"/>
-            </div>
-            <div>
-              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>終了項目</div>
-              <ItemSelect value={mathEnd} onChange={setMathEnd} items={mathItems} placeholder="終了を選択"/>
-            </div>
-          </div>
-        </div>
+        {/* X生（ウィンパス） */}
+        <TextSection 
+          label={xLabel} color="#7c2d12" bgColor="#fff7ed" borderColor="#fdba74"
+          items1={xItems1} items2={xItems2}
+          s1={xs1} e1={xe1} s2={xs2} e2={xe2}
+          setS1={setXs1} setE1={setXe1} setS2={setXs2} setE2={setXe2}
+          hasItems1={xItems1.length>0} hasItems2={xItems2.length>0}
+        />
 
-
-
-        {/* 英語範囲 */}
-        <div style={{background:"#f0fdf4",borderRadius:"8px",padding:"12px",marginBottom:"14px"}}>
-          <div style={{fontWeight:"bold",fontSize:"12px",color:"#166534",marginBottom:"8px"}}>📖 {subj2}の予測範囲</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-            <div>
-              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>開始項目</div>
-              <ItemSelect value={engStart} onChange={setEngStart} items={engItems} placeholder="開始を選択"/>
-            </div>
-            <div>
-              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>終了項目</div>
-              <ItemSelect value={engEnd} onChange={setEngEnd} items={engItems} placeholder="終了を選択"/>
-            </div>
-          </div>
-        </div>
+        {/* Y生（明光式ワーク） */}
+        <TextSection 
+          label={yLabel} color="#1e40af" bgColor="#eff6ff" borderColor="#93c5fd"
+          items1={yItems1} items2={yItems2}
+          s1={ys1} e1={ye1} s2={ys2} e2={ye2}
+          setS1={setYs1} setE1={setYe1} setS2={setYs2} setE2={setYe2}
+          hasItems1={yItems1.length>0} hasItems2={yItems2.length>0}
+        />
 
         <div style={{display:"flex",gap:"8px"}}>
           <button onClick={onClose} style={{flex:1,background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"13px"}}>キャンセル</button>
@@ -2732,26 +2807,38 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                     );
                     const updTxt=data.updatedAt?new Date(data.updatedAt).toLocaleDateString('ja-JP'):'不明';
                     const monthInfo=data.round?(TEST_ROUNDS.find(r=>r.id===data.round)?.label||''):'';
-                    return(
-                      <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'8px'}}>
-                        <p style={{fontSize:'11px',color:'#78350f'}}>🎯 {sch}・{activeGrade}・現状のテスト予想範囲</p>
-                        <div style={{background:'white',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fed7aa'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
-                            <p style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{monthInfo||'次回テスト'}</p>
-                            <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
-                          </div>
-                          {subjects.map(subj=>{
-                            const isFirst=(subj==='数学'||subj==='算数');
-                            const sId=isFirst?data.mathStart:data.engStart;
-                            const eId=isFirst?data.mathEnd:data.engEnd;
+                    // X生・Y生両方の範囲を取得して表示
+                    const renderRange=(typeKey,label,bg,color)=>{
+                      const rangeData=subjects.map(subj=>{
+                        const isFirst=(subj==='数学'||subj==='算数');
+                        let sId,eId;
+                        if(typeKey==='X'){
+                          sId=isFirst?data.xMathStart:data.xEngStart;
+                          eId=isFirst?data.xMathEnd:data.xEngEnd;
+                        }else{
+                          sId=isFirst?(data.yMathStart||data.mathStart):(data.yEngStart||data.engStart);
+                          eId=isFirst?(data.yMathEnd||data.mathEnd):(data.yEngEnd||data.engEnd);
+                        }
+                        const tk=`${activeGrade}${typeKey}_${subj}`;
+                        const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
+                        const sItem=items.find(it=>it.id===sId);
+                        const eItem=items.find(it=>it.id===eId);
+                        return {subj,sId,eId,sItem,eItem};
+                      });
+                      const hasAny=rangeData.some(r=>r.sId||r.eId);
+                      if(!hasAny) return(
+                        <div style={{background:bg,borderRadius:'6px',padding:'6px 10px',border:`1px solid ${color}33`,opacity:0.6}}>
+                          <p style={{fontSize:'11px',fontWeight:'bold',color}}>{label}</p>
+                          <p style={{fontSize:'10px',color:'#9ca3af'}}>未設定</p>
+                        </div>
+                      );
+                      return(
+                        <div style={{background:bg,borderRadius:'6px',padding:'6px 10px',border:`1px solid ${color}66`}}>
+                          <p style={{fontSize:'11px',fontWeight:'bold',color,marginBottom:'2px'}}>{label}</p>
+                          {rangeData.map(({subj,sId,eId,sItem,eItem})=>{
                             if(!sId&&!eId) return null;
-                            const isElem=activeGrade.startsWith('小');
-                            const tk=`${activeGrade}Y_${subj}`;
-                            const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
-                            const sItem=items.find(it=>it.id===sId);
-                            const eItem=items.find(it=>it.id===eId);
                             return(
-                              <p key={subj} style={{fontSize:'11px',color:'#78350f',marginTop:'2px'}}>
+                              <p key={subj} style={{fontSize:'11px',color:'#374151',marginTop:'2px'}}>
                                 <span style={{fontWeight:'bold'}}>{subj}：</span>
                                 {sItem?sItem.text.slice(0,16):'（開始未設定）'}
                                 　〜　
@@ -2760,6 +2847,16 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                             );
                           })}
                         </div>
+                      );
+                    };
+                    return(
+                      <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'8px'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <p style={{fontSize:'11px',color:'#78350f'}}>🎯 {sch}・{activeGrade}・現状のテスト予想範囲（{monthInfo||'次回テスト'}）</p>
+                          <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
+                        </div>
+                        {renderRange('X','📚 X生（ウィンパス）','#fff7ed','#7c2d12')}
+                        {renderRange('Y','📚 Y生（明光式ワーク）','#eff6ff','#1e40af')}
                       </div>
                     );
                   })()}
@@ -3881,15 +3978,11 @@ function App(){
               {/* 項目リスト */}
               {activeChap&&jhSi>=0&&(()=>{
                 const sName=(jhFullName||'').replace(/（.+?）/,'');
-                // カスタム学校 > デフォルト学校
                 const school=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
-                // データ存在するキーを優先順で探す（新形式m6 → 旧形式t1 → LEGACY_TEST_ROUND_MAP変換）
                 let rng=null;
                 if(school){
-                  // 学校・学年単位の新形式キー（最優先）
                   const kNew=`${school}_${activeGrade}`;
                   rng=jhTestRanges[kNew];
-                  // 旧形式キー（学校_学年_テスト回ID）から最新のものを取得
                   if(!rng){
                     const oldKeys=Object.keys(jhTestRanges).filter(k=>k.startsWith(`${school}_${activeGrade}_`));
                     if(oldKeys.length>0){
@@ -3902,9 +3995,23 @@ function App(){
                     }
                   }
                 }
-                const isEng=activeSubj==='英語';
-                const rangeStartId=rng?(isEng?rng.engStart:rng.mathStart):'';
-                const rangeEndId=rng?(isEng?rng.engEnd:rng.mathEnd):'';
+                // 生徒のテキストタイプを判定（X生 or Y生）
+                const tKey0=jhTextbookKey(jhSi,activeSubj)||'';
+                const isXType=tKey0.includes('X_');
+                const isFirst=(activeSubj==='数学'||activeSubj==='算数');
+                // X生・Y生で範囲を別々に取得
+                let rangeStartId='', rangeEndId='';
+                if(rng){
+                  if(isXType){
+                    // X生：xMath/xEng系を優先
+                    rangeStartId=isFirst?(rng.xMathStart||''):(rng.xEngStart||'');
+                    rangeEndId=isFirst?(rng.xMathEnd||''):(rng.xEngEnd||'');
+                  }else{
+                    // Y生：yMath/yEng → 旧形式 mathStart/engStart の順
+                    rangeStartId=isFirst?(rng.yMathStart||rng.mathStart||''):(rng.yEngStart||rng.engStart||'');
+                    rangeEndId=isFirst?(rng.yMathEnd||rng.mathEnd||''):(rng.yEngEnd||rng.engEnd||'');
+                  }
+                }
                 const items=activeChap.items||[];
                 const skKey=`${activeGrade}_${activeSubj}`;
                 const skList=jhSkipItems[skKey]||[];
