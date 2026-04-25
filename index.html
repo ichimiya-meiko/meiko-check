@@ -1924,15 +1924,23 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
-  const [tab,setTab]=useState('text'); // 'text'|'range'|'delete'
-  // 生徒・講師の削除管理
+  const [tab,setTab]=useState('text');
   const [stList,setStList]=useState([]);
   const [tcList,setTcList]=useState([]);
   const [delMsg,setDelMsg]=useState('');
+  // 絞り込み・宿題量タブ：対象ロードマップステップ
+  const [rangeStepIdx,setRangeStepIdx]=useState(0);
 
   const students=studentIdxs.map(i=>allStudents[i]).filter(Boolean);
   const curName=stripGrade(students[curIdx]||'');
-  const curPlan=plans[curName]||{};
+  // 旧形式とロードマップ両対応：curPlanFull がplan全体、curPlan は現在編集中ステップ（互換のため）
+  const curPlanFull=migratePlan(plans[curName]||{});
+  const curRoadmap=curPlanFull.roadmap||[];
+  const safeRangeIdx=Math.min(rangeStepIdx,Math.max(0,curRoadmap.length-1));
+  const curStep=curRoadmap[safeRangeIdx]||null;
+  // ※「テキスト設定」タブはplan直下を参照、「絞り込み」タブはステップ参照
+  // textタブで使うcurPlanはplans[curName]（互換のため）
+  const curPlan=tab==='range'&&curStep?curStep:(plans[curName]||{});
   const noStudents=students.length===0;
 
   useEffect(()=>{
@@ -1950,9 +1958,44 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
     })();
   },[]);
 
-  const setF=(field,val)=>setPlans(p=>({...p,[curName]:{...(p[curName]||{}),[field]:val}}));
-  const setNR=(f,v)=>setF('nyumonRange',{...(curPlan.nyumonRange||{}),[f]:v});
-  const setCR=(f,v)=>setF('chartRange', {...(curPlan.chartRange||{}), [f]:v});
+  // setter：rangeタブの場合はロードマップステップを更新、textタブの場合はplan直下を更新
+  const setF=(field,val)=>{
+    setPlans(p=>{
+      const cur=migratePlan(p[curName]||{});
+      // rangeタブの絞り込み・日付・コンパスはステップに保存
+      if(tab==='range'&&cur.roadmap&&cur.roadmap.length>0&&safeRangeIdx<cur.roadmap.length&&['textbookSet','maxLevel','startDate','deadline','nyumonRange','chartRange'].includes(field)){
+        const newRoadmap=[...cur.roadmap];
+        newRoadmap[safeRangeIdx]={...newRoadmap[safeRangeIdx],[field]:val};
+        return {...p,[curName]:{...cur,roadmap:newRoadmap}};
+      }
+      // それ以外（memoなど）はplan直下に保存
+      return {...p,[curName]:{...cur,[field]:val}};
+    });
+  };
+  const setNR=(f,v)=>{
+    setPlans(p=>{
+      const cur=migratePlan(p[curName]||{});
+      if(tab==='range'&&cur.roadmap&&cur.roadmap.length>0&&safeRangeIdx<cur.roadmap.length){
+        const newRoadmap=[...cur.roadmap];
+        const step=newRoadmap[safeRangeIdx]||{};
+        newRoadmap[safeRangeIdx]={...step,nyumonRange:{...(step.nyumonRange||{}),[f]:v}};
+        return {...p,[curName]:{...cur,roadmap:newRoadmap}};
+      }
+      return {...p,[curName]:{...cur,nyumonRange:{...(cur.nyumonRange||{}),[f]:v}}};
+    });
+  };
+  const setCR=(f,v)=>{
+    setPlans(p=>{
+      const cur=migratePlan(p[curName]||{});
+      if(tab==='range'&&cur.roadmap&&cur.roadmap.length>0&&safeRangeIdx<cur.roadmap.length){
+        const newRoadmap=[...cur.roadmap];
+        const step=newRoadmap[safeRangeIdx]||{};
+        newRoadmap[safeRangeIdx]={...step,chartRange:{...(step.chartRange||{}),[f]:v}};
+        return {...p,[curName]:{...cur,roadmap:newRoadmap}};
+      }
+      return {...p,[curName]:{...cur,chartRange:{...(cur.chartRange||{}),[f]:v}}};
+    });
+  };
 
   const save=async()=>{
     setMsg('保存中...');
@@ -2265,6 +2308,52 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
           </div>
           <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
             <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'4px'}}>🎯 {curName} の絞り込み設定</p>
+
+            {/* ロードマップステップ選択 */}
+            {curRoadmap.length>0?(
+              <div style={{background:'#f0fdf4',borderRadius:'8px',padding:'10px 12px',marginBottom:'14px',border:'1px solid #6ee7b7'}}>
+                <p style={{fontSize:'11px',fontWeight:'bold',color:'#065f46',marginBottom:'6px'}}>🛣️ どのテキストの設定を編集しますか？</p>
+                <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                  {curRoadmap.map((step,i)=>{
+                    const ts=SETS[step.textbookSet];
+                    if(!ts) return null;
+                    const isSel=i===safeRangeIdx;
+                    return(
+                      <button key={i} onClick={()=>setRangeStepIdx(i)}
+                        style={{padding:'6px 12px',borderRadius:'6px',
+                          border:isSel?`2px solid ${ts.color}`:`1px solid ${ts.border}`,
+                          background:isSel?ts.bg:'white',cursor:'pointer',
+                          fontSize:'12px',fontWeight:isSel?'bold':'normal',
+                          color:isSel?ts.color:'#6b7280'}}>
+                        {i+1}. {ts.short}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ):(
+              <div style={{background:'#fef2f2',borderRadius:'8px',padding:'12px',marginBottom:'14px',border:'1px solid #fca5a5',fontSize:'12px',color:'#991b1b'}}>
+                ⚠️ 先に「テキスト設定」タブで使用するテキストを登録してください
+              </div>
+            )}
+
+            {/* 開始日・完了目標日（ステップ毎） */}
+            {curRoadmap.length>0&&(
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'16px'}}>
+                <div>
+                  <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>📅 開始日</p>
+                  <input type="date" value={curPlan.startDate||''}
+                    onChange={e=>setF('startDate',e.target.value)}
+                    style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
+                </div>
+                <div>
+                  <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>🎯 完了目標日</p>
+                  <input type="date" value={curPlan.deadline||''}
+                    onChange={e=>setF('deadline',e.target.value)}
+                    style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
+                </div>
+              </div>
+            )}
             {!selSet&&<p style={{color:'#f59e0b',fontSize:'13px',marginBottom:'12px'}}>⚠️ まずテキスト設定タブでチャートを選択してください</p>}
             {selSet&&(
               <>
