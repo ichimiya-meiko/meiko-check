@@ -2109,7 +2109,6 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
         {/* タブ */}
         <div style={{background:'white',borderRadius:'12px',marginBottom:'12px',display:'flex',borderBottom:'1px solid #e5e7eb',overflow:'hidden'}}>
           <button style={tabStyle('text')} onClick={()=>setTab('text')}>📚 テキスト設定</button>
-          <button style={tabStyle('range')} onClick={()=>setTab('range')}>🎯 絞り込み・宿題量</button>
           <button style={tabStyle('delete')} onClick={()=>setTab('delete')}>🗑️ 生徒・講師削除</button>
         </div>
 
@@ -2220,14 +2219,47 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
                     </div>
 
                     {/* 日付 */}
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                      <input type="date" value={step.startDate||''} onChange={e=>updateRoadmapStep(idx,'startDate',e.target.value)}
-                        title="開始日"
-                        style={{border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'4px',fontSize:'11px'}}/>
-                      <input type="date" value={step.deadline||''} onChange={e=>updateRoadmapStep(idx,'deadline',e.target.value)}
-                        title="完了目標日"
-                        style={{border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'4px',fontSize:'11px'}}/>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'10px'}}>
+                      <div>
+                        <p style={{fontSize:'10px',color:'#6b7280',marginBottom:'2px'}}>📅 開始日</p>
+                        <input type="date" value={step.startDate||''} onChange={e=>updateRoadmapStep(idx,'startDate',e.target.value)}
+                          style={{width:'100%',border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'4px',fontSize:'11px'}}/>
+                      </div>
+                      <div>
+                        <p style={{fontSize:'10px',color:'#6b7280',marginBottom:'2px'}}>🎯 完了目標日</p>
+                        <input type="date" value={step.deadline||''} onChange={e=>updateRoadmapStep(idx,'deadline',e.target.value)}
+                          style={{width:'100%',border:`1px solid ${ts.border}`,borderRadius:'4px',padding:'4px',fontSize:'11px'}}/>
+                      </div>
                     </div>
+
+                    {/* 宿題量シミュレーション（このステップ単体） */}
+                    {(()=>{
+                      const stepHw=calcHomework(step);
+                      if(!stepHw) return(
+                        <div style={{background:'#fef3c7',borderRadius:'6px',padding:'8px',fontSize:'10px',color:'#92400e',textAlign:'center'}}>
+                          💡 開始日と完了目標日を入力すると宿題量が計算されます
+                        </div>
+                      );
+                      return(
+                        <div style={{background:'linear-gradient(135deg,#1e3a8a,#065f46)',borderRadius:'8px',padding:'10px',color:'white'}}>
+                          <p style={{fontSize:'11px',fontWeight:'bold',marginBottom:'6px'}}>📊 このテキストの宿題量シミュレーション</p>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px',marginBottom:'6px'}}>
+                            <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'4px',padding:'5px',textAlign:'center'}}>
+                              <p style={{fontSize:'9px',opacity:0.8}}>入門精講</p>
+                              <p style={{fontSize:'14px',fontWeight:'bold'}}>{stepHw.nTotal}問</p>
+                            </div>
+                            <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'4px',padding:'5px',textAlign:'center'}}>
+                              <p style={{fontSize:'9px',opacity:0.8}}>チャート(Lv{step.maxLevel||5}以下)</p>
+                              <p style={{fontSize:'14px',fontWeight:'bold'}}>{stepHw.cTotal}問</p>
+                            </div>
+                          </div>
+                          <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'4px',padding:'6px',textAlign:'center'}}>
+                            <p style={{fontSize:'9px',opacity:0.8}}>合計 {stepHw.total}問 ÷ {stepHw.weeks}週（{stepHw.days}日）</p>
+                            <p style={{fontSize:'15px',fontWeight:'bold',marginTop:'2px'}}>週{stepHw.perWeek}問 / 1日{stepHw.perDay}問</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               });
@@ -2280,166 +2312,6 @@ function DirectorSetting({studentIdxs,allStudents,onBack}){
               <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:'8px',padding:'10px 12px',marginBottom:'12px',fontSize:'12px',color:'#065f46'}}>
                 💡 チェックリスト画面で各問題の右端「✕」ボタンを押すとスキップ設定できます。スキップした問題はグレーになり講師が担当しない問題として表示されます。
               </div>
-            )}
-            <button onClick={save}
-              style={{width:'100%',background:'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:'pointer'}}>
-              {msg||'💾 この生徒の設定を保存'}
-            </button>
-          </div>
-          </>
-        )}
-
-        {/* ── タブ：絞り込み・宿題量 ── */}
-        {tab==='range'&&(
-          <>
-          <div style={{display:'flex',gap:'6px',marginBottom:'12px',overflowX:'auto',paddingBottom:'4px'}}>
-            {students.map((s,i)=>{
-              const n=stripGrade(s);
-              const hp=plans[n]?.textbookSet;
-              return(
-                <button key={i} onClick={()=>setCurIdx(i)}
-                  style={{padding:'8px 14px',borderRadius:'20px',border:`2px solid ${curIdx===i?'#065f46':hp?'#10b981':'#e5e7eb'}`,
-                    background:curIdx===i?'#065f46':'white',color:curIdx===i?'white':'#374151',cursor:'pointer',
-                    fontSize:'13px',flexShrink:0}}>
-                  {n}
-                </button>
-              );
-            })}
-          </div>
-          <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
-            <p style={{fontWeight:'bold',fontSize:'16px',color:'#1e3a8a',marginBottom:'4px'}}>🎯 {curName} の絞り込み設定</p>
-
-            {/* ロードマップステップ選択 */}
-            {curRoadmap.length>0?(
-              <div style={{background:'#f0fdf4',borderRadius:'8px',padding:'10px 12px',marginBottom:'14px',border:'1px solid #6ee7b7'}}>
-                <p style={{fontSize:'11px',fontWeight:'bold',color:'#065f46',marginBottom:'6px'}}>🛣️ どのテキストの設定を編集しますか？</p>
-                <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
-                  {curRoadmap.map((step,i)=>{
-                    const ts=SETS[step.textbookSet];
-                    if(!ts) return null;
-                    const isSel=i===safeRangeIdx;
-                    return(
-                      <button key={i} onClick={()=>setRangeStepIdx(i)}
-                        style={{padding:'6px 12px',borderRadius:'6px',
-                          border:isSel?`2px solid ${ts.color}`:`1px solid ${ts.border}`,
-                          background:isSel?ts.bg:'white',cursor:'pointer',
-                          fontSize:'12px',fontWeight:isSel?'bold':'normal',
-                          color:isSel?ts.color:'#6b7280'}}>
-                        {i+1}. {ts.short}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ):(
-              <div style={{background:'#fef2f2',borderRadius:'8px',padding:'12px',marginBottom:'14px',border:'1px solid #fca5a5',fontSize:'12px',color:'#991b1b'}}>
-                ⚠️ 先に「テキスト設定」タブで使用するテキストを登録してください
-              </div>
-            )}
-
-            {/* 開始日・完了目標日（ステップ毎） */}
-            {curRoadmap.length>0&&(
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'16px'}}>
-                <div>
-                  <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>📅 開始日</p>
-                  <input type="date" value={curPlan.startDate||''}
-                    onChange={e=>setF('startDate',e.target.value)}
-                    style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
-                </div>
-                <div>
-                  <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'4px'}}>🎯 完了目標日</p>
-                  <input type="date" value={curPlan.deadline||''}
-                    onChange={e=>setF('deadline',e.target.value)}
-                    style={{width:'100%',border:'2px solid #e5e7eb',borderRadius:'8px',padding:'8px 10px',fontSize:'13px'}}/>
-                </div>
-              </div>
-            )}
-            {!selSet&&<p style={{color:'#f59e0b',fontSize:'13px',marginBottom:'12px'}}>⚠️ まずテキスト設定タブでチャートを選択してください</p>}
-            {selSet&&(
-              <>
-              {/* コンパスレベル */}
-              <div style={{marginBottom:'18px'}}>
-                <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>🧭 チャートのコンパスレベル上限（この難易度まで表示）</p>
-                <div style={{display:'flex',gap:'8px'}}>
-                  {[1,2,3,4,5].map(lv=>{
-                    const cur=curPlan.maxLevel||5;
-                    const isActive=lv<=cur;
-                    return(
-                      <button key={lv} onClick={()=>setF('maxLevel',lv)}
-                        style={{flex:1,padding:'10px 4px',borderRadius:'8px',border:`2px solid ${cur===lv?selSet.border:'#e5e7eb'}`,
-                          background:isActive?COMPASS_COLOR[lv]:'#f9fafb',cursor:'pointer',
-                          fontWeight:cur===lv?'bold':'normal',fontSize:'12px',color:cur===lv?'#374151':'#9ca3af'}}>
-                        {lv}<br/><span style={{fontSize:'9px'}}>{COMPASS_LABEL[lv]}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p style={{fontSize:'11px',color:'#6b7280',marginTop:'4px'}}>
-                  レベル{curPlan.maxLevel||5}以下の問題のみ表示（入門問題精講はレベル設定なし・全問表示）
-                </p>
-              </div>
-
-              {/* 入門問題精講の章範囲 */}
-              <div style={{marginBottom:'18px',background:'#f0fdf4',borderRadius:'10px',padding:'14px'}}>
-                <p style={{fontSize:'13px',fontWeight:'bold',color:'#065f46',marginBottom:'10px'}}>
-                  📗 入門問題精講（{NYUMON_SETS[selSet.nyumon]?.label}）の表示章範囲 <span style={{color:'#6b7280',fontSize:'11px'}}>（全{getNyumon(selSet.nyumon).length}章）</span>
-                </p>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <span style={{fontSize:'12px',color:'#374151'}}>第</span>
-                  <input type="number" min="1" max={getNyumon(selSet.nyumon).length} value={curPlan.nyumonRange?.from||1}
-                    onChange={e=>setNR('from',Number(e.target.value))}
-                    style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
-                  <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
-                  <input type="number" min="1" max={getNyumon(selSet.nyumon).length} value={Math.min(curPlan.nyumonRange?.to||getNyumon(selSet.nyumon).length,getNyumon(selSet.nyumon).length)}
-                    onChange={e=>setNR('to',Number(e.target.value))}
-                    style={{width:'60px',border:'2px solid #6ee7b7',borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
-                  <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
-                </div>
-              </div>
-
-              {/* チャートの章範囲 */}
-              <div style={{marginBottom:'18px',background:selSet.bg,borderRadius:'10px',padding:'14px'}}>
-                <p style={{fontSize:'13px',fontWeight:'bold',color:selSet.color,marginBottom:'10px'}}>
-                  📘 {selSet.label} の表示章範囲 <span style={{color:'#6b7280',fontSize:'11px'}}>（全{getChaps(selSet.dataKey).length}章）</span>
-                </p>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <span style={{fontSize:'12px',color:'#374151'}}>第</span>
-                  <input type="number" min="1" max={getChaps(selSet.dataKey).length} value={curPlan.chartRange?.from||1}
-                    onChange={e=>setCR('from',Number(e.target.value))}
-                    style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
-                  <span style={{fontSize:'12px',color:'#374151'}}>章 〜 第</span>
-                  <input type="number" min="1" max={getChaps(selSet.dataKey).length} value={Math.min(curPlan.chartRange?.to||getChaps(selSet.dataKey).length,getChaps(selSet.dataKey).length)}
-                    onChange={e=>setCR('to',Number(e.target.value))}
-                    style={{width:'60px',border:`2px solid ${selSet.border}`,borderRadius:'6px',padding:'6px',fontSize:'14px',textAlign:'center'}}/>
-                  <span style={{fontSize:'12px',color:'#374151'}}>章まで表示</span>
-                </div>
-              </div>
-
-              {/* 宿題量計算 */}
-              {hw?(
-                <div style={{background:'linear-gradient(135deg,#1e3a8a,#065f46)',borderRadius:'12px',padding:'16px',color:'white',marginBottom:'16px'}}>
-                  <p style={{fontWeight:'bold',fontSize:'14px',marginBottom:'10px'}}>📊 宿題量シミュレーション</p>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'8px'}}>
-                    <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
-                      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.8)',marginBottom:'2px'}}>入門精講</p>
-                      <p style={{fontSize:'20px',fontWeight:'bold'}}>{hw.nTotal}問</p>
-                    </div>
-                    <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
-                      <p style={{fontSize:'11px',color:'rgba(255,255,255,0.8)',marginBottom:'2px'}}>チャート（Lv{curPlan.maxLevel||5}以下）</p>
-                      <p style={{fontSize:'20px',fontWeight:'bold'}}>{hw.cTotal}問</p>
-                    </div>
-                  </div>
-                  <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'8px',padding:'10px',textAlign:'center',marginBottom:'8px'}}>
-                    <p style={{fontSize:'12px',color:'rgba(255,255,255,0.8)'}}>合計 {hw.total}問 ÷ {hw.weeks}週（{hw.days}日）</p>
-                    <p style={{fontSize:'24px',fontWeight:'bold',marginTop:'2px'}}>週{hw.perWeek}問 / 1日{hw.perDay}問</p>
-                  </div>
-                </div>
-              ):(
-                <div style={{background:'#f1f5f9',borderRadius:'8px',padding:'12px',marginBottom:'16px',fontSize:'12px',color:'#64748b',textAlign:'center'}}>
-                  💡 「テキスト設定」タブで開始日・完了目標日を入力すると宿題量が計算されます
-                </div>
-              )}
-              </>
             )}
             <button onClick={save}
               style={{width:'100%',background:'#065f46',color:'white',border:'none',borderRadius:'10px',padding:'13px',fontWeight:'bold',fontSize:'15px',cursor:'pointer'}}>
@@ -3187,7 +3059,7 @@ function App(){
                                   <p style={{fontSize:'9px',color:'#9ca3af',marginTop:'2px'}}>{prog.done}/{prog.total}問 ({prog.pct}%)</p>
                                   {(step.startDate||step.deadline)&&(
                                     <p style={{fontSize:'9px',color:isCur?ts.color:'#9ca3af',marginTop:'2px',fontWeight:isCur?'bold':'normal'}}>
-                                      📅 {step.startDate?step.startDate.slice(5).replace('-','/'):'未設定'} 〜 {step.deadline?step.deadline.slice(5).replace('-','/'):'未設定'}
+                                      📅 {step.startDate?step.startDate.replace(/-/g,'/'):'未設定'} 〜 {step.deadline?step.deadline.replace(/-/g,'/'):'未設定'}
                                     </p>
                                   )}
                                 </div>
