@@ -1944,7 +1944,87 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
+function AddStudentForm({type,onAdd,onCancel}){
+  const [name,setName]=useState('');
+  const [grade,setGrade]=useState(type==='hs'?'高1':'中1');
+  const [school,setSchool]=useState(SCHOOLS[0]);
+  const grades=type==='hs'?['高1','高2','高3']:['小1','小2','小3','小4','小5','小6','中1','中2','中3'];
+  const submit=()=>{
+    if(!name.trim()){alert('名前を入力してください');return;}
+    if(type==='hs') onAdd(name.trim(),grade);
+    else onAdd(name.trim(),grade,school);
+  };
+  return(
+    <div style={{background:'#f9fafb',border:'1px solid #d1d5db',borderRadius:'10px',padding:'14px',marginBottom:'16px'}}>
+      <p style={{fontWeight:'bold',fontSize:'13px',color:'#1e3a8a',marginBottom:'10px'}}>
+        ➕ {type==='hs'?'高校生':'小中学生'}を追加
+      </p>
+      <div style={{display:'grid',gridTemplateColumns:type==='hs'?'2fr 1fr':'2fr 1fr 1fr',gap:'8px',marginBottom:'10px'}}>
+        <div>
+          <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'2px'}}>名前（姓・名）</p>
+          <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="例：田中 太郎"
+            style={{width:'100%',border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 8px',fontSize:'13px',boxSizing:'border-box'}}/>
+        </div>
+        <div>
+          <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'2px'}}>学年</p>
+          <select value={grade} onChange={e=>setGrade(e.target.value)}
+            style={{width:'100%',border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 8px',fontSize:'13px',boxSizing:'border-box'}}>
+            {grades.map(g=><option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+        {type==='jh'&&(
+          <div>
+            <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'2px'}}>学校</p>
+            <select value={school} onChange={e=>setSchool(e.target.value)}
+              style={{width:'100%',border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 8px',fontSize:'13px',boxSizing:'border-box'}}>
+              {SCHOOLS.map(s=><option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+      <div style={{display:'flex',gap:'6px'}}>
+        <button onClick={submit}
+          style={{flex:1,background:type==='hs'?'#1e3a8a':'#065f46',color:'white',border:'none',borderRadius:'6px',padding:'8px',fontSize:'13px',fontWeight:'bold',cursor:'pointer'}}>
+          ✓ 追加する
+        </button>
+        <button onClick={onCancel}
+          style={{flex:1,background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'8px',fontSize:'13px',cursor:'pointer'}}>
+          キャンセル
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AddTeacherForm({onAdd,onCancel}){
+  const [name,setName]=useState('');
+  const submit=()=>{
+    if(!name.trim()){alert('講師名を入力してください');return;}
+    onAdd(name.trim());
+  };
+  return(
+    <div style={{background:'#f5f3ff',border:'1px solid #c4b5fd',borderRadius:'10px',padding:'14px',marginBottom:'16px'}}>
+      <p style={{fontWeight:'bold',fontSize:'13px',color:'#5b21b6',marginBottom:'10px'}}>➕ 講師を追加</p>
+      <div style={{marginBottom:'10px'}}>
+        <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'2px'}}>講師名</p>
+        <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="例：山田 花子" onKeyDown={e=>e.key==='Enter'&&submit()}
+          style={{width:'100%',border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 8px',fontSize:'13px',boxSizing:'border-box'}}/>
+      </div>
+      <div style={{display:'flex',gap:'6px'}}>
+        <button onClick={submit}
+          style={{flex:1,background:'#7c3aed',color:'white',border:'none',borderRadius:'6px',padding:'8px',fontSize:'13px',fontWeight:'bold',cursor:'pointer'}}>
+          ✓ 追加する
+        </button>
+        <button onClick={onCancel}
+          style={{flex:1,background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'8px',fontSize:'13px',cursor:'pointer'}}>
+          キャンセル
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,onAddJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -1954,6 +2034,14 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   const [delMsg,setDelMsg]=useState('');
   // 絞り込み・宿題量タブ：対象ロードマップステップ
   const [rangeStepIdx,setRangeStepIdx]=useState(0);
+  // 学校情報取得（カスタム > デフォルト）
+  const getSchoolOf=name=>(jhSchoolOverrides||{})[name]||STUDENT_SCHOOLS[name]||'';
+  // 生徒・講師の追加用state
+  const [showAddHs,setShowAddHs]=useState(false);
+  const [showAddJh,setShowAddJh]=useState(false);
+  const [showAddTc,setShowAddTc]=useState(false);
+  // 学校変更ダイアログ
+  const [editSchoolName,setEditSchoolName]=useState('');
   // 小中学生設定タブ用
   const [jhCurIdx,setJhCurIdx]=useState(0);
   const [jhShowTextbookModal,setJhShowTextbookModal]=useState(false);
@@ -2384,15 +2472,20 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
             const isM=isChu(activeGrade);
             return(
               <>
-              {/* テスト範囲アラート（全生徒共通） */}
+              {/* テスト範囲アラート（教室全生徒対象） */}
               {(()=>{
-                // 選択した生徒の(学校,学年)を抽出
+                // 教室に登録されている全生徒の(学校,学年)を抽出
                 const targets=new Set();
-                jhSelStudents.forEach(s=>{
+                const noSchool=[]; // 学校未設定の生徒
+                jhAllStudents.forEach(s=>{
                   const n=stripGrade(s);
                   const g=extractGrade(s);
-                  const sch=STUDENT_SCHOOLS[n];
-                  if(sch) targets.add(`${sch}|${g}`);
+                  const sch=getSchoolOf(n);
+                  if(sch){
+                    targets.add(`${sch}|${g}`);
+                  }else{
+                    noSchool.push({name:n,grade:g});
+                  }
                 });
                 const today=new Date();
                 const curMonth=today.getMonth()+1;
@@ -2433,8 +2526,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                     stale.push({sch,g,updated:'不明'});
                   }
                 });
-                if(missing.length===0&&stale.length===0) return null;
-                // 月順（4月→3月）でソート
+                if(missing.length===0&&stale.length===0&&noSchool.length===0) return null;
                 missing.sort((a,b)=>(a.sch+a.g).localeCompare(b.sch+b.g));
                 stale.sort((a,b)=>(a.sch+a.g).localeCompare(b.sch+b.g));
                 return(
@@ -2455,7 +2547,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                       </div>
                     )}
                     {stale.length>0&&(
-                      <div style={{background:'#fffbeb',border:'2px solid #fbbf24',borderRadius:'10px',padding:'12px 14px'}}>
+                      <div style={{background:'#fffbeb',border:'2px solid #fbbf24',borderRadius:'10px',padding:'12px 14px',marginBottom:'8px'}}>
                         <p style={{fontWeight:'bold',fontSize:'13px',color:'#92400e',marginBottom:'6px'}}>
                           🔄 テスト範囲の更新が必要 ({stale.length}件)
                         </p>
@@ -2467,6 +2559,22 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                             </span>
                           ))}
                           {stale.length>20&&<span style={{fontSize:'11px',color:'#92400e'}}>...他{stale.length-20}件</span>}
+                        </div>
+                      </div>
+                    )}
+                    {noSchool.length>0&&(
+                      <div style={{background:'#f5f3ff',border:'2px solid #c4b5fd',borderRadius:'10px',padding:'12px 14px'}}>
+                        <p style={{fontWeight:'bold',fontSize:'13px',color:'#5b21b6',marginBottom:'6px'}}>
+                          🏫 学校が未設定の生徒 ({noSchool.length}名)
+                        </p>
+                        <p style={{fontSize:'10px',color:'#5b21b6',marginBottom:'6px'}}>下の「学校設定」ボタンから登録してください。</p>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+                          {noSchool.slice(0,20).map((s,i)=>(
+                            <span key={i} style={{background:'white',color:'#5b21b6',fontSize:'12px',padding:'4px 10px',borderRadius:'4px',border:'1px solid #c4b5fd',fontWeight:'bold'}}>
+                              {s.name}（{s.grade}）
+                            </span>
+                          ))}
+                          {noSchool.length>20&&<span style={{fontSize:'11px',color:'#5b21b6'}}>...他{noSchool.length-20}名</span>}
                         </div>
                       </div>
                     )}
@@ -2606,7 +2714,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
 
               {/* モーダル */}
               {jhShowTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhAllStudents} textbookOverrides={jhTextbookOverrides} onSave={(si,vals)=>{onSaveTextbook(si,vals);setJhShowTextbookModal(false);}} onClose={()=>setJhShowTextbookModal(false)}/>}
-              {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange} defaultSchool={STUDENT_SCHOOLS[stripGrade(jhFullName)]} defaultGrade={activeGrade}/>}
+              {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange} defaultSchool={getSchoolOf(stripGrade(jhFullName))} defaultGrade={activeGrade}/>}
               {jhShowDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{onSaveDirective(k,v);setJhShowDirectiveModal(false);}} onClose={()=>setJhShowDirectiveModal(false)}/>}
               </>
             );
@@ -2619,12 +2727,37 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
         {/* ── タブ：生徒・講師削除 ── */}
         {tab==='delete'&&(
           <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,.07)'}}>
-            <p style={{fontWeight:'bold',fontSize:'16px',color:'#dc2626',marginBottom:'4px'}}>🗑️ 生徒・講師の削除</p>
-            <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'16px'}}>退塾した生徒や卒業した講師を削除できます。削除すると記録が消えるため慎重に！</p>
+            <p style={{fontWeight:'bold',fontSize:'16px',color:'#dc2626',marginBottom:'4px'}}>🗑️ 生徒・講師の追加・削除</p>
+            <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'16px'}}>新規入塾生は追加、退塾生は削除します。削除すると記録が消えるため慎重に！</p>
             {delMsg&&<div style={{background:'#ecfdf5',border:'1px solid #6ee7b7',borderRadius:'8px',padding:'10px',marginBottom:'12px',fontSize:'13px',color:'#065f46'}}>{delMsg}</div>}
+
+            {/* 追加ボタン群 */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',marginBottom:'16px'}}>
+              <button onClick={()=>{setShowAddHs(true);setShowAddJh(false);setShowAddTc(false);}}
+                style={{background:'#1e3a8a',color:'white',border:'none',borderRadius:'8px',padding:'10px',fontSize:'13px',fontWeight:'bold',cursor:'pointer'}}>
+                ➕ 高校生を追加
+              </button>
+              <button onClick={()=>{setShowAddJh(true);setShowAddHs(false);setShowAddTc(false);}}
+                style={{background:'#065f46',color:'white',border:'none',borderRadius:'8px',padding:'10px',fontSize:'13px',fontWeight:'bold',cursor:'pointer'}}>
+                ➕ 小中学生を追加
+              </button>
+              <button onClick={()=>{setShowAddTc(true);setShowAddHs(false);setShowAddJh(false);}}
+                style={{background:'#7c3aed',color:'white',border:'none',borderRadius:'8px',padding:'10px',fontSize:'13px',fontWeight:'bold',cursor:'pointer'}}>
+                ➕ 講師を追加
+              </button>
+            </div>
+
+            {/* 高校生追加フォーム */}
+            {showAddHs&&<AddStudentForm type="hs" onAdd={(n,g)=>{onAddHsStudent(n,g);setShowAddHs(false);}} onCancel={()=>setShowAddHs(false)}/>}
+            {/* 小中学生追加フォーム */}
+            {showAddJh&&<AddStudentForm type="jh" onAdd={(n,g,s)=>{onAddJhStudent(n,g,s);setShowAddJh(false);}} onCancel={()=>setShowAddJh(false)}/>}
+            {/* 講師追加フォーム */}
+            {showAddTc&&<AddTeacherForm onAdd={(n)=>{onAddTeacher(n);setShowAddTc(false);}} onCancel={()=>setShowAddTc(false)}/>}
 
             <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>👤 生徒一覧</p>
             <div style={{maxHeight:'240px',overflowY:'auto',border:'1px solid #e5e7eb',borderRadius:'8px',marginBottom:'20px'}}>
+              {/* 高校生 */}
+              <div style={{padding:'8px 14px',background:'#eff6ff',fontSize:'11px',fontWeight:'bold',color:'#1e3a8a'}}>📘 高校生（{stList.length}人）</div>
               {stList.map((s,i)=>(
                 <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',borderBottom:'1px solid #f3f4f6'}}>
                   <span style={{fontSize:'13px',color:'#374151'}}>{s}</span>
@@ -2634,6 +2767,51 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   </button>
                 </div>
               ))}
+              {/* 小中学生 */}
+              <div style={{padding:'8px 14px',background:'#f0fdf4',fontSize:'11px',fontWeight:'bold',color:'#065f46'}}>📗 小中学生（{(jhAllStudents||[]).length}人）</div>
+              {(jhAllStudents||[]).map((s,i)=>{
+                const n=stripGrade(s);
+                const sch=getSchoolOf(n);
+                return(
+                  <div key={'jh-'+i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',borderBottom:'1px solid #f3f4f6'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+                      <span style={{fontSize:'13px',color:'#374151'}}>{s}</span>
+                      {sch?(
+                        <span style={{fontSize:'11px',color:'#6b7280',background:'#f3f4f6',padding:'2px 8px',borderRadius:'4px'}}>🏫 {sch}</span>
+                      ):(
+                        <span style={{fontSize:'11px',color:'#dc2626',background:'#fef2f2',padding:'2px 8px',borderRadius:'4px',border:'1px solid #fca5a5'}}>⚠️ 学校未設定</span>
+                      )}
+                    </div>
+                    <div style={{display:'flex',gap:'4px'}}>
+                      <button onClick={()=>setEditSchoolName(n)}
+                        style={{background:'#eef2ff',color:'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                        🏫 学校設定
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* 学校変更ダイアログ */}
+              {editSchoolName&&(
+                <div onClick={()=>setEditSchoolName('')} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'20px',width:'100%',maxWidth:'400px'}}>
+                    <p style={{fontWeight:'bold',fontSize:'15px',color:'#1e3a8a',marginBottom:'12px'}}>🏫 {editSchoolName} の学校を選択</p>
+                    <div style={{display:'flex',flexDirection:'column',gap:'4px',marginBottom:'12px'}}>
+                      {SCHOOLS.map(s=>(
+                        <button key={s} onClick={()=>{jhSaveSchool(editSchoolName,s);setEditSchoolName('');}}
+                          style={{padding:'8px 12px',background:getSchoolOf(editSchoolName)===s?'#dbeafe':'white',border:`1px solid ${getSchoolOf(editSchoolName)===s?'#3b82f6':'#e5e7eb'}`,borderRadius:'6px',cursor:'pointer',textAlign:'left',fontSize:'13px'}}>
+                          {getSchoolOf(editSchoolName)===s?'✓ ':''}{s}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={()=>setEditSchoolName('')}
+                      style={{width:'100%',background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'8px',cursor:'pointer'}}>
+                      キャンセル
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'8px'}}>👨‍🏫 講師一覧</p>
@@ -2806,6 +2984,7 @@ function App(){
   const [showTestRangeModal,setShowTestRangeModal]=useState(false);
   const [showDirectiveModal,setShowDirectiveModal]=useState(false);
   const [showHsAdjustModal,setShowHsAdjustModal]=useState(false);
+  const [jhSchoolOverrides,setJhSchoolOverrides]=useState({});
 
   const flash=msg=>{setSaveMsg(msg);setTimeout(()=>setSaveMsg(''),2500);};
 
@@ -2828,8 +3007,9 @@ function App(){
     const cTr=jhGetCached('testRanges',{});
     const cDv=jhGetCached('directives',{});
     const cSk=jhGetCached('skipItems',{});
+    const cSov=jhGetCached('schoolOverrides',{});
     setTeachers(cT);setHsStudents(cHs);setJhStudents(cJh);
-    setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);
+    setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);setJhSchoolOverrides(cSov);
     setPhase('teacher');  // すぐ遷移
     // ② バックグラウンドで最新データを取得してUIを更新
     setBgLoading(true);
@@ -2940,6 +3120,14 @@ function App(){
     await jhSet('textbookOverrides',newOv);
     setShowTextbookModal(false);flash('📚 テキスト設定を変更しました');
   };
+  // 学校情報取得（カスタム > デフォルト）
+  const getSchool=name=>jhSchoolOverrides[name]||STUDENT_SCHOOLS[name]||'';
+  const jhSaveSchool=async(name,school)=>{
+    const nd={...jhSchoolOverrides,[name]:school};
+    setJhSchoolOverrides(nd);
+    await jhSet('schoolOverrides',nd);
+    flash(`🏫 ${name}の学校を「${school}」に設定しました`);
+  };
   const jhSaveTestRange=async(key,data)=>{
     const nd={...jhTestRanges,[key]:data};setJhTestRanges(nd);
     await jhSet('testRanges',nd);flash('📝 テスト範囲を保存しました');
@@ -3049,6 +3237,33 @@ function App(){
       jhTextbookOverrides={jhTextbookOverrides}
       jhTestRanges={jhTestRanges}
       jhDirectives={jhDirectives}
+      jhSchoolOverrides={jhSchoolOverrides}
+      jhSaveSchool={jhSaveSchool}
+      onAddJhStudent={async(name,grade,school)=>{
+        const fullName=`${name}（${grade}）`;
+        const newList=[...jhStudents,fullName];
+        setJhStudents(newList);
+        await jhSet('students',newList);
+        if(school){
+          const nd={...jhSchoolOverrides,[name]:school};
+          setJhSchoolOverrides(nd);
+          await jhSet('schoolOverrides',nd);
+        }
+        flash(`✅ ${fullName} を追加しました`);
+      }}
+      onAddHsStudent={async(name,grade)=>{
+        const fullName=`${name}（${grade}）`;
+        const newList=[...hsStudents,fullName];
+        setHsStudents(newList);
+        await hsSet('koukou:students',newList);
+        flash(`✅ ${fullName} を追加しました`);
+      }}
+      onAddTeacher={async(name)=>{
+        const newList=[...teachers,name];
+        setTeachers(newList);
+        await hsSet('koukou:teachers',newList);
+        flash(`✅ ${name} を追加しました`);
+      }}
       onSaveTextbook={jhSaveTextbook}
       onSaveTestRange={jhSaveTestRange}
       onSaveDirective={jhSaveDirective}
