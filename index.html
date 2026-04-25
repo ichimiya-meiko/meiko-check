@@ -2518,19 +2518,77 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   </button>
                 </div>
 
-                {/* テスト範囲（中学生のみ） */}
-                {isM&&(
-                  <div style={{marginBottom:'12px',padding:'12px',background:'#fef3c7',borderRadius:'10px',border:'1px solid #fbbf24'}}>
-                    <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📝 テスト範囲設定</p>
-                    <p style={{fontSize:'12px',color:'#78350f',marginBottom:'8px'}}>
-                      学校・テスト回ごとに、X生・Y生別のテスト範囲を登録できます。
-                    </p>
-                    <button onClick={()=>setJhShowTestRangeModal(true)}
-                      style={{background:'#d97706',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
-                      📝 テスト範囲を編集
-                    </button>
-                  </div>
-                )}
+                {/* テスト範囲（中学生・小学生どちらも） */}
+                <div style={{marginBottom:'12px',padding:'12px',background:'#fef3c7',borderRadius:'10px',border:'1px solid #fbbf24'}}>
+                  <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📝 テスト範囲設定</p>
+
+                  {/* 現在のテスト範囲を表示 */}
+                  {(()=>{
+                    const sName=stripGrade(jhFullName);
+                    const sch=STUDENT_SCHOOLS[sName];
+                    if(!sch) return(
+                      <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px',background:'white',padding:'6px',borderRadius:'4px'}}>
+                        ⚠️ この生徒の学校情報が登録されていません
+                      </p>
+                    );
+                    const subjects=GRADE_SUBJECTS[activeGrade]||[];
+                    const sortedRounds=[...TEST_ROUNDS].sort((a,b)=>{
+                      const ord=m=>m>=4?m-3:m+9;
+                      return ord(a.month)-ord(b.month);
+                    });
+                    const rounds=sortedRounds.filter(r=>{
+                      const key=`${sch}_${activeGrade}_${r.id}`;
+                      return jhTestRanges[key];
+                    });
+                    if(rounds.length===0) return(
+                      <p style={{fontSize:'12px',color:'#9ca3af',background:'white',padding:'8px',borderRadius:'4px',textAlign:'center',marginBottom:'8px'}}>
+                        📝 まだテスト範囲が登録されていません
+                      </p>
+                    );
+                    return(
+                      <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'8px'}}>
+                        <p style={{fontSize:'11px',color:'#78350f'}}>🎯 {sch}・{activeGrade}・現状のテスト予想範囲</p>
+                        {rounds.map(r=>{
+                          const key=`${sch}_${activeGrade}_${r.id}`;
+                          const data=jhTestRanges[key];
+                          const updTxt=data.updatedAt?new Date(data.updatedAt).toLocaleDateString('ja-JP'):'不明';
+                          return(
+                            <div key={r.id} style={{background:'white',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fed7aa'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                                <p style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{r.label}</p>
+                                <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
+                              </div>
+                              {subjects.map(subj=>{
+                                const isFirst=(subj==='数学'||subj==='算数');
+                                const sId=isFirst?data.mathStart:data.engStart;
+                                const eId=isFirst?data.mathEnd:data.engEnd;
+                                if(!sId&&!eId) return null;
+                                const isElem=activeGrade.startsWith('小');
+                                const tk=`${activeGrade}Y_${subj}`;
+                                const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
+                                const sItem=items.find(it=>it.id===sId);
+                                const eItem=items.find(it=>it.id===eId);
+                                return(
+                                  <p key={subj} style={{fontSize:'11px',color:'#78350f',marginTop:'2px'}}>
+                                    <span style={{fontWeight:'bold'}}>{subj}：</span>
+                                    {sItem?sItem.text.slice(0,16):'（開始未設定）'}
+                                    　〜　
+                                    {eItem?eItem.text.slice(0,16):'（終了未設定）'}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
+                  <button onClick={()=>setJhShowTestRangeModal(true)}
+                    style={{background:'#d97706',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    📝 テスト範囲を編集
+                  </button>
+                </div>
 
                 {/* 方針設定 */}
                 <div style={{padding:'12px',background:'#f0fdf4',borderRadius:'10px',border:'1px solid #6ee7b7',marginBottom:'12px'}}>
@@ -2544,71 +2602,6 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   </button>
                 </div>
 
-                {/* この生徒の現状のテスト予想範囲一覧 */}
-                {(()=>{
-                  const sName=stripGrade(jhFullName);
-                  const sch=STUDENT_SCHOOLS[sName];
-                  if(!sch) return null;
-                  const subjects=GRADE_SUBJECTS[activeGrade]||[];
-                  const sortedRounds=[...TEST_ROUNDS].sort((a,b)=>{
-                    const ord=m=>m>=4?m-3:m+9;
-                    return ord(a.month)-ord(b.month);
-                  });
-                  // 実際にデータがあるテスト回だけ抽出
-                  const rounds=sortedRounds.filter(r=>{
-                    const key=`${sch}_${activeGrade}_${r.id}`;
-                    return jhTestRanges[key];
-                  });
-                  return(
-                    <div style={{padding:'12px',background:'#fff7ed',borderRadius:'10px',border:'1px solid #fdba74'}}>
-                      <p style={{fontWeight:'bold',fontSize:'14px',color:'#9a3412',marginBottom:'8px'}}>
-                        🎯 {sch}・{activeGrade}・現状のテスト予想範囲
-                      </p>
-                      {rounds.length===0?(
-                        <p style={{fontSize:'12px',color:'#9ca3af',background:'white',padding:'8px',borderRadius:'4px',textAlign:'center'}}>
-                          📝 まだテスト範囲が登録されていません
-                        </p>
-                      ):(
-                        <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
-                          {rounds.map(r=>{
-                            const key=`${sch}_${activeGrade}_${r.id}`;
-                            const data=jhTestRanges[key];
-                            const updTxt=data.updatedAt?new Date(data.updatedAt).toLocaleDateString('ja-JP'):'不明';
-                            return(
-                              <div key={r.id} style={{background:'white',borderRadius:'6px',padding:'6px 10px',border:'1px solid #fed7aa'}}>
-                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
-                                  <p style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{r.label}</p>
-                                  <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
-                                </div>
-                                {subjects.map(subj=>{
-                                  // 数学・算数 → mathStart/End / 英語・国語 → engStart/End
-                                  const isFirst=(subj==='数学'||subj==='算数');
-                                  const sId=isFirst?data.mathStart:data.engStart;
-                                  const eId=isFirst?data.mathEnd:data.engEnd;
-                                  if(!sId&&!eId) return null;
-                                  // テキスト本体取得
-                                  const isElem=activeGrade.startsWith('小');
-                                  const tk=isElem?`${activeGrade}Y_${subj}`:`${activeGrade}Y_${subj}`;
-                                  const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
-                                  const sItem=items.find(it=>it.id===sId);
-                                  const eItem=items.find(it=>it.id===eId);
-                                  return(
-                                    <p key={subj} style={{fontSize:'11px',color:'#78350f',marginTop:'2px'}}>
-                                      <span style={{fontWeight:'bold'}}>{subj}：</span>
-                                      {sItem?sItem.text.slice(0,16):'（開始未設定）'}
-                                      　〜　
-                                      {eItem?eItem.text.slice(0,16):'（終了未設定）'}
-                                    </p>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
               </div>
 
               {/* モーダル */}
