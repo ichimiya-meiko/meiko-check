@@ -3850,9 +3850,32 @@ function App(){
               {/* 項目リスト */}
               {activeChap&&jhSi>=0&&(()=>{
                 const sName=(jhFullName||'').replace(/（.+?）/,'');
-                const school=STUDENT_SCHOOLS[sName];
-                const rk=school?`${school}_${activeGrade}_${activeTestRound}`:null;
-                const rng=rk?jhTestRanges[rk]:null;
+                // カスタム学校 > デフォルト学校
+                const school=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
+                // データ存在するキーを優先順で探す（新形式m6 → 旧形式t1 → LEGACY_TEST_ROUND_MAP変換）
+                let rng=null;
+                if(school){
+                  // 新形式キー
+                  const kNew=`${school}_${activeGrade}_${activeTestRound}`;
+                  rng=jhTestRanges[kNew];
+                  // 旧形式キー（t1〜t4）も検索（過去データ互換）
+                  if(!rng){
+                    for(const [oldId,newId] of Object.entries(LEGACY_TEST_ROUND_MAP)){
+                      if(newId===activeTestRound){
+                        const kOld=`${school}_${activeGrade}_${oldId}`;
+                        if(jhTestRanges[kOld]){rng=jhTestRanges[kOld];break;}
+                      }
+                    }
+                  }
+                  // どの月でもいいので登録あれば直近のものを使う（フォールバック）
+                  if(!rng){
+                    // 同じ学校・学年で最新のテスト範囲を探す
+                    for(const r of TEST_ROUNDS){
+                      const k=`${school}_${activeGrade}_${r.id}`;
+                      if(jhTestRanges[k]){rng=jhTestRanges[k];break;}
+                    }
+                  }
+                }
                 const isEng=activeSubj==='英語';
                 const rangeStartId=rng?(isEng?rng.engStart:rng.mathStart):'';
                 const rangeEndId=rng?(isEng?rng.engEnd:rng.mathEnd):'';
