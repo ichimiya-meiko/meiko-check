@@ -2894,9 +2894,27 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
               🛣️ {curName} のロードマップ
             </p>
 
+            {/* 教科切替タブ */}
+            <div style={{display:'flex',gap:'4px',marginBottom:'12px'}}>
+              <button onClick={()=>setSubjectTab('math')}
+                style={{flex:1,padding:'10px',borderRadius:'8px',border:'none',
+                  background:subjectTab==='math'?'#1e3a8a':'#e5e7eb',
+                  color:subjectTab==='math'?'white':'#6b7280',
+                  fontWeight:subjectTab==='math'?'bold':'normal',cursor:'pointer',fontSize:'14px'}}>
+                📐 数学
+              </button>
+              <button onClick={()=>setSubjectTab('eng')}
+                style={{flex:1,padding:'10px',borderRadius:'8px',border:'none',
+                  background:subjectTab==='eng'?'#7c3aed':'#e5e7eb',
+                  color:subjectTab==='eng'?'white':'#6b7280',
+                  fontWeight:subjectTab==='eng'?'bold':'normal',cursor:'pointer',fontSize:'14px'}}>
+                📖 英語
+              </button>
+            </div>
+
             {/* ロードマップ：登録済みテキスト一覧 */}
             <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginBottom:'10px'}}>
-              📚 受験までに使うテキスト（順序付き）
+              📚 {subjectTab==='math'?'数学のロードマップ':'英語のロードマップ'}
             </p>
             {(()=>{
               const roadmap=getRoadmap();
