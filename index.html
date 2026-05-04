@@ -4706,35 +4706,50 @@ function App(){
                     {ch.items.map(it=>{
                       const rec=studentRecs[it.id]||{status:'未',askedQs:[]};
                       const qs=it.questions||[];
+                      // ステータスに応じたカード全体の色（B案）
+                      const CARD_BG={'未':'white','◯':'#d1fae5','△':'#fef3c7','✗':'#fee2e2'};
+                      const CARD_BORDER={'未':'#f3f4f6','◯':'#10b981','△':'#f59e0b','✗':'#ef4444'};
                       return(
-                        <div key={it.id} style={{padding:'12px 14px',borderBottom:'1px solid #f3f4f6'}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'10px',marginBottom:'8px'}}>
-                            <p style={{flex:1,fontSize:'13px',fontWeight:'bold',color:'#374151'}}>📌 {it.text}</p>
-                            <span style={{padding:'4px 10px',borderRadius:'14px',fontSize:'12px',fontWeight:'bold',
-                              background:STATUS_BG[rec.status],color:STATUS_COL[rec.status]}}>{STATUS_LABEL[rec.status]}</span>
+                        <div key={it.id} style={{padding:'14px',borderBottom:`1px solid ${CARD_BORDER[rec.status]}`,background:CARD_BG[rec.status],borderLeft:rec.status!=='未'?`6px solid ${CARD_BORDER[rec.status]}`:'6px solid transparent',transition:'all 0.2s'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'10px',marginBottom:'10px'}}>
+                            <p style={{flex:1,fontSize:'14px',fontWeight:'bold',color:'#1f2937'}}>📌 {it.text}</p>
                           </div>
                           {/* クオリティクエスチョン */}
-                          <div style={{background:'#fafafa',borderRadius:'6px',padding:'8px',marginBottom:'8px'}}>
-                            <p style={{fontSize:'10px',color:'#6b7280',marginBottom:'4px',fontWeight:'bold'}}>❓ クオリティクエスチョン（{qs.length}つ中3つを口頭質問）</p>
+                          <div style={{background:'rgba(255,255,255,0.6)',borderRadius:'6px',padding:'10px',marginBottom:'10px'}}>
+                            <p style={{fontSize:'10px',color:'#6b7280',marginBottom:'6px',fontWeight:'bold'}}>❓ クオリティクエスチョン（{qs.length}つ中3つを口頭質問）</p>
                             {qs.map((q,qi)=>(
-                              <p key={qi} style={{fontSize:'12px',color:'#374151',marginBottom:'3px',paddingLeft:'14px',position:'relative'}}>
-                                <span style={{position:'absolute',left:0,color:es.color,fontWeight:'bold'}}>Q{qi+1}.</span>
-                                {q}
-                              </p>
+                              <div key={qi} style={{display:'flex',alignItems:'flex-start',gap:'10px',marginBottom:'5px'}}>
+                                <span style={{flexShrink:0,minWidth:'28px',color:es.color,fontWeight:'bold',fontSize:'12px'}}>Q{qi+1}.</span>
+                                <span style={{fontSize:'12px',color:'#374151',lineHeight:'1.5',flex:1}}>{q}</span>
+                              </div>
                             ))}
                             {qs.length===0&&(
                               <p style={{fontSize:'11px',color:'#9ca3af',fontStyle:'italic'}}>※ クエスチョン未登録</p>
                             )}
                           </div>
-                          {/* 評価ボタン */}
+                          {/* 評価ボタン（A案：選択時に大きくビビッドに） */}
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:'6px'}}>
-                            {['未','◯','△','✗'].map(st=>(
-                              <button key={st} onClick={()=>hsSaveEngRecord(curName,it.id,st)}
-                                style={{padding:'8px 4px',borderRadius:'6px',border:'none',
-                                  background:rec.status===st?STATUS_COL[st]:STATUS_BG[st],
-                                  color:rec.status===st?'white':STATUS_COL[st],
-                                  fontWeight:'bold',cursor:'pointer',fontSize:'12px'}}>{STATUS_LABEL[st]}</button>
-                            ))}
+                            {['未','◯','△','✗'].map(st=>{
+                              const isSelected=rec.status===st;
+                              return(
+                                <button key={st} onClick={()=>hsSaveEngRecord(curName,it.id,st)}
+                                  style={{
+                                    padding:isSelected?'14px 4px':'10px 4px',
+                                    borderRadius:'8px',
+                                    border:isSelected?`3px solid ${STATUS_COL[st]}`:'2px solid transparent',
+                                    background:isSelected?STATUS_COL[st]:'white',
+                                    color:isSelected?'white':STATUS_COL[st],
+                                    fontWeight:'bold',
+                                    cursor:'pointer',
+                                    fontSize:isSelected?'14px':'12px',
+                                    boxShadow:isSelected?'0 4px 12px rgba(0,0,0,0.15)':'0 1px 3px rgba(0,0,0,0.05)',
+                                    transform:isSelected?'scale(1.05)':'scale(1)',
+                                    transition:'all 0.2s'
+                                  }}>
+                                  {isSelected&&'✓ '}{STATUS_LABEL[st]}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       );
