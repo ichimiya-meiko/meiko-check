@@ -4131,6 +4131,24 @@ function App(){
           {/* ── 高校生チェック画面（数学） ── */}
           {curType==='hs'&&!(curStep&&curStep.kind==='eng')&&(
             <>
+              {/* ロードマップステップ切替バー（複数ステップがある場合のみ） */}
+              {curRoadmap.length>1&&(
+                <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'8px 10px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                  <span style={{fontSize:'10px',color:'#6b7280',fontWeight:'bold'}}>📍 ステップ切替：</span>
+                  <div style={{display:'flex',gap:'4px',overflowX:'auto',flex:1}}>
+                    {curRoadmap.map((s,i)=>{
+                      const sLabel=s.kind==='eng'?(ENG_SETS[s.engSet]?.short||'英'):(SETS[s.textbookSet]?.short||'?');
+                      const sCol=s.kind==='eng'?(ENG_SETS[s.engSet]?.color||'#666'):(SETS[s.textbookSet]?.color||'#666');
+                      return(
+                        <button key={i} onClick={()=>setStepIdx(i)}
+                          style={{flexShrink:0,padding:'4px 10px',borderRadius:'14px',border:'none',
+                            background:i===stepIdx?sCol:'#e5e7eb',color:i===stepIdx?'white':'#6b7280',
+                            fontSize:'11px',cursor:'pointer',fontWeight:i===stepIdx?'bold':'normal'}}>{i+1}.{sLabel}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               {showHsAdjustModal&&<HsAdjustModal curName={curName} curPlan={curPlan}
                 setF={(f,v)=>{
                   const newPlan={...(hsPlans[curName]||{})};
