@@ -3900,6 +3900,8 @@ function App(){
   const [loadMsg,setLoadMsg]=useState('');
   const [bgLoading,setBgLoading]=useState(false); // バックグラウンド読込中表示
   const [bgProgress,setBgProgress]=useState({done:0,total:0}); // プログレス表示用
+  // 講師画面用の教科タブ（数学・英語）
+  const [teacherSubjectTab,setTeacherSubjectTab]=useState('math'); // 'math' | 'eng'
 
   // 高校生データ
   const [hsRecords,setHsRecords]=useState({});
@@ -4381,6 +4383,12 @@ function App(){
   // 手動上書きがあればそれを優先、なければ自動
   const stepIdx=(curPlanFull.currentIdx!==null&&curPlanFull.currentIdx!==undefined&&curPlanFull.currentIdx>=0&&curPlanFull.currentIdx<curRoadmap.length)?curPlanFull.currentIdx:autoCurIdx;
   const curStep=curRoadmap[stepIdx]||null;
+  // curStep が変わったら教科タブを同期（英語ステップなら英語タブに、数学なら数学タブに）
+  useEffect(()=>{
+    if(curStep){
+      setTeacherSubjectTab(curStep.kind==='eng'?'eng':'math');
+    }
+  },[curName,stepIdx]);
   // 現在のステップを「curPlan」として扱う（既存コードとの互換のため）
   const curPlan=curStep?{...curStep,memo:curPlanFull.memo,skipItems:curPlanFull.skipItems}:curPlanFull;
   const curSet=curPlan.textbookSet?SETS[curPlan.textbookSet]:null;
@@ -4561,23 +4569,59 @@ function App(){
             return(
               <div>
                 {/* ロードマップステップ切替バー（数学画面と同じ位置・デザイン） */}
-                {curRoadmap.length>1&&(
-                  <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'8px 10px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
-                    <span style={{fontSize:'10px',color:'#6b7280',fontWeight:'bold'}}>📍 ステップ切替：</span>
-                    <div style={{display:'flex',gap:'4px',overflowX:'auto',flex:1}}>
-                      {curRoadmap.map((s,i)=>{
-                        const sLabel=s.kind==='eng'?(ENG_SETS[s.engSet]?.short||'英'):(SETS[s.textbookSet]?.short||'?');
-                        const sCol=s.kind==='eng'?(ENG_SETS[s.engSet]?.color||'#666'):(SETS[s.textbookSet]?.color||'#666');
-                        return(
-                          <button key={i} onClick={()=>setStepIdx(i)}
-                            style={{flexShrink:0,padding:'4px 10px',borderRadius:'14px',border:'none',
-                              background:i===stepIdx?sCol:'#e5e7eb',color:i===stepIdx?'white':'#6b7280',
-                              fontSize:'11px',cursor:'pointer',fontWeight:i===stepIdx?'bold':'normal'}}>{i+1}.{sLabel}</button>
-                        );
-                      })}
+                {(()=>{
+                  // 教科ごとにステップを分類
+                  const mathSteps=[],engSteps=[];
+                  curRoadmap.forEach((s,i)=>{
+                    if(s.kind==='eng') engSteps.push({step:s,origIdx:i});
+                    else mathSteps.push({step:s,origIdx:i});
+                  });
+                  // どちらかのステップしかない場合は教科タブを出さずシンプルに
+                  const hasMath=mathSteps.length>0;
+                  const hasEng=engSteps.length>0;
+                  const showSubjectTab=hasMath&&hasEng;
+                  const visibleSteps=teacherSubjectTab==='eng'?engSteps:mathSteps;
+                  if(curRoadmap.length<=1) return null;
+                  return(
+                    <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'8px 10px',marginBottom:'10px'}}>
+                      {showSubjectTab&&(
+                        <div style={{display:'flex',gap:'4px',marginBottom:'8px'}}>
+                          <button onClick={()=>setTeacherSubjectTab('math')}
+                            style={{flex:1,padding:'6px',borderRadius:'6px',border:'none',
+                              background:teacherSubjectTab==='math'?'#1e3a8a':'#e5e7eb',
+                              color:teacherSubjectTab==='math'?'white':'#6b7280',
+                              fontWeight:teacherSubjectTab==='math'?'bold':'normal',cursor:'pointer',fontSize:'12px'}}>
+                            📐 数学
+                          </button>
+                          <button onClick={()=>setTeacherSubjectTab('eng')}
+                            style={{flex:1,padding:'6px',borderRadius:'6px',border:'none',
+                              background:teacherSubjectTab==='eng'?'#7c3aed':'#e5e7eb',
+                              color:teacherSubjectTab==='eng'?'white':'#6b7280',
+                              fontWeight:teacherSubjectTab==='eng'?'bold':'normal',cursor:'pointer',fontSize:'12px'}}>
+                            📖 英語
+                          </button>
+                        </div>
+                      )}
+                      <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                        <span style={{fontSize:'10px',color:'#6b7280',fontWeight:'bold'}}>📍 ステップ：</span>
+                        <div style={{display:'flex',gap:'4px',overflowX:'auto',flex:1}}>
+                          {visibleSteps.map((item,localIdx)=>{
+                            const s=item.step;
+                            const i=item.origIdx;
+                            const sLabel=s.kind==='eng'?(ENG_SETS[s.engSet]?.short||'英'):(SETS[s.textbookSet]?.short||'?');
+                            const sCol=s.kind==='eng'?(ENG_SETS[s.engSet]?.color||'#666'):(SETS[s.textbookSet]?.color||'#666');
+                            return(
+                              <button key={i} onClick={()=>setStepIdx(i)}
+                                style={{flexShrink:0,padding:'4px 10px',borderRadius:'14px',border:'none',
+                                  background:i===stepIdx?sCol:'#e5e7eb',color:i===stepIdx?'white':'#6b7280',
+                                  fontSize:'11px',cursor:'pointer',fontWeight:i===stepIdx?'bold':'normal'}}>{localIdx+1}.{sLabel}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
                 {/* ヘッダー */}
                 <div style={{background:es.bg,border:`2px solid ${es.border}`,borderRadius:'10px',padding:'12px',marginBottom:'12px'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px',marginBottom:'8px'}}>
@@ -4696,23 +4740,59 @@ function App(){
           {curType==='hs'&&!(curStep&&curStep.kind==='eng')&&(
             <>
               {/* ロードマップステップ切替バー（複数ステップがある場合のみ） */}
-              {curRoadmap.length>1&&(
-                <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'8px 10px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
-                  <span style={{fontSize:'10px',color:'#6b7280',fontWeight:'bold'}}>📍 ステップ切替：</span>
-                  <div style={{display:'flex',gap:'4px',overflowX:'auto',flex:1}}>
-                    {curRoadmap.map((s,i)=>{
-                      const sLabel=s.kind==='eng'?(ENG_SETS[s.engSet]?.short||'英'):(SETS[s.textbookSet]?.short||'?');
-                      const sCol=s.kind==='eng'?(ENG_SETS[s.engSet]?.color||'#666'):(SETS[s.textbookSet]?.color||'#666');
-                      return(
-                        <button key={i} onClick={()=>setStepIdx(i)}
-                          style={{flexShrink:0,padding:'4px 10px',borderRadius:'14px',border:'none',
-                            background:i===stepIdx?sCol:'#e5e7eb',color:i===stepIdx?'white':'#6b7280',
-                            fontSize:'11px',cursor:'pointer',fontWeight:i===stepIdx?'bold':'normal'}}>{i+1}.{sLabel}</button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              {(()=>{
+                  // 教科ごとにステップを分類
+                  const mathSteps=[],engSteps=[];
+                  curRoadmap.forEach((s,i)=>{
+                    if(s.kind==='eng') engSteps.push({step:s,origIdx:i});
+                    else mathSteps.push({step:s,origIdx:i});
+                  });
+                  // どちらかのステップしかない場合は教科タブを出さずシンプルに
+                  const hasMath=mathSteps.length>0;
+                  const hasEng=engSteps.length>0;
+                  const showSubjectTab=hasMath&&hasEng;
+                  const visibleSteps=teacherSubjectTab==='eng'?engSteps:mathSteps;
+                  if(curRoadmap.length<=1) return null;
+                  return(
+                    <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'8px 10px',marginBottom:'10px'}}>
+                      {showSubjectTab&&(
+                        <div style={{display:'flex',gap:'4px',marginBottom:'8px'}}>
+                          <button onClick={()=>setTeacherSubjectTab('math')}
+                            style={{flex:1,padding:'6px',borderRadius:'6px',border:'none',
+                              background:teacherSubjectTab==='math'?'#1e3a8a':'#e5e7eb',
+                              color:teacherSubjectTab==='math'?'white':'#6b7280',
+                              fontWeight:teacherSubjectTab==='math'?'bold':'normal',cursor:'pointer',fontSize:'12px'}}>
+                            📐 数学
+                          </button>
+                          <button onClick={()=>setTeacherSubjectTab('eng')}
+                            style={{flex:1,padding:'6px',borderRadius:'6px',border:'none',
+                              background:teacherSubjectTab==='eng'?'#7c3aed':'#e5e7eb',
+                              color:teacherSubjectTab==='eng'?'white':'#6b7280',
+                              fontWeight:teacherSubjectTab==='eng'?'bold':'normal',cursor:'pointer',fontSize:'12px'}}>
+                            📖 英語
+                          </button>
+                        </div>
+                      )}
+                      <div style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                        <span style={{fontSize:'10px',color:'#6b7280',fontWeight:'bold'}}>📍 ステップ：</span>
+                        <div style={{display:'flex',gap:'4px',overflowX:'auto',flex:1}}>
+                          {visibleSteps.map((item,localIdx)=>{
+                            const s=item.step;
+                            const i=item.origIdx;
+                            const sLabel=s.kind==='eng'?(ENG_SETS[s.engSet]?.short||'英'):(SETS[s.textbookSet]?.short||'?');
+                            const sCol=s.kind==='eng'?(ENG_SETS[s.engSet]?.color||'#666'):(SETS[s.textbookSet]?.color||'#666');
+                            return(
+                              <button key={i} onClick={()=>setStepIdx(i)}
+                                style={{flexShrink:0,padding:'4px 10px',borderRadius:'14px',border:'none',
+                                  background:i===stepIdx?sCol:'#e5e7eb',color:i===stepIdx?'white':'#6b7280',
+                                  fontSize:'11px',cursor:'pointer',fontWeight:i===stepIdx?'bold':'normal'}}>{localIdx+1}.{sLabel}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               {showHsAdjustModal&&<HsAdjustModal curName={curName} curPlan={curPlan}
                 setF={(f,v)=>{
                   const newPlan={...(hsPlans[curName]||{})};
