@@ -290,8 +290,29 @@ function getStepProgress(step,records,skipItems){
 }
 
 function calcHomework(plan){
-  const {startDate,deadline,maxLevel,nyumonRange,chartRange,textbookSet}=plan||{};
-  if(!startDate||!deadline||!textbookSet) return null;
+  if(!plan) return null;
+  const {startDate,deadline}=plan;
+  if(!startDate||!deadline) return null;
+  // 英文法ステップ
+  if(plan.kind==='eng'){
+    const es=ENG_SETS[plan.engSet];
+    if(!es) return null;
+    const engLen=getChaps(es.dataKey).length;
+    const eFrom=Math.min(plan.engRange?.from||1,engLen);
+    const eTo=Math.min(plan.engRange?.to||engLen,engLen);
+    let total=0;
+    getChaps(es.dataKey).forEach((ch,ci)=>{
+      if(ci+1<eFrom||ci+1>eTo) return;
+      total+=ch.items.length;
+    });
+    const s=new Date(startDate),e=new Date(deadline);
+    const days=Math.max(1,Math.round((e-s)/86400000));
+    const weeks=Math.max(1,Math.round(days/7));
+    return{total,nTotal:0,cTotal:0,eTotal:total,days,weeks,perWeek:Math.ceil(total/weeks),perDay:Math.ceil(total/days),isEng:true};
+  }
+  // 数学ステップ（既存）
+  const {maxLevel,nyumonRange,chartRange,textbookSet}=plan;
+  if(!textbookSet) return null;
   const ss=SETS[textbookSet];if(!ss) return null;
   const nyumonKey=ss.nyumon||'ia';
   const lv=maxLevel||5;
@@ -2176,7 +2197,436 @@ function AddTeacherForm({onAdd,onCancel}){
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,onAddJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
+// 進捗ダッシュボードタブ
+function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhTextbookOverrides,jhSchoolOverrides}){
+  const [filter,setFilter]=useState('all'); // 'all','hs','jh','danger'
+  const [sortBy,setSortBy]=useState('progress'); // 'name','progress','update'
+  const [searchText,setSearchText]=useState('');
+  const [reportData,setReportData]=useState(null); // 個人レポート表示中の生徒データ
+
+  // 高校生の進捗データを計算
+  const computeHsData=(stuName)=>{
+    const n=stripGrade(stuName);
+    const plan=migratePlan(plans[n]||{});
+    const rmap=plan.roadmap||[];
+    const recs=hsRecords[n]||{};
+    const engRecs=hsEngRecords[n]||{};
+    const skipItems=plan.skipItems||[];
+    if(rmap.length===0) return {name:n,type:'hs',hasData:false,steps:[],pct:0,curStep:null,lastUpdate:null,danger:'none'};
+    // 各ステップの進捗
+    const steps=rmap.map((step,si)=>{
+      let total=0,done=0;
+      if(step.kind==='eng'){
+        const es=ENG_SETS[step.engSet];
+        if(es){
+          const eFrom=step.engRange?.from||1, eTo=step.engRange?.to||999;
+          getChaps(es.dataKey).forEach((ch,ci)=>{
+            if(ci+1<eFrom||ci+1>eTo) return;
+            ch.items.forEach(it=>{total++; if((engRecs[it.id]||{}).status==='◯') done++;});
+          });
+        }
+        return {idx:si,kind:'eng',label:es?.short||'英',total,done,pct:total>0?Math.round(done/total*100):0,deadline:step.deadline};
+      }else{
+        const ss=SETS[step.textbookSet];
+        if(!ss) return {idx:si,kind:'math',label:'?',total:0,done:0,pct:0,deadline:step.deadline};
+        const skipSet=new Set(skipItems);
+        const lv=step.maxLevel||5;
+        const nFrom=step.nyumonRange?.from||1,nTo=step.nyumonRange?.to||999;
+        const cFrom=step.chartRange?.from||1,cTo=step.chartRange?.to||999;
+        getNyumon(ss.nyumon||'ia').forEach((ch,ci)=>{
+          if(ci+1<nFrom||ci+1>nTo) return;
+          ch.items.forEach(it=>{if(skipSet.has(`IA_${it.id}`)) return; total++; if((recs[`IA_${it.id}`]||{}).status==='◯') done++;});
+        });
+        getChaps(ss.dataKey).forEach((ch,ci)=>{
+          if(ci+1<cFrom||ci+1>cTo) return;
+          ch.items.forEach(it=>{if((it.level||1)>lv||skipSet.has(`CHART_${it.id}`)) return; total++; if((recs[`CHART_${it.id}`]||{}).status==='◯') done++;});
+        });
+        return {idx:si,kind:'math',label:ss.short,total,done,pct:total>0?Math.round(done/total*100):0,deadline:step.deadline};
+      }
+    });
+    // 全体進捗
+    const allTotal=steps.reduce((s,x)=>s+x.total,0);
+    const allDone=steps.reduce((s,x)=>s+x.done,0);
+    const pct=allTotal>0?Math.round(allDone/allTotal*100):0;
+    // 最終更新（recordsから推定）
+    const allRecs={...recs,...engRecs};
+    const updateDates=Object.values(allRecs).map(r=>r?.updatedAt).filter(Boolean).map(d=>new Date(d));
+    const lastUpdate=updateDates.length>0?new Date(Math.max(...updateDates.map(d=>d.getTime()))):null;
+    // 危険度判定：期限切れ近 or 長期未更新
+    let danger='none';
+    const today=new Date();
+    if(lastUpdate){
+      const daysSinceUpdate=Math.floor((today-lastUpdate)/86400000);
+      if(daysSinceUpdate>=14) danger='red';
+      else if(daysSinceUpdate>=7) danger='yellow';
+    }else{
+      danger='red';
+    }
+    // 期限間近で進捗低い
+    steps.forEach(s=>{
+      if(s.deadline){
+        const ddl=new Date(s.deadline);
+        const remDays=Math.ceil((ddl-today)/86400000);
+        if(remDays>=0&&remDays<=7&&s.pct<70){danger='red';}
+        else if(remDays>=0&&remDays<=14&&s.pct<50&&danger==='none'){danger='yellow';}
+      }
+    });
+    return {name:n,type:'hs',hasData:true,steps,pct,curStep:steps[0],lastUpdate,danger,allTotal,allDone};
+  };
+
+  // 小中学生の進捗データを計算
+  const computeJhData=(fullName)=>{
+    const n=stripGrade(fullName);
+    const grade=extractGrade(fullName);
+    const subjects=GRADE_SUBJECTS[grade]||[];
+    const si=jhAllStudents.indexOf(fullName);
+    let total=0,done=0;
+    let lastUpdate=null;
+    const subjectStats=[];
+    subjects.forEach(subj=>{
+      const override=jhTextbookOverrides[si]?.[subj];
+      const defaultKey=(grade.startsWith('中')||grade.startsWith('小'))?`${grade}Y_${subj}`:`${grade}_${subj}`;
+      const rawKey=override||defaultKey;
+      if(rawKey&&rawKey.startsWith('none_')) return;
+      const chs=CHAPTERS[rawKey]||[];
+      let st=0,sd=0;
+      chs.forEach(ch=>ch.items.forEach(it=>{
+        st++;
+        const r=jhRecords[`${si}_${rawKey}_${it.id}`]||jhRecords[`${grade}_${subj}_${it.id}`]||{};
+        if(r.status==='◯') sd++;
+        if(r.updatedAt){
+          const d=new Date(r.updatedAt);
+          if(!lastUpdate||d>lastUpdate) lastUpdate=d;
+        }
+      }));
+      subjectStats.push({subj,total:st,done:sd,pct:st>0?Math.round(sd/st*100):0});
+      total+=st; done+=sd;
+    });
+    const pct=total>0?Math.round(done/total*100):0;
+    let danger='none';
+    if(!lastUpdate) danger='red';
+    else{
+      const today=new Date();
+      const daysSinceUpdate=Math.floor((today-lastUpdate)/86400000);
+      if(daysSinceUpdate>=14) danger='red';
+      else if(daysSinceUpdate>=7) danger='yellow';
+    }
+    return {name:n,fullName,type:'jh',grade,subjectStats,pct,total,done,lastUpdate,danger,school:jhSchoolOverrides[n]||STUDENT_SCHOOLS[n]||''};
+  };
+
+  // 全データ計算
+  const allData=[
+    ...students.map(s=>computeHsData(s)),
+    ...(jhStudentIdxs||[]).map(i=>jhAllStudents[i]).filter(Boolean).map(s=>computeJhData(s))
+  ];
+
+  // フィルタ＆ソート
+  let filteredData=allData.filter(d=>{
+    if(filter==='hs'&&d.type!=='hs') return false;
+    if(filter==='jh'&&d.type!=='jh') return false;
+    if(filter==='danger'&&d.danger==='none') return false;
+    if(searchText&&!d.name.includes(searchText)) return false;
+    return true;
+  });
+  filteredData.sort((a,b)=>{
+    if(sortBy==='name') return a.name.localeCompare(b.name);
+    if(sortBy==='progress') return a.pct-b.pct; // 進捗低い順（危険な順）
+    if(sortBy==='update'){
+      const aT=a.lastUpdate?a.lastUpdate.getTime():0;
+      const bT=b.lastUpdate?b.lastUpdate.getTime():0;
+      return aT-bT; // 古い順
+    }
+    return 0;
+  });
+
+  // 集計
+  const stats={
+    total:allData.length,
+    danger:allData.filter(d=>d.danger==='red').length,
+    warning:allData.filter(d=>d.danger==='yellow').length,
+    safe:allData.filter(d=>d.danger==='none').length,
+  };
+
+  // CSV出力
+  const exportCSV=()=>{
+    const rows=[['生徒名','種別','現在テキスト','進捗(%)','危険度','最終更新']];
+    allData.forEach(d=>{
+      const curLabel=d.type==='hs'?(d.curStep?.label||'-'):(d.subjectStats?.map(s=>`${s.subj}:${s.pct}%`).join(' ')||'-');
+      const dangerLabel={'red':'🔴危険','yellow':'🟡注意','none':'🟢良好'}[d.danger];
+      const updStr=d.lastUpdate?d.lastUpdate.toLocaleDateString('ja-JP'):'未記録';
+      rows.push([d.name,d.type==='hs'?'高校生':d.grade||'小中',curLabel,d.pct,dangerLabel,updStr]);
+    });
+    const csv='\uFEFF'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob=new Blob([csv],{type:'text/csv'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`進捗一覧_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return(
+    <div style={{background:'white',borderRadius:'12px',padding:'20px',boxShadow:'0 2px 8px rgba(0,0,0,0.05)'}}>
+      {/* ヘッダー */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px',flexWrap:'wrap',gap:'8px'}}>
+        <div>
+          <p style={{fontSize:'18px',fontWeight:'bold',color:'#1e3a8a'}}>📊 進捗ダッシュボード</p>
+          <p style={{fontSize:'11px',color:'#6b7280',marginTop:'2px'}}>全生徒の進捗状況を一覧で確認</p>
+        </div>
+        <button onClick={exportCSV}
+          style={{background:'#059669',color:'white',border:'none',borderRadius:'8px',padding:'8px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+          📥 CSV出力
+        </button>
+      </div>
+
+      {/* 統計サマリー */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:'8px',marginBottom:'16px'}}>
+        <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+          <p style={{fontSize:'10px',color:'#6b7280'}}>登録生徒数</p>
+          <p style={{fontSize:'24px',fontWeight:'bold',color:'#1e3a8a'}}>{stats.total}</p>
+        </div>
+        <div style={{background:'#fef2f2',border:'1px solid #fca5a5',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+          <p style={{fontSize:'10px',color:'#6b7280'}}>🔴 危険</p>
+          <p style={{fontSize:'24px',fontWeight:'bold',color:'#dc2626'}}>{stats.danger}</p>
+        </div>
+        <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+          <p style={{fontSize:'10px',color:'#6b7280'}}>🟡 注意</p>
+          <p style={{fontSize:'24px',fontWeight:'bold',color:'#d97706'}}>{stats.warning}</p>
+        </div>
+        <div style={{background:'#f0fdf4',border:'1px solid #86efac',borderRadius:'8px',padding:'10px',textAlign:'center'}}>
+          <p style={{fontSize:'10px',color:'#6b7280'}}>🟢 良好</p>
+          <p style={{fontSize:'24px',fontWeight:'bold',color:'#059669'}}>{stats.safe}</p>
+        </div>
+      </div>
+
+      {/* フィルタ */}
+      <div style={{display:'flex',gap:'6px',marginBottom:'12px',flexWrap:'wrap'}}>
+        <input type="text" placeholder="🔍 生徒名検索" value={searchText} onChange={e=>setSearchText(e.target.value)}
+          style={{flex:1,minWidth:'150px',border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 10px',fontSize:'12px'}}/>
+        <select value={filter} onChange={e=>setFilter(e.target.value)}
+          style={{border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 10px',fontSize:'12px'}}>
+          <option value="all">全員</option>
+          <option value="hs">高校生のみ</option>
+          <option value="jh">小中学生のみ</option>
+          <option value="danger">危険・注意のみ</option>
+        </select>
+        <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
+          style={{border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 10px',fontSize:'12px'}}>
+          <option value="progress">進捗が低い順</option>
+          <option value="update">更新が古い順</option>
+          <option value="name">名前順</option>
+        </select>
+      </div>
+
+      {/* 一覧 */}
+      <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
+          <thead>
+            <tr style={{background:'#f3f4f6'}}>
+              <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #d1d5db'}}>生徒名</th>
+              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db'}}>種別</th>
+              <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #d1d5db'}}>現在の状況</th>
+              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'130px'}}>進捗</th>
+              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'70px'}}>危険度</th>
+              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'90px'}}>最終更新</th>
+              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'80px'}}>レポート</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredData.length===0&&(
+              <tr><td colSpan="7" style={{padding:'40px',textAlign:'center',color:'#9ca3af'}}>該当する生徒がいません</td></tr>
+            )}
+            {filteredData.map((d,i)=>{
+              const dangerColor={'red':'#fef2f2','yellow':'#fffbeb','none':'white'}[d.danger];
+              const dangerIcon={'red':'🔴','yellow':'🟡','none':'🟢'}[d.danger];
+              const updStr=d.lastUpdate?(()=>{
+                const days=Math.floor((new Date()-d.lastUpdate)/86400000);
+                if(days===0) return '今日';
+                if(days===1) return '昨日';
+                return `${days}日前`;
+              })():'未記録';
+              return(
+                <tr key={i} style={{background:dangerColor,borderBottom:'1px solid #f3f4f6'}}>
+                  <td style={{padding:'8px',fontWeight:'bold'}}>{d.name}</td>
+                  <td style={{padding:'8px',textAlign:'center',fontSize:'10px'}}>{d.type==='hs'?'高校生':d.grade}</td>
+                  <td style={{padding:'8px'}}>
+                    {d.type==='hs'?(
+                      d.steps&&d.steps.length>0?(
+                        <div style={{display:'flex',gap:'3px',flexWrap:'wrap'}}>
+                          {d.steps.map((s,si)=>(
+                            <span key={si} style={{padding:'2px 6px',background:s.kind==='eng'?'#f5f3ff':'#eff6ff',color:s.kind==='eng'?'#7c3aed':'#1e3a8a',borderRadius:'10px',fontSize:'10px',fontWeight:'bold'}}>
+                              {s.label} {s.pct}%
+                            </span>
+                          ))}
+                        </div>
+                      ):<span style={{color:'#9ca3af',fontSize:'11px'}}>未登録</span>
+                    ):(
+                      d.subjectStats&&d.subjectStats.length>0?(
+                        <div style={{display:'flex',gap:'3px',flexWrap:'wrap'}}>
+                          {d.subjectStats.map((s,si)=>(
+                            <span key={si} style={{padding:'2px 6px',background:'#f0fdf4',color:'#065f46',borderRadius:'10px',fontSize:'10px'}}>
+                              {s.subj} {s.pct}%
+                            </span>
+                          ))}
+                        </div>
+                      ):<span style={{color:'#9ca3af',fontSize:'11px'}}>未登録</span>
+                    )}
+                  </td>
+                  <td style={{padding:'8px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+                      <div style={{flex:1,height:'8px',background:'#e5e7eb',borderRadius:'4px',overflow:'hidden'}}>
+                        <div style={{width:`${d.pct}%`,height:'100%',background:d.pct>=70?'#10b981':d.pct>=40?'#f59e0b':'#ef4444',transition:'width 0.3s'}}/>
+                      </div>
+                      <span style={{fontSize:'10px',fontWeight:'bold',width:'30px',textAlign:'right'}}>{d.pct}%</span>
+                    </div>
+                  </td>
+                  <td style={{padding:'8px',textAlign:'center',fontSize:'14px'}}>{dangerIcon}</td>
+                  <td style={{padding:'8px',textAlign:'center',fontSize:'10px',color:d.danger==='red'?'#dc2626':'#6b7280'}}>{updStr}</td>
+                  <td style={{padding:'8px',textAlign:'center'}}>
+                    <button onClick={()=>setReportData(d)}
+                      style={{background:'#1e3a8a',color:'white',border:'none',borderRadius:'4px',padding:'4px 8px',fontSize:'10px',cursor:'pointer'}}>
+                      📄 表示
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p style={{fontSize:'10px',color:'#9ca3af',marginTop:'10px',textAlign:'right'}}>
+        ※ 危険度判定：14日以上更新なし or 期限7日以内かつ進捗70%未満 → 🔴 / 7日以上更新なし or 期限14日以内かつ進捗50%未満 → 🟡
+      </p>
+
+      {/* 個人レポートモーダル */}
+      {reportData&&<StudentReport data={reportData} onClose={()=>setReportData(null)}/>}
+    </div>
+  );
+}
+
+// 個人レポート表示コンポーネント
+function StudentReport({data,onClose}){
+  const today=new Date().toLocaleDateString('ja-JP');
+  const printReport=()=>{
+    window.print();
+  };
+  const dangerLabel={'red':'🔴 要注意','yellow':'🟡 注意','none':'🟢 良好'}[data.danger];
+  const dangerColor={'red':'#dc2626','yellow':'#d97706','none':'#059669'}[data.danger];
+
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'24px',maxWidth:'700px',width:'100%',maxHeight:'90vh',overflow:'auto'}}>
+        {/* ヘッダー（印刷時非表示） */}
+        <div className="no-print" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+          <p style={{fontSize:'12px',color:'#6b7280'}}>個人進捗レポート</p>
+          <div style={{display:'flex',gap:'6px'}}>
+            <button onClick={printReport} style={{background:'#059669',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>🖨️ 印刷</button>
+            <button onClick={onClose} style={{background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'6px 12px',fontSize:'12px',cursor:'pointer'}}>閉じる</button>
+          </div>
+        </div>
+
+        {/* レポート本体 */}
+        <div id="report-content" style={{borderTop:'2px solid #1e3a8a',paddingTop:'16px'}}>
+          <div style={{textAlign:'center',marginBottom:'20px'}}>
+            <p style={{fontSize:'10px',color:'#6b7280'}}>明光義塾 新屋敷教室 進捗レポート</p>
+            <p style={{fontSize:'20px',fontWeight:'bold',color:'#1e3a8a',marginTop:'4px'}}>{data.name} さん</p>
+            <p style={{fontSize:'11px',color:'#6b7280',marginTop:'2px'}}>{today} 時点</p>
+          </div>
+
+          {/* サマリー */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'8px',marginBottom:'16px'}}>
+            <div style={{background:'#f9fafb',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+              <p style={{fontSize:'10px',color:'#6b7280'}}>全体進捗</p>
+              <p style={{fontSize:'24px',fontWeight:'bold',color:'#1e3a8a'}}>{data.pct}%</p>
+            </div>
+            <div style={{background:'#f9fafb',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+              <p style={{fontSize:'10px',color:'#6b7280'}}>状態</p>
+              <p style={{fontSize:'14px',fontWeight:'bold',color:dangerColor,marginTop:'8px'}}>{dangerLabel}</p>
+            </div>
+            <div style={{background:'#f9fafb',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+              <p style={{fontSize:'10px',color:'#6b7280'}}>最終更新</p>
+              <p style={{fontSize:'13px',fontWeight:'bold',color:'#374151',marginTop:'8px'}}>
+                {data.lastUpdate?data.lastUpdate.toLocaleDateString('ja-JP'):'未記録'}
+              </p>
+            </div>
+          </div>
+
+          {/* 高校生：ステップ別 */}
+          {data.type==='hs'&&data.steps&&data.steps.length>0&&(
+            <div style={{marginBottom:'16px'}}>
+              <p style={{fontSize:'14px',fontWeight:'bold',color:'#1e3a8a',marginBottom:'8px',borderLeft:'4px solid #1e3a8a',paddingLeft:'8px'}}>📚 学習ロードマップ</p>
+              {data.steps.map((s,i)=>(
+                <div key={i} style={{background:'white',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'10px 14px',marginBottom:'6px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                    <p style={{fontWeight:'bold',fontSize:'13px',color:s.kind==='eng'?'#7c3aed':'#1e3a8a'}}>
+                      ステップ{i+1}: {s.label} {s.kind==='eng'?'（英語）':'（数学）'}
+                    </p>
+                    <p style={{fontSize:'14px',fontWeight:'bold'}}>{s.pct}%</p>
+                  </div>
+                  <div style={{height:'6px',background:'#e5e7eb',borderRadius:'3px',overflow:'hidden'}}>
+                    <div style={{width:`${s.pct}%`,height:'100%',background:s.pct>=70?'#10b981':s.pct>=40?'#f59e0b':'#ef4444'}}/>
+                  </div>
+                  <p style={{fontSize:'10px',color:'#6b7280',marginTop:'4px'}}>
+                    完了 {s.done}/{s.total} 項目
+                    {s.deadline&&` ・ 期限：${s.deadline}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 小中学生：教科別 */}
+          {data.type==='jh'&&data.subjectStats&&data.subjectStats.length>0&&(
+            <div style={{marginBottom:'16px'}}>
+              <p style={{fontSize:'14px',fontWeight:'bold',color:'#065f46',marginBottom:'8px',borderLeft:'4px solid #065f46',paddingLeft:'8px'}}>📚 教科別進捗</p>
+              {data.school&&<p style={{fontSize:'11px',color:'#6b7280',marginBottom:'6px'}}>🏫 {data.school}</p>}
+              {data.subjectStats.map((s,i)=>(
+                <div key={i} style={{background:'white',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'10px 14px',marginBottom:'6px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                    <p style={{fontWeight:'bold',fontSize:'13px',color:'#065f46'}}>{s.subj}</p>
+                    <p style={{fontSize:'14px',fontWeight:'bold'}}>{s.pct}%</p>
+                  </div>
+                  <div style={{height:'6px',background:'#e5e7eb',borderRadius:'3px',overflow:'hidden'}}>
+                    <div style={{width:`${s.pct}%`,height:'100%',background:s.pct>=70?'#10b981':s.pct>=40?'#f59e0b':'#ef4444'}}/>
+                  </div>
+                  <p style={{fontSize:'10px',color:'#6b7280',marginTop:'4px'}}>完了 {s.done}/{s.total} 項目</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 講評欄（手書き用） */}
+          <div style={{marginTop:'20px',padding:'14px',background:'#f0fdf4',border:'1px dashed #86efac',borderRadius:'8px'}}>
+            <p style={{fontSize:'12px',fontWeight:'bold',color:'#065f46',marginBottom:'6px'}}>📝 教室長コメント</p>
+            <p style={{fontSize:'11px',color:'#6b7280',lineHeight:'1.8'}}>
+              　　　　　　　　　　　　　　　　　　　　　　　　　　　<br/>
+              　　　　　　　　　　　　　　　　　　　　　　　　　　　<br/>
+              　　　　　　　　　　　　　　　　　　　　　　　　　　　
+            </p>
+          </div>
+
+          {/* フッター */}
+          <div style={{borderTop:'1px solid #e5e7eb',marginTop:'20px',paddingTop:'10px',textAlign:'center'}}>
+            <p style={{fontSize:'10px',color:'#9ca3af'}}>明光義塾 新屋敷教室　TEL: 096-371-1280</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 印刷用CSS */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #report-content, #report-content * { visibility: visible; }
+          #report-content { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,hsRecords,hsEngAssign,hsEngRecords,jhRecords,onAddJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -2205,6 +2655,8 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   const [editSchoolName,setEditSchoolName]=useState('');
   const [savingSchool,setSavingSchool]=useState('');
   const [showRenzemiOverview,setShowRenzemiOverview]=useState(false);
+  // 高校生設定の数学・英語タブ切替
+  const [subjectTab,setSubjectTab]=useState('math'); // 'math' | 'eng'
   // 小中学生設定タブ用
   const [jhCurIdx,setJhCurIdx]=useState(0);
   const [jhShowTextbookModal,setJhShowTextbookModal]=useState(false);
@@ -2448,12 +2900,18 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
             </p>
             {(()=>{
               const roadmap=getRoadmap();
-              if(roadmap.length===0) return(
+              // 表示対象のステップ数をチェック
+              const visibleSteps=roadmap.filter(s=>(subjectTab==='eng')===(s.kind==='eng'));
+              if(visibleSteps.length===0) return(
                 <div style={{padding:'24px',textAlign:'center',background:'#f9fafb',borderRadius:'10px',marginBottom:'14px',color:'#9ca3af',fontSize:'13px'}}>
-                  まだテキストが登録されていません<br/>下から追加してください
+                  まだ{subjectTab==='math'?'数学':'英語'}のテキストが登録されていません<br/>下から追加してください
                 </div>
               );
               return roadmap.map((step,idx)=>{
+                // 教科タブでフィルタリング
+                const isEngStep=step.kind==='eng';
+                if(subjectTab==='math'&&isEngStep) return null;
+                if(subjectTab==='eng'&&!isEngStep) return null;
                 // 英文法ステップ
                 if(step.kind==='eng'){
                   const es=ENG_SETS[step.engSet];
@@ -2492,7 +2950,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                         </div>
                       </div>
                       {/* 日付 */}
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px',marginBottom:'10px'}}>
                         <div>
                           <p style={{fontSize:'10px',color:'#6b7280',marginBottom:'2px'}}>📅 開始日</p>
                           <input type="date" value={step.startDate||''} onChange={e=>updateRoadmapStep(idx,'startDate',e.target.value)}
@@ -2504,6 +2962,28 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                             style={{width:'100%',border:`1px solid ${es.border}`,borderRadius:'4px',padding:'4px',fontSize:'11px'}}/>
                         </div>
                       </div>
+                      {/* 宿題量シミュレーション（このステップ単体・英文法） */}
+                      {(()=>{
+                        const stepHw=calcHomework(step);
+                        if(!stepHw) return(
+                          <div style={{background:'#fef3c7',borderRadius:'6px',padding:'8px',fontSize:'10px',color:'#92400e',textAlign:'center'}}>
+                            💡 開始日と完了目標日を入力すると宿題量が計算されます
+                          </div>
+                        );
+                        return(
+                          <div style={{background:`linear-gradient(135deg,${es.color},#1e3a8a)`,borderRadius:'8px',padding:'10px',color:'white'}}>
+                            <p style={{fontSize:'11px',fontWeight:'bold',marginBottom:'6px'}}>📊 このテキストの宿題量シミュレーション</p>
+                            <div style={{background:'rgba(255,255,255,0.15)',borderRadius:'4px',padding:'5px',textAlign:'center',marginBottom:'6px'}}>
+                              <p style={{fontSize:'9px',opacity:0.8}}>英文法項目数</p>
+                              <p style={{fontSize:'14px',fontWeight:'bold'}}>{stepHw.eTotal}項目</p>
+                            </div>
+                            <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'4px',padding:'6px',textAlign:'center'}}>
+                              <p style={{fontSize:'9px',opacity:0.8}}>合計 {stepHw.total}項目 ÷ {stepHw.weeks}週（{stepHw.days}日）</p>
+                              <p style={{fontSize:'15px',fontWeight:'bold',marginTop:'2px'}}>週{stepHw.perWeek}項目 / 1日{stepHw.perDay}項目</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 }
@@ -2626,9 +3106,11 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
               });
             })()}
 
-            {/* テキスト追加ボタン */}
-            <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'8px',marginTop:'16px'}}>➕ テキストを追加</p>
-            {[
+            {/* テキスト追加ボタン（教科タブで切替） */}
+            <p style={{fontSize:'12px',fontWeight:'bold',color:'#374151',marginBottom:'8px',marginTop:'16px'}}>
+              ➕ {subjectTab==='math'?'数学':'英語'}テキストを追加
+            </p>
+            {subjectTab==='math'&&[
               {group:'📘 数ⅠA対応',   keys:['white_1a','yellow_1a','blue_1a']},
               {group:'📗 数ⅡBC対応', keys:['white_2bc','yellow_2bc','blue_2bc']},
               {group:'📕 数Ⅲ対応',   keys:['white_3','yellow_3','blue_3']},
@@ -2651,18 +3133,20 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
             ))}
 
             {/* 英文法テキスト追加 */}
-            <div style={{marginBottom:'8px'}}>
-              <p style={{fontSize:'10px',fontWeight:'bold',color:'#6b7280',marginBottom:'3px'}}>📖 英文法</p>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px'}}>
-                {Object.entries(ENG_SETS).map(([key,es])=>(
-                  <button key={key} onClick={()=>addRoadmapEngStep(key)}
-                    style={{padding:'8px 4px',borderRadius:'6px',border:`1px solid ${es.border}`,
-                      background:'white',cursor:'pointer',transition:'all .15s'}}>
-                    <p style={{fontWeight:'bold',fontSize:'11px',color:es.color}}>+ {es.short}</p>
-                  </button>
-                ))}
+            {subjectTab==='eng'&&(
+              <div style={{marginBottom:'8px'}}>
+                <p style={{fontSize:'10px',fontWeight:'bold',color:'#6b7280',marginBottom:'3px'}}>📖 英文法</p>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'4px'}}>
+                  {Object.entries(ENG_SETS).map(([key,es])=>(
+                    <button key={key} onClick={()=>addRoadmapEngStep(key)}
+                      style={{padding:'8px 4px',borderRadius:'6px',border:`1px solid ${es.border}`,
+                        background:'white',cursor:'pointer',transition:'all .15s'}}>
+                      <p style={{fontWeight:'bold',fontSize:'11px',color:es.color}}>+ {es.short}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* メモ */}
             <div style={{marginTop:'16px',marginBottom:'16px'}}>
@@ -3172,6 +3656,23 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
           </>
           )}
           </>
+        )}
+
+        {/* ── タブ：進捗ダッシュボード ── */}
+        {tab==='dashboard'&&(
+          <DashboardTab
+            students={students}
+            allStudents={allStudents}
+            jhAllStudents={jhAllStudents}
+            jhStudentIdxs={jhStudentIdxs||[]}
+            plans={plans}
+            hsRecords={hsRecords||{}}
+            hsEngAssign={hsEngAssign||{}}
+            hsEngRecords={hsEngRecords||{}}
+            jhRecords={jhRecords||{}}
+            jhTextbookOverrides={jhTextbookOverrides}
+            jhSchoolOverrides={jhSchoolOverrides}
+          />
         )}
 
         {/* ── タブ：生徒・講師削除 ── */}
@@ -3805,6 +4306,10 @@ function App(){
       jhSaveSchool={jhSaveSchool}
       jhRenzemiAssign={jhRenzemiAssign}
       jhSaveRenzemiAssign={jhSaveRenzemiAssign}
+      hsRecords={hsRecords}
+      hsEngAssign={hsEngAssign}
+      hsEngRecords={hsEngRecords}
+      jhRecords={jhRecords}
       onAddJhStudent={async(name,grade,school)=>{
         const fullName=`${name}（${grade}）`;
         let newStudents;
@@ -4048,16 +4553,48 @@ function App(){
               <div>
                 {/* ヘッダー */}
                 <div style={{background:es.bg,border:`2px solid ${es.border}`,borderRadius:'10px',padding:'12px',marginBottom:'12px'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px',marginBottom:'8px'}}>
                     <div>
                       <p style={{fontWeight:'bold',fontSize:'15px',color:es.color}}>📖 {es.label}</p>
                       <p style={{fontSize:'11px',color:'#6b7280',marginTop:'2px'}}>👤 {curName} ・ ステップ{stepIdx+1}/{curRoadmap.length}</p>
                     </div>
                     <div style={{textAlign:'right'}}>
-                      <p style={{fontSize:'18px',fontWeight:'bold',color:es.color}}>{pct}%</p>
+                      <p style={{fontSize:'24px',fontWeight:'bold',color:es.color}}>{pct}%</p>
                       <p style={{fontSize:'10px',color:'#6b7280'}}>{doneCount}/{totalItems}項目</p>
                     </div>
                   </div>
+                  {/* 進捗バー */}
+                  <div style={{background:'#e5e7eb',borderRadius:'4px',height:'8px',overflow:'hidden',marginBottom:'8px'}}>
+                    <div style={{width:`${pct}%`,height:'100%',background:es.color,transition:'width 0.3s'}}/>
+                  </div>
+                  {/* 開始日・期限・宿題シミュレーション */}
+                  {curStep.startDate&&curStep.deadline&&(()=>{
+                    const hwEng=calcHomework(curStep);
+                    if(!hwEng) return null;
+                    const today=new Date();
+                    const ddl=new Date(curStep.deadline);
+                    const remainingDays=Math.max(0,Math.ceil((ddl-today)/86400000));
+                    const remainingItems=Math.max(0,totalItems-doneCount);
+                    const perDayActual=remainingDays>0?Math.ceil(remainingItems/remainingDays):remainingItems;
+                    return(
+                      <div style={{background:'rgba(255,255,255,0.7)',borderRadius:'6px',padding:'8px 10px',marginBottom:'8px'}}>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'6px',fontSize:'10px'}}>
+                          <div style={{textAlign:'center'}}>
+                            <p style={{color:'#6b7280'}}>📅 期限</p>
+                            <p style={{fontWeight:'bold',color:'#374151',fontSize:'11px'}}>{curStep.deadline}</p>
+                          </div>
+                          <div style={{textAlign:'center'}}>
+                            <p style={{color:'#6b7280'}}>⏰ 残り日数</p>
+                            <p style={{fontWeight:'bold',color:remainingDays<=7?'#dc2626':'#374151',fontSize:'14px'}}>{remainingDays}日</p>
+                          </div>
+                          <div style={{textAlign:'center'}}>
+                            <p style={{color:'#6b7280'}}>📊 1日のペース</p>
+                            <p style={{fontWeight:'bold',color:es.color,fontSize:'14px'}}>{perDayActual}項目/日</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {/* ステップ切替 */}
                   {curRoadmap.length>1&&(
                     <div style={{display:'flex',gap:'4px',marginTop:'8px',overflowX:'auto'}}>
