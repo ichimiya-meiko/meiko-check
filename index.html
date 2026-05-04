@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0"/>
   <meta http-equiv="Pragma" content="no-cache"/>
-  <meta http-equiv="Expires" content="0"/>
-  <title>明光義塾 新屋敷教室 チェックアプリ</title>
+  <meta http-equiv="Expires" content="-1"/>
+  <meta name="robots" content="noarchive"/>
+  <title>明光義塾 チェックアプリ</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,31 +15,53 @@
 </head>
 <body>
   <script>
-    // === キャッシュ自動更新システム ===
+    // === 強力キャッシュ対策システム（v3） ===
     (function(){
-      const APP_VERSION = "v1777119915";
+      const APP_VERSION = "v1777893579";  // ファイル更新時に自動更新される
       const STORAGE_KEY = '_meiko_app_version';
+      const URL_PARAM = 'v';
+
+      // ① ServiceWorker完全削除（過去登録があれば解除）
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistrations().then(regs=>{
+          regs.forEach(r=>r.unregister());
+        }).catch(()=>{});
+      }
+
+      // ② Cache APIすべて削除
+      if('caches' in window){
+        caches.keys().then(names=>{
+          names.forEach(n=>caches.delete(n));
+        }).catch(()=>{});
+      }
+
+      // ③ URLにv=タイムスタンプが付いていない場合、付けてリロード（初回アクセス対策）
       try{
+        const url = new URL(window.location.href);
+        const urlV = url.searchParams.get(URL_PARAM);
         const stored = localStorage.getItem(STORAGE_KEY);
+
+        // 初回 or バージョン不一致
         if(stored !== APP_VERSION){
-          // バージョン変更を検知 → キャッシュクリア
           if(stored){
-            console.log('[App Update] 新しいバージョンを検出。キャッシュをクリアします。');
-            // localStorageの一時データをクリア（永続データは保持）
-            const keysToKeep = ['_meiko_app_version'];
-            // ServiceWorkerキャッシュもクリア（あれば）
-            if('caches' in window){
-              caches.keys().then(names=>{
-                names.forEach(n=>caches.delete(n));
-              });
-            }
-          }
-          localStorage.setItem(STORAGE_KEY, APP_VERSION);
-          // バージョン変更後はリロード
-          if(stored){
-            window.location.reload(true);
+            // バージョン変更を検知（2回目以降）
+            console.log('[App Update] 新版検出: ' + stored + ' → ' + APP_VERSION);
+            localStorage.setItem(STORAGE_KEY, APP_VERSION);
+            // URLにキャッシュバスター付きでリロード
+            url.searchParams.set(URL_PARAM, APP_VERSION);
+            window.location.replace(url.toString());
             return;
+          }else{
+            // 初回アクセス
+            localStorage.setItem(STORAGE_KEY, APP_VERSION);
           }
+        }
+
+        // ④ URLパラメータが古い場合も更新
+        if(urlV && urlV !== APP_VERSION){
+          url.searchParams.set(URL_PARAM, APP_VERSION);
+          window.location.replace(url.toString());
+          return;
         }
       }catch(e){console.error('Version check error:', e);}
     })();
@@ -50,20 +73,33 @@ const {useState,useEffect,useCallback}=React;
 // ══════════════════════════════════════════
 // 定数
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// 教室固有の設定（5教室展開時はここを変更）
+// ══════════════════════════════════════════
+const CLASSROOM_CONFIG = {
+  id: 'shinyashiki',
+  name: '明光義塾 新屋敷教室',
+  shortName: '新屋敷教室',
+  tel: '096-371-1280',
+  email: 'shinyashiki_2875@gw.meikogijuku.jp',
+  director: '一宮 啓介',
+  hours: '平日 13:00~22:00',
+};
+
 const PW_TEACHER  = '1384';
 const PW_DIRECTOR = 'meiko117';
 const GAS_HS = 'https://script.google.com/macros/s/AKfycbw_i4oxAIiuH-j-ZA9Ndtktwm1AkFqxgM3BuZQfEBB-9Jqr2xcek1eBrMLzNDfDgM8VYg/exec';
 const GAS_JH = 'https://script.google.com/macros/s/AKfycbybRa6HIwXqWbdhiI4MSTrYgTSuw6gWZCUijqjySaZNHFq84mxjZopl6ETGQ6dGgpu4Vw/exec';
 const JH_PREFIX = 'shochugaku:';
 
-// 統合教師リスト（小中学生側が先頭に2名追加）
-const ALL_TEACHERS_DEFAULT = ['山田島 尚史','十住 結羽','佐々木 俊輔','迫田 莉久','古田 達也','德丸 日向子','西 愛子','牧野 花太郎','村上 凜','伊藤 歩','高本 凉咲','増山 響','河野 紗織','金乙 瑞希','小多 美幸','黒川 奨真','小松 真綾','関岡 好実','沼田 亨太郎','一宮 紗耶佳','一宮 啓介'];
+// 講師リストはスプレッドシートから読み込み（個人情報保護のため）
+const ALL_TEACHERS_DEFAULT = [];
 
-// 高校生生徒（GASから読み込む・これはデフォルト値）
-const HS_STUDENTS_DEFAULT = ['池田 颯汰（高1）','小材 幸史朗（高1）','指山 大翔（高1）','張 薪蕙澤（高1）','樋口 花（高1）','冨樫 文（高1）','福島 優佳（高1）','宮下 蒼佑（高1）','矢野 華穂（高1）','山本 あかり（高1）','秋吉 夢晃（高1）','森田 柚希（高1）','加悦 洋丞（高1）','寺本 淳恵（高2）','田尻 晃征（高2）','山村 初穂（高2）','村山 奈々（高2）','山本 紗慧（高2）','神田 咲人（高2）','髙栁 隆太朗（高2）','松本 さくら（高2）','吉田 壮馬（高2）','迫丸 美和（高2）','佐々木 桃子（高2）','東 明佳音（高2）','渡辺 悠斗（高2）','村松 大智（高2）','江川 諒（高2）','小林 和來（高2）','馬場 惺也（高2）','甲斐 愛菜（高3）','岩上 桃子（高3）','松岡 学（中3）'];
+// 高校生生徒リストはスプレッドシートから読み込み（個人情報保護のため）
+const HS_STUDENTS_DEFAULT = [];
 
-// 小中学生生徒（GASから読み込む・これはデフォルト値）
-const JH_STUDENTS_DEFAULT = ['植田 桜禾（小2）','井 さなみ（小3）','浦田 映人（小3）','星野 葵央（小4）','田中 陽斗（小4）','竹中 新（小4）','榮木 新菜（小4）','蓮尾 碧久（小4）','佐々木 希帆（小4）','吉村 優杜（小4）','松本 廣紀（小5）','火野坂 采音（小5）','藤山 翔大（小5）','角田 悠樹（小5）','白木 花歩（小5）','有江 雛美（小6）','田中 柾希（小6）','蓮尾 珂奈（小6）','宮下 彰人（小6）','山口 璃々加（小6）','田村 亮典（小6）','飯田 春馬（小6）','吉田 百希（小6）','成塚 結衣（小6）','牧野 響太郎（小6）','一宮 颯志（中1）','田中 あかり（中1）','松下 蓮（中1）','豊住 真人（中1）','森田 心穂（中1）','松本 雄真（中1）','藤山 凜乃（中1）','髙田 翔太（中1）','出永 りさ子（中1）','梅田 珠希（中1）','田中 悠斗（中1）','泉 信次郎（中1）','石井 悠稀（中1）','北原 旭陽（中1）','後藤 和希（中1）','吉田 すみれ（中1）','牧野 光之助（中1）','向窪 紗英（中1）','田中 瞬多（中1）','西村 陽（中1）','松尾 淳之介（中2）','宮下 涼太郎（中2）','田中 美咲希（中2）','甲斐 永真（中2）','桑田 淳之介（中2）','江田 麻妃（中2）','小野 美咲（中2）','宮里 将聖（中2）','飯蓋 龍水（中2）','吉安 健登（中2）','長谷川 晟（中2）','林田 彩希（中2）','橋新 卓（中2）','井 爽乃介（中2）','伊田 明珠（中2）','田村 悠高（中3）','添島 康平（中3）','牧田 佳枝（中3）','烏川 晴基（中3）','木下 響（中3）','寳口 美如（中3）','田代 環太（中3）','福田 あや花（中3）','井手 美陽（中3）','一宮 優佳（中3）','村上 もも（中3）','村上 ゆず（中3）','吉田 佑馬（中3）','浦田 佳音（中3）','出永 大晴（中3）','泉 廉太郎（中3）','江原 潤（中3）','小堀 草太朗（中3）','杉本 理采子（中3）','小田 敦丈（中3）','吉田 晴武（中3）','永野 遼平（中3）','坂本 琉哉（中3）'];
+// 小中学生生徒リストはスプレッドシートから読み込み（個人情報保護のため）
+const JH_STUDENTS_DEFAULT = [];
 
 // 練ゼミノート（自習用）
 const RENZEMI_CHAPTERS = {"math1": [{"num": 1, "text": "正負の数の意味"}, {"num": 2, "text": "正負の数の四則計算と応用"}, {"num": 3, "text": "文字式の計算"}, {"num": 4, "text": "文字式の利用"}, {"num": 5, "text": "１次方程式の解法"}, {"num": 6, "text": "１次方程式の応用　代金等の問題"}, {"num": 7, "text": "１次方程式の応用　速さ、割合の問題"}], "math2": [{"num": 1, "text": "正負の数"}, {"num": 2, "text": "文字式"}, {"num": 3, "text": "１次方程式"}, {"num": 4, "text": "データの活用"}, {"num": 5, "text": "比例・反比例"}, {"num": 6, "text": "平面図形"}, {"num": 7, "text": "空間図形"}, {"num": 8, "text": "式の計算"}, {"num": 9, "text": "式の計算の利用"}, {"num": 10, "text": "連立方程式"}, {"num": 11, "text": "１次関数"}], "math3": [{"num": 1, "text": "式の計算"}, {"num": 2, "text": "方程式"}, {"num": 3, "text": "関数"}, {"num": 4, "text": "中学１年の図形"}, {"num": 5, "text": "中学２年の図形"}, {"num": 6, "text": "関数と図形"}, {"num": 7, "text": "データの活用"}, {"num": 8, "text": "確率"}, {"num": 9, "text": "式の展開・因数分解"}, {"num": 10, "text": "平方根"}, {"num": 11, "text": "２次方程式"}], "eng1": [{"num": 1, "text": "いろいろな単語"}, {"num": 2, "text": "I am～、You are～の文"}, {"num": 3, "text": "This is～の文"}, {"num": 4, "text": "He is～の文"}, {"num": 5, "text": "一般動詞"}, {"num": 6, "text": "一般動詞（３単元）"}, {"num": 7, "text": "複数形"}, {"num": 8, "text": "人称代名詞のまとめ"}, {"num": 9, "text": "時刻・曜日・月"}, {"num": 10, "text": "can"}, {"num": 11, "text": "一般動詞の過去形/be動詞の過去形"}], "eng2": [{"num": 1, "text": "一般動詞の過去形"}, {"num": 2, "text": "be動詞の過去形"}, {"num": 3, "text": "過去進行形"}, {"num": 4, "text": "未来（will・be going to）"}, {"num": 5, "text": "助動詞（may,mustなど）"}, {"num": 6, "text": "There is(are)～の文"}, {"num": 7, "text": "接続詞"}, {"num": 8, "text": "目的語と補語（SVOO,SVC）"}, {"num": 9, "text": "目的語と補語（SVOC）"}, {"num": 10, "text": "不定詞（名詞的用法）"}, {"num": 11, "text": "不定詞（副詞的用法）"}, {"num": 12, "text": "不定詞（形容詞的用法）"}, {"num": 13, "text": "対話文読解"}, {"num": 14, "text": "動名詞"}], "eng3": [{"num": 1, "text": "動詞と時制"}, {"num": 2, "text": "目的語と補語"}, {"num": 3, "text": "受動態"}, {"num": 4, "text": "現在完了"}, {"num": 5, "text": "比較"}, {"num": 6, "text": "接続詞"}, {"num": 7, "text": "不定詞"}, {"num": 8, "text": "動名詞"}, {"num": 9, "text": "不定詞を含む構文"}, {"num": 10, "text": "名刺を収縮する分詞"}, {"num": 11, "text": "長文に慣れよう①"}, {"num": 12, "text": "長文に慣れよう②"}, {"num": 13, "text": "長文に慣れよう③"}, {"num": 14, "text": "現在完了進行形"}]};
@@ -1047,28 +1083,8 @@ const GRADE_COLORS = {
 
 
 // ─── 生徒学校データ ────────────────────────────────────────────
-const STUDENT_SCHOOLS = {
-  "一宮 颯志":"長嶺中","田中 あかり":"白川中","松下 蓮":"白川中",
-  "豊住 真人":"白川中","森田 心穂":"白川中","松本 雄真":"白川中",
-  "藤山 凜乃":"白川中","髙田 翔太":"白川中","出永 りさ子":"白川中",
-  "梅田 珠希":"藤園中","田中 悠斗":"白川中","泉 信次郎":"白川中",
-  "石井 悠稀":"白川中","北原 旭陽":"白川中","後藤 和希":"マリスト中",
-  "吉田 すみれ":"九州学院中","牧野 光之助":"九州学院中","向窪 紗英":"白川中",
-  "田中 瞬多":"白川中","西村 陽":"白川中",
-  "松尾 淳之介":"白川中","宮下 涼太郎":"白川中","田中 美咲希":"白川中",
-  "甲斐 永真":"白川中","桑田 淳之介":"白川中","江田 麻妃":"白川中",
-  "小野 美咲":"白川中","宮里 将聖":"九州学院中","飯蓋 龍水":"九州学院中",
-  "吉安 健登":"白川中","長谷川 晟":"白川中","林田 彩希":"白川中",
-  "橋新 卓":"白川中","井 爽乃介":"白川中","伊田 明珠":"白川中",
-  "田村 悠高":"白川中","添島 康平":"白川中","牧田 佳枝":"白川中",
-  "烏川 晴基":"白川中","木下 響":"白川中","寳口 美如":"白川中",
-  "田代 環太":"白川中","福田 あや花":"桜山中","井手 美陽":"白川中",
-  "一宮 優佳":"長嶺中","村上 もも":"信愛女学院中","村上 ゆず":"信愛女学院中",
-  "吉田 佑馬":"白川中","浦田 佳音":"信愛女学院中","出永 大晴":"白川中",
-  "泉 廉太郎":"白川中","江原 潤":"白川中","小堀 草太朗":"真和中",
-  "杉本 理采子":"信愛女学院中","小田 敦丈":"白川中","吉田 晴武":"九州学院中",
-  "永野 遼平":"白川中","坂本 琉哉":"桜山中",
-};
+// 生徒の学校情報はスプレッドシート（schoolOverrides）で管理（個人情報保護のため）
+const STUDENT_SCHOOLS = {};
 
 const TEST_ROUNDS = [
   {id:"m4", label:"4月", month:4},
@@ -1091,93 +1107,9 @@ const SCHOOLS = ["附属小","白川小","城東小","大江小","碩台小","�
 
 const INITIAL_TEXTBOOK_OVERRIDES = {"25": {"数学": "中1X_数学", "英語": "中1X_英語"}, "45": {"数学": "中2X_数学", "英語": "中2X_英語"}, "46": {"数学": "中2X_数学", "英語": "中2X_英語"}, "60": {"数学": "中3X_数学", "英語": "中3X_英語"}};
 
-const INITIAL_TEACHERS = ["山田島 尚史","十住 結羽","佐々木 俊輔","迫田 莉久","古田 達也","德丸 日向子","西 愛子","牧野 花太郎","村上 凜","伊藤 歩","高本 凉咲","増山 響","河野 紗織","金乙 瑞希","小多 美幸","黒川 奨真","小松 真綾","関岡 好実","沼田 亨太郎","一宮 紗耶佳","一宮 啓介"];
+const INITIAL_TEACHERS = []; // 空配列（個人情報保護）
 
-const INITIAL_STUDENTS = [
-  "植田 桜禾（小2）",
-  "井 さなみ（小3）",
-  "浦田 映人（小3）",
-  "星野 葵央（小4）",
-  "田中 陽斗（小4）",
-  "竹中 新（小4）",
-  "榮木 新菜（小4）",
-  "蓮尾 碧久（小4）",
-  "佐々木 希帆（小4）",
-  "吉村 優杜（小4）",
-  "松本 廣紀（小5）",
-  "火野坂 采音（小5）",
-  "藤山 翔大（小5）",
-  "角田 悠樹（小5）",
-  "白木 花歩（小5）",
-  "有江 雛美（小6）",
-  "田中 柾希（小6）",
-  "蓮尾 珂奈（小6）",
-  "宮下 彰人（小6）",
-  "山口 璃々加（小6）",
-  "田村 亮典（小6）",
-  "飯田 春馬（小6）",
-  "吉田 百希（小6）",
-  "成塚 結衣（小6）",
-  "牧野 響太郎（小6）",
-  "一宮 颯志（中1）",
-  "田中 あかり（中1）",
-  "松下 蓮（中1）",
-  "豊住 真人（中1）",
-  "森田 心穂（中1）",
-  "松本 雄真（中1）",
-  "藤山 凜乃（中1）",
-  "髙田 翔太（中1）",
-  "出永 りさ子（中1）",
-  "梅田 珠希（中1）",
-  "田中 悠斗（中1）",
-  "泉 信次郎（中1）",
-  "石井 悠稀（中1）",
-  "北原 旭陽（中1）",
-  "後藤 和希（中1）",
-  "吉田 すみれ（中1）",
-  "牧野 光之助（中1）",
-  "向窪 紗英（中1）",
-  "田中 瞬多（中1）",
-  "西村 陽（中1）",
-  "松尾 淳之介（中2）",
-  "宮下 涼太郎（中2）",
-  "田中 美咲希（中2）",
-  "甲斐 永真（中2）",
-  "桑田 淳之介（中2）",
-  "江田 麻妃（中2）",
-  "小野 美咲（中2）",
-  "宮里 将聖（中2）",
-  "飯蓋 龍水（中2）",
-  "吉安 健登（中2）",
-  "長谷川 晟（中2）",
-  "林田 彩希（中2）",
-  "橋新 卓（中2）",
-  "井 爽乃介（中2）",
-  "伊田 明珠（中2）",
-  "田村 悠高（中3）",
-  "添島 康平（中3）",
-  "牧田 佳枝（中3）",
-  "烏川 晴基（中3）",
-  "木下 響（中3）",
-  "寳口 美如（中3）",
-  "田代 環太（中3）",
-  "福田 あや花（中3）",
-  "井手 美陽（中3）",
-  "一宮 優佳（中3）",
-  "村上 もも（中3）",
-  "村上 ゆず（中3）",
-  "吉田 佑馬（中3）",
-  "浦田 佳音（中3）",
-  "出永 大晴（中3）",
-  "泉 廉太郎（中3）",
-  "江原 潤（中3）",
-  "小堀 草太朗（中3）",
-  "杉本 理采子（中3）",
-  "小田 敦丈（中3）",
-  "吉田 晴武（中3）",
-  "永野 遼平（中3）",
-  "坂本 琉哉（中3）"
-];
+const INITIAL_STUDENTS = []; // 空配列（個人情報保護）
 
 const STATUS_CYCLE = {"未":"◯","◯":"△","△":"✗","✗":"未"};
 const STATUS_BG    = {"未":"#f3f4f6","◯":"#d1fae5","△":"#fef3c7","✗":"#fee2e2"};
@@ -1871,7 +1803,7 @@ function PasswordGate({onPass}){
       <div style={{background:'white',borderRadius:'16px',padding:'40px',width:'340px',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
         <div style={{textAlign:'center',marginBottom:'24px'}}>
           <div style={{fontSize:'44px',marginBottom:'8px'}}>📘</div>
-          <p style={{fontWeight:'bold',fontSize:'18px',color:'#1e3a8a'}}>明光義塾 新屋敷教室</p>
+          <p style={{fontWeight:'bold',fontSize:'18px',color:'#1e3a8a'}}>{CLASSROOM_CONFIG.name}</p>
           <p style={{color:'#6b7280',fontSize:'13px',marginTop:'4px'}}>チェックアプリ</p>
         </div>
         {err&&<p style={{color:'#dc2626',fontSize:'13px',marginBottom:'12px',textAlign:'center'}}>{err}</p>}
@@ -2555,7 +2487,7 @@ function StudentReport({data,onClose}){
         {/* レポート本体 */}
         <div id="report-content" style={{borderTop:'2px solid #1e3a8a',paddingTop:'16px'}}>
           <div style={{textAlign:'center',marginBottom:'20px'}}>
-            <p style={{fontSize:'10px',color:'#6b7280'}}>明光義塾 新屋敷教室 進捗レポート</p>
+            <p style={{fontSize:'10px',color:'#6b7280'}}>{CLASSROOM_CONFIG.name} 進捗レポート</p>
             <p style={{fontSize:'20px',fontWeight:'bold',color:'#1e3a8a',marginTop:'4px'}}>{data.name} さん</p>
             <p style={{fontSize:'11px',color:'#6b7280',marginTop:'2px'}}>{today} 時点</p>
           </div>
@@ -2634,7 +2566,7 @@ function StudentReport({data,onClose}){
 
           {/* フッター */}
           <div style={{borderTop:'1px solid #e5e7eb',marginTop:'20px',paddingTop:'10px',textAlign:'center'}}>
-            <p style={{fontSize:'10px',color:'#9ca3af'}}>明光義塾 新屋敷教室　TEL: 096-371-1280</p>
+            <p style={{fontSize:'10px',color:'#9ca3af'}}>{CLASSROOM_CONFIG.name}　TEL: {CLASSROOM_CONFIG.tel}</p>
           </div>
         </div>
       </div>
@@ -4534,7 +4466,7 @@ function App(){
       {/* ヘッダー */}
       <div style={{background:'#1e3a8a',color:'white',padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:'8px',position:'sticky',top:0,zIndex:20}}>
         <div>
-          <p style={{fontWeight:'bold',fontSize:'15px'}}>📘 明光義塾 新屋敷 チェックアプリ</p>
+          <p style={{fontWeight:'bold',fontSize:'15px'}}>📘 {CLASSROOM_CONFIG.shortName} チェックアプリ</p>
           <p style={{color:'#93c5fd',fontSize:'11px'}}>👨‍🏫 {selTeacher}　｜　{selStudents.length}人表示中</p>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
