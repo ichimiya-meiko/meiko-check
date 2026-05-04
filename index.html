@@ -1896,7 +1896,7 @@ function PasswordGate({onPass}){
 // ══════════════════════════════════════════
 // 講師選択画面
 // ══════════════════════════════════════════
-function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd,bgLoading}){
+function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd,bgLoading,bgProgress}){
   const [editMode,setEditMode]=useState(false);
   const [newName,setNewName]=useState('');
   const handleDel=(t)=>{
@@ -1915,7 +1915,20 @@ function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd,bgLoading}){
       <div style={{maxWidth:'480px',margin:'0 auto'}}>
         <p style={{textAlign:'center',fontWeight:'bold',fontSize:'20px',color:'#1e3a8a',marginBottom:'6px'}}>👨‍🏫 講師を選択</p>
         <p style={{textAlign:'center',color:'#6b7280',fontSize:'13px',marginBottom:'16px'}}>{role==='director'?'🏫 教室長モード':'講師モード'}</p>
-        {bgLoading&&<div style={{textAlign:'center',marginBottom:'12px',padding:'8px',background:'#fef3c7',borderRadius:'8px',fontSize:'12px',color:'#92400e',fontWeight:'bold'}}>⏳ 最新の講師リストを取得中...</div>}
+        {bgLoading&&(()=>{
+            const pct=bgProgress&&bgProgress.total>0?Math.round(bgProgress.done/bgProgress.total*100):0;
+            return(
+              <div style={{marginBottom:'12px',padding:'10px 14px',background:'#fef3c7',borderRadius:'8px',border:'1px solid #fbbf24'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                  <span style={{fontSize:'12px',color:'#92400e',fontWeight:'bold'}}>⏳ 最新データ取得中...</span>
+                  <span style={{fontSize:'11px',color:'#92400e',fontWeight:'bold'}}>{bgProgress?.done||0}/{bgProgress?.total||0} ({pct}%)</span>
+                </div>
+                <div style={{background:'#fde68a',borderRadius:'4px',height:'6px',overflow:'hidden'}}>
+                  <div style={{width:`${pct}%`,height:'100%',background:'#d97706',transition:'width 0.3s'}}/>
+                </div>
+              </div>
+            );
+          })()}
         {role==='director'&&(
           <div style={{display:'flex',justifyContent:'center',marginBottom:'16px'}}>
             <button onClick={()=>setEditMode(!editMode)}
@@ -1960,7 +1973,7 @@ function TeacherSelectScreen({teachers,role,onSelect,onDelete,onAdd,bgLoading}){
 // ══════════════════════════════════════════
 // 生徒選択画面（小中高全員統合）
 // ══════════════════════════════════════════
-function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onBack,bgLoading}){
+function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onBack,bgLoading,bgProgress}){
   const [sel,setSel]=useState([]);
   const [filter,setFilter]=useState('all'); // 'all'|'hs'|'jh_chu'|'jh_sho'
 
@@ -2049,7 +2062,20 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
           </div>
           <button onClick={onBack} style={{background:'#e5e7eb',border:'none',borderRadius:'8px',padding:'8px 14px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
         </div>
-        {bgLoading&&<div style={{textAlign:'center',marginBottom:'12px',padding:'8px',background:'#fef3c7',borderRadius:'8px',fontSize:'12px',color:'#92400e',fontWeight:'bold'}}>⏳ 最新の生徒リストを取得中...</div>}
+        {bgLoading&&(()=>{
+          const pct=bgProgress&&bgProgress.total>0?Math.round(bgProgress.done/bgProgress.total*100):0;
+          return(
+            <div style={{marginBottom:'12px',padding:'10px 14px',background:'#fef3c7',borderRadius:'8px',border:'1px solid #fbbf24'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                <span style={{fontSize:'12px',color:'#92400e',fontWeight:'bold'}}>⏳ 最新データ取得中...</span>
+                <span style={{fontSize:'11px',color:'#92400e',fontWeight:'bold'}}>{bgProgress?.done||0}/{bgProgress?.total||0} ({pct}%)</span>
+              </div>
+              <div style={{background:'#fde68a',borderRadius:'4px',height:'6px',overflow:'hidden'}}>
+                <div style={{width:`${pct}%`,height:'100%',background:'#d97706',transition:'width 0.3s'}}/>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* フィルタータブ */}
         <div style={{display:'flex',gap:'6px',marginBottom:'14px',flexWrap:'wrap'}}>
@@ -3933,6 +3959,7 @@ function App(){
   const [selStudents,setSelStudents]=useState([]); // [{name,type:'hs'|'jh'}]
   const [loadMsg,setLoadMsg]=useState('');
   const [bgLoading,setBgLoading]=useState(false); // バックグラウンド読込中表示
+  const [bgProgress,setBgProgress]=useState({done:0,total:0}); // プログレス表示用
 
   // 高校生データ
   const [hsRecords,setHsRecords]=useState({});
@@ -3998,31 +4025,37 @@ function App(){
     setJhRenzemiAssign(cRzA);setJhRenzemiProgress(cRzP);
     setHsEngAssign(cEngA);setHsEngRecords(cEngR);
     setPhase('teacher');  // すぐ遷移
-    // ② バックグラウンドで最新データを取得してUIを更新
+    // ② バックグラウンドで最新データを取得してUIを更新（全データ並列で1ラウンド）
+    const tasks=[
+      ['teachers',()=>hsGet('koukou:teachers',cT),setTeachers],
+      ['hsStudents',()=>hsGet('koukou:students',cHs),setHsStudents],
+      ['jhStudents',()=>jhGet('students',cJh),setJhStudents],
+      ['textbookOverrides',()=>jhGet('textbookOverrides',cTb),setJhTextbookOverrides],
+      ['testRanges',()=>jhGet('testRanges',cTr),setJhTestRanges],
+      ['directives',()=>jhGet('directives',cDv),setJhDirectives],
+      ['skipItems',()=>jhGet('skipItems',cSk),setJhSkipItems],
+      ['schoolOverrides',()=>jhGet('schoolOverrides',cSov),setJhSchoolOverrides],
+      ['renzemiAssign',()=>jhGet('renzemiAssign',cRzA),setJhRenzemiAssign],
+      ['renzemiProgress',()=>jhGet('renzemiProgress',cRzP),setJhRenzemiProgress],
+      ['engAssign',()=>hsGet('koukou:engAssign',cEngA),setHsEngAssign],
+      ['engRecords',()=>hsGet('koukou:engRecords',cEngR),setHsEngRecords],
+    ];
     setBgLoading(true);
-    (async()=>{
-      const [t,hs,jh]=await Promise.all([
-        hsGet('koukou:teachers',cT),
-        hsGet('koukou:students',cHs),
-        jhGet('students',cJh),
-      ]);
-      setTeachers(t);setHsStudents(hs);setJhStudents(jh);
-      const [tb,tr,dv,sk,sov,rzA,rzP,engA,engR]=await Promise.all([
-        jhGet('textbookOverrides',cTb),
-        jhGet('testRanges',cTr),
-        jhGet('directives',cDv),
-        jhGet('skipItems',cSk),
-        jhGet('schoolOverrides',cSov),
-        jhGet('renzemiAssign',{}),
-        jhGet('renzemiProgress',{}),
-        hsGet('koukou:engAssign',{}),
-        hsGet('koukou:engRecords',{}),
-      ]);
-      setJhTextbookOverrides(tb);setJhTestRanges(tr);setJhDirectives(dv);setJhSkipItems(sk);setJhSchoolOverrides(sov);
-      setJhRenzemiAssign(rzA);setJhRenzemiProgress(rzP);
-      setHsEngAssign(engA);setHsEngRecords(engR);
-      setBgLoading(false);
-    })();
+    setBgProgress({done:0,total:tasks.length});
+    let doneCount=0;
+    // すべて並列で取得し、完了するごとにプログレス更新
+    await Promise.all(tasks.map(([name,fn,setter])=>
+      fn().then(data=>{
+        setter(data);
+        doneCount++;
+        setBgProgress({done:doneCount,total:tasks.length});
+      }).catch(err=>{
+        console.error(`[${name}] エラー:`,err);
+        doneCount++;
+        setBgProgress({done:doneCount,total:tasks.length});
+      })
+    ));
+    setBgLoading(false);
   };
 
   // 生徒選択後：選んだ生徒のデータだけ読む
@@ -4289,7 +4322,7 @@ function App(){
 
   // ── フェーズ分岐 ──
   if(phase==='login') return <PasswordGate onPass={handleLogin}/>;
-  if(phase==='teacher') return <TeacherSelectScreen bgLoading={bgLoading} teachers={teachers} role={role}
+  if(phase==='teacher') return <TeacherSelectScreen bgLoading={bgLoading} bgProgress={bgProgress} teachers={teachers} role={role}
     onSelect={t=>{setSelTeacher(t);setPhase('students');}}
     onDelete={async t=>{
       const next=teachers.filter(x=>x!==t);
@@ -4307,7 +4340,7 @@ function App(){
     }}
   />;
   if(phase==='students') return(
-    <StudentSelectScreen bgLoading={bgLoading} hsStudents={hsStudents} jhStudents={jhStudents}
+    <StudentSelectScreen bgLoading={bgLoading} bgProgress={bgProgress} hsStudents={hsStudents} jhStudents={jhStudents}
       teacherName={selTeacher} role={role}
       onStart={handleStart}
       onBack={()=>setPhase('teacher')}/>
@@ -4488,7 +4521,14 @@ function App(){
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
           {saveMsg&&<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>}
-          {bgLoading&&<span style={{color:'#fde68a',fontSize:'11px',fontWeight:'bold',background:'rgba(0,0,0,0.2)',padding:'3px 8px',borderRadius:'10px'}}>⏳ 最新データ取得中...</span>}
+          {bgLoading&&(()=>{
+            const pct=bgProgress&&bgProgress.total>0?Math.round(bgProgress.done/bgProgress.total*100):0;
+            return(
+              <span style={{color:'#fde68a',fontSize:'11px',fontWeight:'bold',background:'rgba(0,0,0,0.2)',padding:'3px 8px',borderRadius:'10px'}}>
+                ⏳ {bgProgress?.done||0}/{bgProgress?.total||0} ({pct}%)
+              </span>
+            );
+          })()}
           <button onClick={()=>setPhase('students')}
             style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 10px',fontSize:'12px',cursor:'pointer'}}>
             ← 生徒選択
