@@ -2652,7 +2652,7 @@ function StudentReport({data,onClose}){
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,hsRecords,hsEngAssign,hsEngRecords,jhRecords,onAddJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,hsRecords,hsEngAssign,hsEngRecords,jhRecords,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -3783,6 +3783,14 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                         style={{background:savingSchool===n?'#fef3c7':'#eef2ff',color:savingSchool===n?'#92400e':'#4f46e5',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:savingSchool===n?'wait':'pointer',fontWeight:'bold'}}>
                         {savingSchool===n?'⏳ 保存中...':'🏫 学校設定'}
                       </button>
+                      <button onClick={()=>{
+                        if(window.confirm(`「${s}」を削除しますか？\n（テキスト・テスト範囲・進捗は残ります。完全削除はスプレッドシートから行ってください）`)){
+                          onDelJhStudent(s);
+                        }
+                      }}
+                        style={{background:'#fee2e2',color:'#dc2626',border:'none',borderRadius:'6px',padding:'4px 10px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                        🗑️ 削除
+                      </button>
                     </div>
                   </div>
                 );
@@ -4382,6 +4390,16 @@ function App(){
           await jhSet('schoolOverrides',newSch);
         }
         flash(`✅ ${fullName} を追加しました`);
+      }}
+      onDelJhStudent={async(fullName)=>{
+        let newStudents;
+        setJhStudents(prev=>{
+          newStudents=prev.filter(x=>x!==fullName);
+          return newStudents;
+        });
+        await new Promise(r=>setTimeout(r,0));
+        await jhSet('students',newStudents);
+        flash(`🗑️ ${fullName} を削除しました`);
       }}
       onAddHsStudent={async(name,grade)=>{
         const fullName=`${name}（${grade}）`;
