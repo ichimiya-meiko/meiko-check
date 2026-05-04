@@ -4383,12 +4383,6 @@ function App(){
   // 手動上書きがあればそれを優先、なければ自動
   const stepIdx=(curPlanFull.currentIdx!==null&&curPlanFull.currentIdx!==undefined&&curPlanFull.currentIdx>=0&&curPlanFull.currentIdx<curRoadmap.length)?curPlanFull.currentIdx:autoCurIdx;
   const curStep=curRoadmap[stepIdx]||null;
-  // curStep が変わったら教科タブを同期（英語ステップなら英語タブに、数学なら数学タブに）
-  useEffect(()=>{
-    if(curStep){
-      setTeacherSubjectTab(curStep.kind==='eng'?'eng':'math');
-    }
-  },[curName,stepIdx]);
   // 現在のステップを「curPlan」として扱う（既存コードとの互換のため）
   const curPlan=curStep?{...curStep,memo:curPlanFull.memo,skipItems:curPlanFull.skipItems}:curPlanFull;
   const curSet=curPlan.textbookSet?SETS[curPlan.textbookSet]:null;
@@ -4408,6 +4402,11 @@ function App(){
   const setStepIdx=async(idx)=>{
     const newPlan={...curPlanFull,currentIdx:idx===autoCurIdx?null:idx};
     setHsPlans(p=>({...p,[curName]:newPlan}));
+    // 教科タブも切り替え先のステップに同期
+    const targetStep=curRoadmap[idx];
+    if(targetStep){
+      setTeacherSubjectTab(targetStep.kind==='eng'?'eng':'math');
+    }
     await hsSet(`koukou:plan:${curName}`,newPlan);
     flash(idx===autoCurIdx?'🔄 自動判定に戻しました':'📍 表示テキストを変更');
   };
@@ -4580,8 +4579,13 @@ function App(){
                   const hasMath=mathSteps.length>0;
                   const hasEng=engSteps.length>0;
                   const showSubjectTab=hasMath&&hasEng;
-                  const visibleSteps=teacherSubjectTab==='eng'?engSteps:mathSteps;
+                  // 現在のstepIdxに合う教科を優先
+                  const curStepKind=curStep&&curStep.kind==='eng'?'eng':'math';
+                  // 表示する教科：showSubjectTabがtrueの場合はteacherSubjectTab、それ以外は現在のステップに合わせる
+                  const displayTab=showSubjectTab?(teacherSubjectTab==='eng'?'eng':'math'):curStepKind;
+                  const visibleSteps=displayTab==='eng'?engSteps:mathSteps;
                   if(curRoadmap.length<=1) return null;
+                  if(visibleSteps.length===0) return null;
                   return(
                     <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'8px 10px',marginBottom:'10px'}}>
                       {showSubjectTab&&(
@@ -4751,8 +4755,13 @@ function App(){
                   const hasMath=mathSteps.length>0;
                   const hasEng=engSteps.length>0;
                   const showSubjectTab=hasMath&&hasEng;
-                  const visibleSteps=teacherSubjectTab==='eng'?engSteps:mathSteps;
+                  // 現在のstepIdxに合う教科を優先
+                  const curStepKind=curStep&&curStep.kind==='eng'?'eng':'math';
+                  // 表示する教科：showSubjectTabがtrueの場合はteacherSubjectTab、それ以外は現在のステップに合わせる
+                  const displayTab=showSubjectTab?(teacherSubjectTab==='eng'?'eng':'math'):curStepKind;
+                  const visibleSteps=displayTab==='eng'?engSteps:mathSteps;
                   if(curRoadmap.length<=1) return null;
+                  if(visibleSteps.length===0) return null;
                   return(
                     <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'8px 10px',marginBottom:'10px'}}>
                       {showSubjectTab&&(
