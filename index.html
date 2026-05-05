@@ -245,10 +245,56 @@ function jhGetCached(key,fb){
   return fb;
 }
 async function jhSet(key,val){
-  try{
-    try{localStorage.setItem('cache:jh:'+key,JSON.stringify({v:val,t:Date.now()}));}catch{}
-    await fetch(`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(JSON.stringify(val))}`);
-  }catch{}
+  // v19: リトライ＋成功判定付き
+  // 戻り値: {ok:true} 成功、{ok:false, reason:...} 失敗
+  // 1. localStorageに即時保存（オフライン保険）
+  try{localStorage.setItem('cache:jh:'+key,JSON.stringify({v:val,t:Date.now()}));}catch(e){
+    console.warn('[jhSet] localStorage保存失敗:',key,e);
+  }
+  // 2. データサイズチェック（B: 段階警告）
+  const payload=JSON.stringify(val);
+  const sizeKB=Math.round(payload.length/1024*10)/10;
+  const url=`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(payload)}`;
+  if(url.length>=8000){
+    console.error(`[jhSet] ⚠️ URLが長すぎます（${url.length}文字）。GASに到達しない可能性。key=${key}, データ=${sizeKB}KB`);
+  }else if(url.length>=5000){
+    console.warn(`[jhSet] ⚠️ URLが5KB超え（${url.length}文字）。リミットに近づいています。key=${key}, データ=${sizeKB}KB`);
+  }
+  // 3. リトライ付きfetch（A: 3回まで）
+  let lastErr=null;
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const r=await fetch(url,{method:'GET',cache:'no-store'});
+      if(!r.ok){
+        lastErr=new Error(`HTTP ${r.status}`);
+        console.warn(`[jhSet] 試行${attempt}/3 失敗: HTTP ${r.status}, key=${key}`);
+        await new Promise(res=>setTimeout(res,300*attempt));
+        continue;
+      }
+      // GAS応答の成功判定（C）
+      try{
+        const d=await r.json();
+        if(d&&d.ok===false){
+          lastErr=new Error('GAS reported failure');
+          console.warn(`[jhSet] 試行${attempt}/3 GAS側失敗:`,d);
+          await new Promise(res=>setTimeout(res,300*attempt));
+          continue;
+        }
+      }catch{
+        // 応答がJSONでない場合もOK扱い（旧GAS仕様への互換）
+      }
+      // 成功
+      if(attempt>1) console.log(`[jhSet] 試行${attempt}回目で成功: key=${key}`);
+      return {ok:true,sizeKB};
+    }catch(e){
+      lastErr=e;
+      console.warn(`[jhSet] 試行${attempt}/3 ネットワークエラー:`,key,e&&e.message);
+      await new Promise(res=>setTimeout(res,300*attempt));
+    }
+  }
+  // 3回すべて失敗
+  console.error(`[jhSet] ❌ 保存失敗（3回リトライ）: key=${key}`,lastErr);
+  return {ok:false,reason:lastErr?lastErr.message:'unknown'};
 }
 
 
@@ -4203,6 +4249,7 @@ function App(){
   // 共通UI
   const [activeStudentIdx,setActiveStudentIdx]=useState(0); // selStudentsの添字
   const [saveMsg,setSaveMsg]=useState('');
+  const [saveMsgType,setSaveMsgType]=useState('info'); // v19: 'info' | 'error'
   const [activeHint,setActiveHint]=useState(null);
   const [activeSubjMap,setActiveSubjMap]=useState({});
   const [activeChapMap,setActiveChapMap]=useState({});
@@ -4230,7 +4277,7 @@ function App(){
   const [hsEngAssign,setHsEngAssign]=useState({}); // {生徒名: {set:'eng_oiwa|eng_hijii|none', from:1, to:99, startDate:'', deadline:''}}
   const [hsEngRecords,setHsEngRecords]=useState({}); // {生徒名: {item_id: {status:'未|◯|△|✗', askedQs:[1,3,5]}}}
 
-  const flash=msg=>{setSaveMsg(msg);setTimeout(()=>setSaveMsg(''),2500);};
+  const flash=(msg,type='info')=>{setSaveMsg(msg);setSaveMsgType(type);setTimeout(()=>setSaveMsg(''),type==='error'?6000:2500);};
 
   // DB(chapters.json)ロード
   useEffect(()=>{
@@ -4416,53 +4463,67 @@ function App(){
     await hsSet('koukou:engRecords',updated);
   };
 
-  // 練ゼミ：生徒の受講設定保存（v17: subjConfig は {taking,grade,rangeStart,rangeEnd} のオブジェクト）
+  // 練ゼミ：生徒の受講設定保存（v19: updated変数キャプチャ問題を解消、保存失敗通知）
   const jhSaveRenzemiAssign=async(name,subj,subjConfig)=>{
-    let updated;
-    setJhRenzemiAssign(prev=>{
-      const cur=prev[name]||{};
-      updated={...prev,[name]:{...cur,[subj]:subjConfig}};
-      return updated;
-    });
-    await new Promise(r=>setTimeout(r,0));
-    await jhSet('renzemiAssign',updated);
-    flash(`📓 練ゼミ（${subj==='math'?'数学':'英語'}）設定を更新しました`);
+    const cur=jhRenzemiAssign[name]||{};
+    const updated={...jhRenzemiAssign,[name]:{...cur,[subj]:subjConfig}};
+    setJhRenzemiAssign(updated);
+    const result=await jhSet('renzemiAssign',updated);
+    if(!result.ok){
+      flash(`❌ 練ゼミ設定の保存に失敗しました（${result.reason||'通信エラー'}）`,'error');
+      console.error('[練ゼミ設定保存失敗]',{name,subj,result});
+    }else{
+      flash(`📓 練ゼミ（${subj==='math'?'数学':'英語'}）設定を更新しました`);
+    }
   };
-  // 練ゼミ：進捗チェック保存（v17: gradeTermキー、checkedAt/checkedBy 自動記録）
+  // 練ゼミ：進捗チェック保存（v19: setState前に updated を構築、保存失敗を画面通知）
   const jhSaveRenzemiProgress=async(name,subj,gradeTerm,num,col,value,teacherName)=>{
     const key=renzemiKey(name,subj,gradeTerm,num);
     const today=new Date();
     const todayStr=today.toISOString().slice(0,10);
     const nowIso=today.toISOString();
-    let updated;
-    setJhRenzemiProgress(prev=>{
-      const cur=prev[key]||{first:'未',redo:'未'};
-      const newVal={...cur,[col]:value,updatedAt:nowIso,checkedAt:todayStr,checkedBy:teacherName||cur.checkedBy||''};
-      updated={...prev,[key]:newVal};
-      return updated;
-    });
-    await new Promise(r=>setTimeout(r,0));
-    await jhSet('renzemiProgress',updated);
+    // ⚠️ v19最重要修正: setStateコールバックの中で updated を作るのではなく、
+    //   現在のstateスナップショットから事前に updated を構築する。
+    //   こうすることで「await jhSet時に updated が確実に参照可能」になる。
+    const cur=jhRenzemiProgress[key]||{first:'未',redo:'未'};
+    const newVal={...cur,[col]:value,updatedAt:nowIso,checkedAt:todayStr,checkedBy:teacherName||cur.checkedBy||''};
+    const updated={...jhRenzemiProgress,[key]:newVal};
+    // 即座にstateに反映（UIの即時更新）
+    setJhRenzemiProgress(updated);
+    // GASに保存（リトライ付き）
+    const result=await jhSet('renzemiProgress',updated);
+    if(!result.ok){
+      // 失敗時は画面に大きく赤いトーストで通知
+      flash(`❌ 保存に失敗しました（${result.reason||'通信エラー'}）。もう一度押してください。`,'error');
+      console.error('[練ゼミ進捗保存失敗]',{key,col,value,result});
+    }else if(result.sizeKB>=8){
+      // データサイズが8KB超え：警告
+      console.warn(`[練ゼミ進捗] データサイズ ${result.sizeKB}KB（リミット間近）`);
+    }
   };
-  // 練ゼミ：期限保存（学年×学期×教科）
+  // 練ゼミ：期限保存（学年×学期×教科）v19: 堅牢化
   const jhSaveRenzemiDeadline=async(grade,term,subj,date)=>{
     const k=deadlineKey(grade,term);
-    let updated;
-    setJhRenzemiDeadlines(prev=>{
-      const cur=prev[k]||{};
-      updated={...prev,[k]:{...cur,[subj]:date}};
-      return updated;
-    });
-    await new Promise(r=>setTimeout(r,0));
-    await jhSet('renzemiDeadlines',updated);
-    flash(`📅 ${grade}年${term} ${subj==='math'?'数学':'英語'}の期限を保存しました`);
+    const cur=jhRenzemiDeadlines[k]||{};
+    const updated={...jhRenzemiDeadlines,[k]:{...cur,[subj]:date}};
+    setJhRenzemiDeadlines(updated);
+    const result=await jhSet('renzemiDeadlines',updated);
+    if(!result.ok){
+      flash(`❌ 期限保存に失敗しました（${result.reason||'通信エラー'}）`,'error');
+      console.error('[練ゼミ期限保存失敗]',{grade,term,subj,result});
+    }else{
+      flash(`📅 ${grade}年${term} ${subj==='math'?'数学':'英語'}の期限を保存しました`);
+    }
   };
   // 学期切替（教室全体）
   const jhSaveCurrentTerm=async(term)=>{
     setCurrentTerm(term);
-    await new Promise(r=>setTimeout(r,0));
-    await jhSet('currentTerm',term);
-    flash(`📅 現在学期を ${term} に切替えました`);
+    const result=await jhSet('currentTerm',term);
+    if(!result.ok){
+      flash(`❌ 学期切替の保存に失敗しました（${result.reason||'通信エラー'}）`,'error');
+    }else{
+      flash(`📅 現在学期を ${term} に切替えました`);
+    }
   };
 
   const jhSaveSchool=async(name,school)=>{
@@ -4802,7 +4863,10 @@ function App(){
           <p style={{color:'#93c5fd',fontSize:'11px'}}>👨‍🏫 {selTeacher}　｜　{selStudents.length}人表示中</p>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          {saveMsg&&<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>}
+          {saveMsg&&(saveMsgType==='error'?
+            <span style={{background:'#dc2626',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px',animation:'pulse 1s infinite'}}>{saveMsg}</span>
+            :<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>
+          )}
           {bgLoading&&(()=>{
             const pct=bgProgress&&bgProgress.total>0?Math.round(bgProgress.done/bgProgress.total*100):0;
             return(
