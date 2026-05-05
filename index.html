@@ -3681,7 +3681,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 </div>
               )}
 
-              {/* 練ゼミ進捗全員一覧モーダル（v16: 停滞アラート＋周回可視化） */}
+              {/* 練ゼミ進捗全員一覧モーダル（v17: 防御的実装） */}
               {showRenzemiOverview&&(
                 <div onClick={()=>setShowRenzemiOverview(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
                   <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'20px',maxWidth:'1200px',width:'100%',maxHeight:'90vh',overflow:'auto'}}>
@@ -3690,167 +3690,198 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                       <button onClick={()=>setShowRenzemiOverview(false)} style={{background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer'}}>閉じる</button>
                     </div>
                     {(()=>{
-                      // ── v16: 停滞判定の閾値 ──
-                      const DAYS_DANGER=14;
-                      const DAYS_WARN=7;
-                      const COUNT_DANGER_X=3;
-                      const COUNT_WARN_TRI=5;
-                      const now=new Date();
-                      const daysSince=iso=>{
-                        if(!iso) return null;
-                        const t=new Date(iso).getTime();
-                        if(isNaN(t)) return null;
-                        return Math.floor((now.getTime()-t)/(1000*60*60*24));
-                      };
-                      const fmtDaysAgo=d=>{
-                        if(d===null) return '記録なし';
-                        if(d===0) return '今日';
-                        if(d===1) return '昨日';
-                        return `${d}日前`;
-                      };
-                      // 練ゼミ割当てがある生徒だけ抽出（v17: 新形式 taking/grade ベース）
-                      const targets=jhAllStudents.map(s=>{
-                        const n=stripGrade(s);
-                        const a=jhRenzemiAssign[n]||{};
-                        const hasMath=a.math&&a.math.taking&&a.math.grade;
-                        const hasEng=a.eng&&a.eng.taking&&a.eng.grade;
-                        if(!hasMath&&!hasEng) return null;
-                        return {fullName:s,name:n,grade:extractGrade(s),math:hasMath?a.math.grade:null,eng:hasEng?a.eng.grade:null};
-                      }).filter(Boolean);
-                      if(targets.length===0) return(
-                        <p style={{color:'#9ca3af',textAlign:'center',padding:'40px'}}>練ゼミノートが割り当てられている生徒がいません</p>
-                      );
-                      // 1教科ぶんの統計（v17暫定: 現在学期Rのみ集計。Phase 2で全学期対応へ）
-                      const calcStats=(name,subjKey,grade)=>{
-                        const term='R'; // 暫定：現在学期Rのみ。Phase 2でcurrentTerm参照に
-                        const items=RENZEMI_BOOKS[`${subjKey}${grade}${term}`]||[];
-                        let firstDone=0,redoDone=0,bothDone=0,xCount=0,triCount=0;
-                        let latestIso=null;
-                        items.forEach(it=>{
-                          const p=getRenzemiProg(jhRenzemiProgress,name,subjKey,`${grade}${term}`,it.num)||{};
-                          if(p.first==='◯') firstDone++;
-                          if(p.redo==='◯') redoDone++;
-                          if(p.first==='◯'&&p.redo==='◯') bothDone++;
-                          if(p.first==='✗'||p.redo==='✗') xCount++;
-                          if(p.first==='△'||p.redo==='△') triCount++;
-                          if(p.updatedAt){
-                            if(!latestIso||p.updatedAt>latestIso) latestIso=p.updatedAt;
+                      try {
+                        const DAYS_DANGER=14;
+                        const DAYS_WARN=7;
+                        const COUNT_DANGER_X=3;
+                        const COUNT_WARN_TRI=5;
+                        const now=new Date();
+                        const daysSince=iso=>{
+                          if(!iso) return null;
+                          const t=new Date(iso).getTime();
+                          if(isNaN(t)) return null;
+                          return Math.floor((now.getTime()-t)/(1000*60*60*24));
+                        };
+                        const fmtDaysAgo=d=>{
+                          if(d===null||d===undefined) return '記録なし';
+                          if(d===0) return '今日';
+                          if(d===1) return '昨日';
+                          return `${d}日前`;
+                        };
+                        // 防御：jhAllStudents/jhRenzemiAssign/jhRenzemiProgressが未定義でも落ちない
+                        const safeStudents=Array.isArray(jhAllStudents)?jhAllStudents:[];
+                        const safeAssign=jhRenzemiAssign||{};
+                        const safeProgress=jhRenzemiProgress||{};
+                        // 練ゼミ割当てがある生徒だけ抽出（新形式・旧形式両対応）
+                        const targets=safeStudents.map(s=>{
+                          if(!s) return null;
+                          const n=stripGrade(s);
+                          const a=safeAssign[n]||{};
+                          // 新形式 {taking, grade} か旧形式 (文字列) かを正規化
+                          const normalizeSubj=v=>{
+                            if(v&&typeof v==='object'&&'taking' in v){
+                              return v.taking&&v.grade?{taking:true,grade:String(v.grade)}:{taking:false,grade:null};
+                            }
+                            if(v&&typeof v==='string'&&v!=='none'&&['1','2','3'].includes(v)){
+                              return {taking:true,grade:v};
+                            }
+                            return {taking:false,grade:null};
+                          };
+                          const mathConf=normalizeSubj(a.math);
+                          const engConf=normalizeSubj(a.eng);
+                          if(!mathConf.taking&&!engConf.taking) return null;
+                          return {
+                            fullName:s,
+                            name:n,
+                            grade:extractGrade(s)||'',
+                            math:mathConf.taking?mathConf.grade:null,
+                            eng:engConf.taking?engConf.grade:null
+                          };
+                        }).filter(Boolean);
+                        if(targets.length===0) return(
+                          <p style={{color:'#9ca3af',textAlign:'center',padding:'40px'}}>練ゼミノートが割り当てられている生徒がいません</p>
+                        );
+                        // 1教科ぶんの統計（v17暫定: 現在学期Rのみ集計。Phase 2で全学期対応へ）
+                        const calcStats=(name,subjKey,grade)=>{
+                          const term='R';
+                          const items=(typeof RENZEMI_BOOKS!=='undefined'?(RENZEMI_BOOKS[`${subjKey}${grade}${term}`]||[]):[]);
+                          let firstDone=0,redoDone=0,bothDone=0,xCount=0,triCount=0;
+                          let latestIso=null;
+                          items.forEach(it=>{
+                            const p=getRenzemiProg(safeProgress,name,subjKey,`${grade}${term}`,it.num)||{};
+                            if(p.first==='◯') firstDone++;
+                            if(p.redo==='◯') redoDone++;
+                            if(p.first==='◯'&&p.redo==='◯') bothDone++;
+                            if(p.first==='✗'||p.redo==='✗') xCount++;
+                            if(p.first==='△'||p.redo==='△') triCount++;
+                            if(p.updatedAt&&typeof p.updatedAt==='string'){
+                              if(!latestIso||p.updatedAt>latestIso) latestIso=p.updatedAt;
+                            }
+                          });
+                          return {total:items.length,firstDone,redoDone,bothDone,xCount,triCount,latestIso};
+                        };
+                        const judgeStudent=(t)=>{
+                          const m=t.math?calcStats(t.name,'math',t.math):null;
+                          const e=t.eng?calcStats(t.name,'eng',t.eng):null;
+                          const xTotal=(m?m.xCount:0)+(e?e.xCount:0);
+                          const triTotal=(m?m.triCount:0)+(e?e.triCount:0);
+                          let latest=null;
+                          [m,e].forEach(s=>{
+                            if(s&&s.latestIso){
+                              if(!latest||s.latestIso>latest) latest=s.latestIso;
+                            }
+                          });
+                          const dDays=daysSince(latest);
+                          let signal='🟢',label='順調',color='#10b981',bg='#d1fae5';
+                          const reasons=[];
+                          if(dDays===null){
+                            signal='🟡';label='記録待ち';color='#d97706';bg='#fef3c7';
+                            reasons.push('まだ記録なし');
+                          }else{
+                            if(dDays>=DAYS_DANGER){signal='🔴';label='停滞';color='#dc2626';bg='#fee2e2';reasons.push(`${dDays}日更新なし`);}
+                            else if(dDays>=DAYS_WARN){signal='🟡';label='注意';color='#d97706';bg='#fef3c7';reasons.push(`${dDays}日更新なし`);}
+                            if(xTotal>=COUNT_DANGER_X){signal='🔴';label='停滞';color='#dc2626';bg='#fee2e2';reasons.push(`✗放置${xTotal}個`);}
+                            else if(triTotal>=COUNT_WARN_TRI&&signal==='🟢'){signal='🟡';label='注意';color='#d97706';bg='#fef3c7';reasons.push(`△放置${triTotal}個`);}
                           }
+                          return {m,e,signal,label,color,bg,reasons,latest,dDays};
+                        };
+                        const judged=targets.map(t=>{
+                          const j=judgeStudent(t);
+                          return {...t,...j};
                         });
-                        return {total:items.length,firstDone,redoDone,bothDone,xCount,triCount,latestIso};
-                      };
-                      // 生徒1人の総合判定
-                      const judgeStudent=(t)=>{
-                        const m=t.math?calcStats(t.name,'math',t.math):null;
-                        const e=t.eng?calcStats(t.name,'eng',t.eng):null;
-                        const xTotal=(m?m.xCount:0)+(e?e.xCount:0);
-                        const triTotal=(m?m.triCount:0)+(e?e.triCount:0);
-                        let latest=null;
-                        [m,e].forEach(s=>{
-                          if(s&&s.latestIso){
-                            if(!latest||s.latestIso>latest) latest=s.latestIso;
-                          }
+                        const sigOrder={'🔴':0,'🟡':1,'🟢':2};
+                        const sorted=[...judged].sort((a,b)=>(sigOrder[a.signal]||9)-(sigOrder[b.signal]||9));
+                        const cntDanger=judged.filter(j=>j.signal==='🔴').length;
+                        const cntWarn=judged.filter(j=>j.signal==='🟡').length;
+                        const cntGood=judged.filter(j=>j.signal==='🟢').length;
+                        let totalItems=0,totalBoth=0;
+                        judged.forEach(j=>{
+                          if(j.m){totalItems+=j.m.total;totalBoth+=j.m.bothDone;}
+                          if(j.e){totalItems+=j.e.total;totalBoth+=j.e.bothDone;}
                         });
-                        const dDays=daysSince(latest);
-                        let signal='🟢',label='順調',color='#10b981',bg='#d1fae5';
-                        const reasons=[];
-                        if(dDays===null){
-                          signal='🟡';label='記録待ち';color='#d97706';bg='#fef3c7';
-                          reasons.push('まだ記録なし');
-                        }else{
-                          if(dDays>=DAYS_DANGER){signal='🔴';label='停滞';color='#dc2626';bg='#fee2e2';reasons.push(`${dDays}日更新なし`);}
-                          else if(dDays>=DAYS_WARN){signal='🟡';label='注意';color='#d97706';bg='#fef3c7';reasons.push(`${dDays}日更新なし`);}
-                          if(xTotal>=COUNT_DANGER_X){signal='🔴';label='停滞';color='#dc2626';bg='#fee2e2';reasons.push(`✗放置${xTotal}個`);}
-                          else if(triTotal>=COUNT_WARN_TRI&&signal==='🟢'){signal='🟡';label='注意';color='#d97706';bg='#fef3c7';reasons.push(`△放置${triTotal}個`);}
-                        }
-                        return {m,e,signal,label,color,bg,reasons,latest,dDays};
-                      };
-                      const judged=targets.map(t=>({...t,...judgeStudent(t)}));
-                      const sigOrder={'🔴':0,'🟡':1,'🟢':2};
-                      const sorted=[...judged].sort((a,b)=>sigOrder[a.signal]-sigOrder[b.signal]);
-                      const cntDanger=judged.filter(j=>j.signal==='🔴').length;
-                      const cntWarn=judged.filter(j=>j.signal==='🟡').length;
-                      const cntGood=judged.filter(j=>j.signal==='🟢').length;
-                      let totalItems=0,totalBoth=0;
-                      judged.forEach(j=>{
-                        if(j.m){totalItems+=j.m.total;totalBoth+=j.m.bothDone;}
-                        if(j.e){totalItems+=j.e.total;totalBoth+=j.e.bothDone;}
-                      });
-                      const bothPct=totalItems>0?Math.round(totalBoth/totalItems*100):0;
-                      return(
-                        <div>
-                          {/* ── サマリーカード ── */}
-                          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:'8px',marginBottom:'16px'}}>
-                            <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
-                              <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'4px'}}>対象生徒</p>
-                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#374151'}}>{targets.length}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                        const bothPct=totalItems>0?Math.round(totalBoth/totalItems*100):0;
+                        return(
+                          <div>
+                            {/* ── サマリーカード ── */}
+                            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:'8px',marginBottom:'16px'}}>
+                              <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                                <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'4px'}}>対象生徒</p>
+                                <p style={{fontSize:'22px',fontWeight:'bold',color:'#374151'}}>{targets.length}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                              </div>
+                              <div style={{background:'#fee2e2',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                                <p style={{fontSize:'11px',color:'#991b1b',marginBottom:'4px'}}>🔴 停滞中</p>
+                                <p style={{fontSize:'22px',fontWeight:'bold',color:'#dc2626'}}>{cntDanger}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                              </div>
+                              <div style={{background:'#fef3c7',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                                <p style={{fontSize:'11px',color:'#92400e',marginBottom:'4px'}}>🟡 注意</p>
+                                <p style={{fontSize:'22px',fontWeight:'bold',color:'#d97706'}}>{cntWarn}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                              </div>
+                              <div style={{background:'#d1fae5',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                                <p style={{fontSize:'11px',color:'#065f46',marginBottom:'4px'}}>🟢 順調</p>
+                                <p style={{fontSize:'22px',fontWeight:'bold',color:'#10b981'}}>{cntGood}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                              </div>
+                              <div style={{background:'#dbeafe',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                                <p style={{fontSize:'11px',color:'#1e40af',marginBottom:'4px'}}>全体2周完了率</p>
+                                <p style={{fontSize:'22px',fontWeight:'bold',color:'#2563eb'}}>{bothPct}<span style={{fontSize:'12px',marginLeft:'2px'}}>%</span></p>
+                              </div>
                             </div>
-                            <div style={{background:'#fee2e2',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
-                              <p style={{fontSize:'11px',color:'#991b1b',marginBottom:'4px'}}>🔴 停滞中</p>
-                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#dc2626'}}>{cntDanger}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                            <div style={{background:'#f9fafb',borderRadius:'6px',padding:'8px 12px',marginBottom:'12px',fontSize:'11px',color:'#6b7280'}}>
+                              <span style={{marginRight:'12px'}}>🔴 停滞：{DAYS_DANGER}日以上更新なし／✗放置{COUNT_DANGER_X}個以上</span>
+                              <span style={{marginRight:'12px'}}>🟡 注意：{DAYS_WARN}日以上更新なし／△放置{COUNT_WARN_TRI}個以上／記録待ち</span>
+                              <span>🟢 順調</span>
                             </div>
-                            <div style={{background:'#fef3c7',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
-                              <p style={{fontSize:'11px',color:'#92400e',marginBottom:'4px'}}>🟡 注意</p>
-                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#d97706'}}>{cntWarn}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
-                            </div>
-                            <div style={{background:'#d1fae5',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
-                              <p style={{fontSize:'11px',color:'#065f46',marginBottom:'4px'}}>🟢 順調</p>
-                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#10b981'}}>{cntGood}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
-                            </div>
-                            <div style={{background:'#dbeafe',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
-                              <p style={{fontSize:'11px',color:'#1e40af',marginBottom:'4px'}}>全体2周完了率</p>
-                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#2563eb'}}>{bothPct}<span style={{fontSize:'12px',marginLeft:'2px'}}>%</span></p>
+                            <div style={{overflowX:'auto'}}>
+                              <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
+                                <thead>
+                                  <tr style={{background:'#fef3c7'}}>
+                                    <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',width:'90px'}}>状態</th>
+                                    <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #fbbf24'}}>生徒名</th>
+                                    <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24'}}>学年</th>
+                                    <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#ea580c'}}>📐 数学<br/><span style={{fontSize:'10px',fontWeight:'normal'}}>1周目／やり直し／2周完了</span></th>
+                                    <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#2563eb'}}>📖 英語<br/><span style={{fontSize:'10px',fontWeight:'normal'}}>1周目／やり直し／2周完了</span></th>
+                                    <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24'}}>最終更新</th>
+                                    <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #fbbf24'}}>判定理由</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {sorted.map((t,i)=>{
+                                    const m=t.m,e=t.e;
+                                    const fmtCell=(s)=>{
+                                      if(!s||!s.total) return '-';
+                                      const fp=Math.round((s.firstDone||0)/s.total*100);
+                                      const bp=Math.round((s.bothDone||0)/s.total*100);
+                                      return `${s.firstDone||0}/${s.total}(${fp}%)／${s.redoDone||0}/${s.total}／${s.bothDone||0}/${s.total}(${bp}%)`;
+                                    };
+                                    return(
+                                      <tr key={i} style={{borderBottom:'1px solid #f3f4f6',background:t.signal==='🔴'?'#fef2f2':t.signal==='🟡'?'#fffbeb':'white'}}>
+                                        <td style={{padding:'8px',textAlign:'center'}}>
+                                          <span style={{display:'inline-block',background:t.bg,color:t.color,padding:'3px 8px',borderRadius:'10px',fontSize:'11px',fontWeight:'bold',whiteSpace:'nowrap'}}>{t.signal} {t.label}</span>
+                                        </td>
+                                        <td style={{padding:'8px',fontWeight:'bold'}}>{t.name||''}</td>
+                                        <td style={{padding:'8px',textAlign:'center'}}>{t.grade||''}</td>
+                                        <td style={{padding:'8px',textAlign:'center'}}>{m?`${t.math||''}年：${fmtCell(m)}`:'-'}</td>
+                                        <td style={{padding:'8px',textAlign:'center'}}>{e?`${t.eng||''}年：${fmtCell(e)}`:'-'}</td>
+                                        <td style={{padding:'8px',textAlign:'center',color:t.dDays!==null&&t.dDays>=DAYS_WARN?'#dc2626':'#374151',fontWeight:t.dDays!==null&&t.dDays>=DAYS_WARN?'bold':'normal'}}>{fmtDaysAgo(t.dDays)}</td>
+                                        <td style={{padding:'8px',fontSize:'11px',color:'#6b7280'}}>{Array.isArray(t.reasons)&&t.reasons.length>0?t.reasons.join('、'):'問題なし'}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                              <p style={{fontSize:'10px',color:'#6b7280',marginTop:'8px',textAlign:'right'}}>※ 2周完了 = 1周目◯ かつ やり直しも◯ になった項目数</p>
                             </div>
                           </div>
-                          {/* ── 凡例 ── */}
-                          <div style={{background:'#f9fafb',borderRadius:'6px',padding:'8px 12px',marginBottom:'12px',fontSize:'11px',color:'#6b7280'}}>
-                            <span style={{marginRight:'12px'}}>🔴 停滞：{DAYS_DANGER}日以上更新なし／✗放置{COUNT_DANGER_X}個以上</span>
-                            <span style={{marginRight:'12px'}}>🟡 注意：{DAYS_WARN}日以上更新なし／△放置{COUNT_WARN_TRI}個以上／記録待ち</span>
-                            <span>🟢 順調</span>
+                        );
+                      } catch(err) {
+                        return(
+                          <div style={{background:'#fee2e2',border:'1px solid #fecaca',borderRadius:'8px',padding:'16px',color:'#991b1b'}}>
+                            <p style={{fontWeight:'bold',marginBottom:'8px'}}>⚠️ ダッシュボード描画エラー</p>
+                            <p style={{fontSize:'12px',marginBottom:'8px'}}>エラー内容: {err&&err.message?String(err.message):String(err)}</p>
+                            <p style={{fontSize:'11px',color:'#7f1d1d'}}>このメッセージをいっちー先生にお伝えください。原因を特定して次のバージョンで修正します。</p>
+                            {err&&err.stack&&(<pre style={{fontSize:'10px',background:'white',padding:'8px',borderRadius:'4px',marginTop:'8px',overflow:'auto',maxHeight:'200px'}}>{String(err.stack).split('\n').slice(0,8).join('\n')}</pre>)}
                           </div>
-                          {/* ── 進捗テーブル ── */}
-                          <div style={{overflowX:'auto'}}>
-                            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
-                              <thead>
-                                <tr style={{background:'#fef3c7'}}>
-                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',width:'90px'}}>状態</th>
-                                  <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #fbbf24'}}>生徒名</th>
-                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24'}}>学年</th>
-                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#ea580c'}}>📐 数学<br/><span style={{fontSize:'10px',fontWeight:'normal'}}>1周目／やり直し／2周完了</span></th>
-                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#2563eb'}}>📖 英語<br/><span style={{fontSize:'10px',fontWeight:'normal'}}>1周目／やり直し／2周完了</span></th>
-                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24'}}>最終更新</th>
-                                  <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #fbbf24'}}>判定理由</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {sorted.map((t,i)=>{
-                                  const m=t.m,e=t.e;
-                                  const fmtCell=(s)=>{
-                                    if(!s) return '-';
-                                    const fp=Math.round(s.firstDone/s.total*100);
-                                    const bp=Math.round(s.bothDone/s.total*100);
-                                    return `${s.firstDone}/${s.total}(${fp}%)／${s.redoDone}/${s.total}／${s.bothDone}/${s.total}(${bp}%)`;
-                                  };
-                                  return(
-                                    <tr key={i} style={{borderBottom:'1px solid #f3f4f6',background:t.signal==='🔴'?'#fef2f2':t.signal==='🟡'?'#fffbeb':'white'}}>
-                                      <td style={{padding:'8px',textAlign:'center'}}>
-                                        <span style={{display:'inline-block',background:t.bg,color:t.color,padding:'3px 8px',borderRadius:'10px',fontSize:'11px',fontWeight:'bold',whiteSpace:'nowrap'}}>{t.signal} {t.label}</span>
-                                      </td>
-                                      <td style={{padding:'8px',fontWeight:'bold'}}>{t.name}</td>
-                                      <td style={{padding:'8px',textAlign:'center'}}>{t.grade}</td>
-                                      <td style={{padding:'8px',textAlign:'center'}}>{m?`${t.math}年：${fmtCell(m)}`:'-'}</td>
-                                      <td style={{padding:'8px',textAlign:'center'}}>{e?`${t.eng}年：${fmtCell(e)}`:'-'}</td>
-                                      <td style={{padding:'8px',textAlign:'center',color:t.dDays!==null&&t.dDays>=DAYS_WARN?'#dc2626':'#374151',fontWeight:t.dDays!==null&&t.dDays>=DAYS_WARN?'bold':'normal'}}>{fmtDaysAgo(t.dDays)}</td>
-                                      <td style={{padding:'8px',fontSize:'11px',color:'#6b7280'}}>{t.reasons.length>0?t.reasons.join('、'):'問題なし'}</td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                            <p style={{fontSize:'10px',color:'#6b7280',marginTop:'8px',textAlign:'right'}}>※ 2周完了 = 1周目◯ かつ やり直しも◯ になった項目数</p>
-                          </div>
-                        </div>
-                      );
+                        );
+                      }
                     })()}
                   </div>
                 </div>
