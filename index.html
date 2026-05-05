@@ -101,8 +101,64 @@ const HS_STUDENTS_DEFAULT = [];
 // 小中学生生徒リストはスプレッドシートから読み込み（個人情報保護のため）
 const JH_STUDENTS_DEFAULT = [];
 
-// 練ゼミノート（自習用）
-const RENZEMI_CHAPTERS = {"math1": [{"num": 1, "text": "正負の数の意味"}, {"num": 2, "text": "正負の数の四則計算と応用"}, {"num": 3, "text": "文字式の計算"}, {"num": 4, "text": "文字式の利用"}, {"num": 5, "text": "１次方程式の解法"}, {"num": 6, "text": "１次方程式の応用　代金等の問題"}, {"num": 7, "text": "１次方程式の応用　速さ、割合の問題"}], "math2": [{"num": 1, "text": "正負の数"}, {"num": 2, "text": "文字式"}, {"num": 3, "text": "１次方程式"}, {"num": 4, "text": "データの活用"}, {"num": 5, "text": "比例・反比例"}, {"num": 6, "text": "平面図形"}, {"num": 7, "text": "空間図形"}, {"num": 8, "text": "式の計算"}, {"num": 9, "text": "式の計算の利用"}, {"num": 10, "text": "連立方程式"}, {"num": 11, "text": "１次関数"}], "math3": [{"num": 1, "text": "式の計算"}, {"num": 2, "text": "方程式"}, {"num": 3, "text": "関数"}, {"num": 4, "text": "中学１年の図形"}, {"num": 5, "text": "中学２年の図形"}, {"num": 6, "text": "関数と図形"}, {"num": 7, "text": "データの活用"}, {"num": 8, "text": "確率"}, {"num": 9, "text": "式の展開・因数分解"}, {"num": 10, "text": "平方根"}, {"num": 11, "text": "２次方程式"}], "eng1": [{"num": 1, "text": "いろいろな単語"}, {"num": 2, "text": "I am～、You are～の文"}, {"num": 3, "text": "This is～の文"}, {"num": 4, "text": "He is～の文"}, {"num": 5, "text": "一般動詞"}, {"num": 6, "text": "一般動詞（３単元）"}, {"num": 7, "text": "複数形"}, {"num": 8, "text": "人称代名詞のまとめ"}, {"num": 9, "text": "時刻・曜日・月"}, {"num": 10, "text": "can"}, {"num": 11, "text": "一般動詞の過去形/be動詞の過去形"}], "eng2": [{"num": 1, "text": "一般動詞の過去形"}, {"num": 2, "text": "be動詞の過去形"}, {"num": 3, "text": "過去進行形"}, {"num": 4, "text": "未来（will・be going to）"}, {"num": 5, "text": "助動詞（may,mustなど）"}, {"num": 6, "text": "There is(are)～の文"}, {"num": 7, "text": "接続詞"}, {"num": 8, "text": "目的語と補語（SVOO,SVC）"}, {"num": 9, "text": "目的語と補語（SVOC）"}, {"num": 10, "text": "不定詞（名詞的用法）"}, {"num": 11, "text": "不定詞（副詞的用法）"}, {"num": 12, "text": "不定詞（形容詞的用法）"}, {"num": 13, "text": "対話文読解"}, {"num": 14, "text": "動名詞"}], "eng3": [{"num": 1, "text": "動詞と時制"}, {"num": 2, "text": "目的語と補語"}, {"num": 3, "text": "受動態"}, {"num": 4, "text": "現在完了"}, {"num": 5, "text": "比較"}, {"num": 6, "text": "接続詞"}, {"num": 7, "text": "不定詞"}, {"num": 8, "text": "動名詞"}, {"num": 9, "text": "不定詞を含む構文"}, {"num": 10, "text": "名刺を収縮する分詞"}, {"num": 11, "text": "長文に慣れよう①"}, {"num": 12, "text": "長文に慣れよう②"}, {"num": 13, "text": "長文に慣れよう③"}, {"num": 14, "text": "現在完了進行形"}]};
+// 練ゼミノート（自習用）v17: R/S/W × 数英 × 1〜3年 = 18テキスト
+//   RはRファイルから取り込み、S・Wは空配列（後日データ投入）
+const RENZEMI_BOOKS = {"math1R":[{"num":1,"text":"小学校の復習…数と計算"},{"num":2,"text":"小学校の復習…図形"},{"num":3,"text":"正負の数の意味"},{"num":4,"text":"正負の数の加法と減法"},{"num":5,"text":"正負の数の乗法と除法"},{"num":6,"text":"正負の数の四則計算"},{"num":7,"text":"素因数分解"}],"math1S":[],"math1W":[],"eng1R":[{"num":1,"text":"アルファベット"},{"num":2,"text":"単語"},{"num":3,"text":"英文のしくみと書き方"},{"num":4,"text":"I am~.Are you~?の文"},{"num":5,"text":"This is~.の文"},{"num":6,"text":"I like~.の文"},{"num":7,"text":"He is~.She is~.の文"},{"num":8,"text":"canを用いた文"},{"num":9,"text":"疑問詞を用いた疑問文"}],"eng1S":[],"eng1W":[],"math2R":[{"num":1,"text":"正負の数"},{"num":2,"text":"文字式"},{"num":3,"text":"１次方程式"},{"num":4,"text":"式の計算"},{"num":5,"text":"式の計算の利用"},{"num":6,"text":"比例・反比例"},{"num":7,"text":"平面図形"},{"num":8,"text":"空間図形"},{"num":9,"text":"データの活用"}],"math2S":[],"math2W":[],"eng2R":[{"num":1,"text":"be動詞・一般動詞"},{"num":2,"text":"現在進行形・can"},{"num":3,"text":"一般動詞の過去形"},{"num":4,"text":"be動詞の過去形"},{"num":5,"text":"疑問詞を使う疑問文"},{"num":6,"text":"過去進行形"},{"num":7,"text":"不定詞・動名詞"}],"eng2S":[],"eng2W":[],"math3R":[{"num":1,"text":"式の計算"},{"num":2,"text":"方程式"},{"num":3,"text":"確率、データの活用"},{"num":4,"text":"式の展開"},{"num":5,"text":"因数分解"},{"num":6,"text":"関数"},{"num":7,"text":"平行と合同"},{"num":8,"text":"三角形と四角形"}],"math3S":[],"math3W":[],"eng3R":[{"num":1,"text":"動詞と時制"},{"num":2,"text":"助動詞"},{"num":3,"text":"不定詞"},{"num":4,"text":"比較"},{"num":5,"text":"受動態"},{"num":6,"text":"現在完了"},{"num":7,"text":"文型"},{"num":8,"text":"文法問題演習"}],"eng3S":[],"eng3W":[]};
+// 学期マスタ
+const TERM_LIST = [{key:"R",label:"1学期(R)",full:"1学期(春・R)"},{key:"S",label:"2学期(S)",full:"2学期(夏・S)"},{key:"W",label:"3学期(W)",full:"3学期(冬・W)"}];
+const GRADE_LIST = ["1","2","3"];
+
+// v17ヘルパー：練ゼミ関連
+// 旧形式 {生徒名: {math:'1', eng:'none'}} を 新形式に変換
+//   新形式: {生徒名: {math:{taking, grade, rangeStart, rangeEnd}, eng:{...}}}
+function migrateRenzemiAssign(raw){
+  if(!raw||typeof raw!=='object') return {};
+  const out={};
+  Object.keys(raw).forEach(name=>{
+    const a=raw[name]||{};
+    out[name]={};
+    ['math','eng'].forEach(subj=>{
+      const v=a[subj];
+      if(v&&typeof v==='object'&&'taking' in v){
+        // 既に新形式
+        out[name][subj]={taking:!!v.taking,grade:v.grade||null,rangeStart:v.rangeStart||1,rangeEnd:v.rangeEnd||1};
+      }else if(v&&v!=='none'){
+        // 旧形式：'1'/'2'/'3' → 新形式に展開（範囲は全項目とする）
+        const grade=String(v);
+        // 旧アプリはRSWの概念がなかったので、Rとして扱う
+        const items=(typeof RENZEMI_BOOKS!=='undefined'?(RENZEMI_BOOKS[`${subj}${grade}R`]||[]):[]);
+        out[name][subj]={taking:true,grade,rangeStart:1,rangeEnd:items.length||1};
+      }else{
+        out[name][subj]={taking:false,grade:null,rangeStart:1,rangeEnd:1};
+      }
+    });
+  });
+  return out;
+}
+// 進捗キーを構築：生徒名|教科|学年学期|項目番号
+function renzemiKey(name,subj,gradeTerm,num){return `${name}|${subj}|${gradeTerm}|${num}`;}
+// 進捗値を取り出し（旧形式：生徒名|教科|学年|項目 もR扱いでフォールバック）
+function getRenzemiProg(progress,name,subj,gradeTerm,num){
+  if(!progress) return null;
+  const k=renzemiKey(name,subj,gradeTerm,num);
+  if(progress[k]) return progress[k];
+  // 旧形式フォールバック（学期Rのとき）
+  if(gradeTerm.endsWith('R')){
+    const grade=gradeTerm.replace('R','');
+    const oldK=`${name}|${subj}|${grade}|${num}`;
+    if(progress[oldK]) return progress[oldK];
+  }
+  return null;
+}
+// 期限キー：学年学期 例 '1R'
+function deadlineKey(grade,term){return `${grade}${term}`;}
+// 期限を取得：教室長が登録した「学年×学期」単位
+function getDeadline(deadlines,grade,term,subj){
+  if(!deadlines) return '';
+  const d=deadlines[deadlineKey(grade,term)];
+  if(!d) return '';
+  return d[subj]||'';
+}
 
 // 高校生チャート関連定数
 const NYUMON_SETS = {
@@ -2584,7 +2640,7 @@ function StudentReport({data,onClose}){
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,hsRecords,hsEngAssign,hsEngRecords,jhRecords,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -2613,6 +2669,8 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   const [editSchoolName,setEditSchoolName]=useState('');
   const [savingSchool,setSavingSchool]=useState('');
   const [showRenzemiOverview,setShowRenzemiOverview]=useState(false);
+  // v17: 練ゼミ期限編集モーダル
+  const [showRenzemiDeadlineModal,setShowRenzemiDeadlineModal]=useState(false);
   // 高校生設定の数学・英語タブ切替
   const [subjectTab,setSubjectTab]=useState('math'); // 'math' | 'eng'
   // 小中学生設定タブ用
@@ -3298,12 +3356,27 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 );
               })()}
 
-              {/* 練ゼミ進捗全員一覧ボタン */}
-              <div style={{display:'flex',justifyContent:'flex-end',marginBottom:'8px'}}>
-                <button onClick={()=>setShowRenzemiOverview(true)}
-                  style={{background:'#d97706',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
-                  📓 練ゼミノート進捗一覧を見る
-                </button>
+              {/* 練ゼミ：学期切替・期限一括・進捗一覧ボタン v17 */}
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px',gap:'8px',flexWrap:'wrap'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'6px',background:'#fef3c7',border:'1px solid #fbbf24',borderRadius:'8px',padding:'4px 10px'}}>
+                  <span style={{fontSize:'12px',color:'#92400e',fontWeight:'bold'}}>📓 練ゼミ現在学期:</span>
+                  {TERM_LIST.map(t=>(
+                    <button key={t.key} onClick={()=>jhSaveCurrentTerm(t.key)}
+                      style={{padding:'3px 10px',borderRadius:'12px',border:'none',background:currentTerm===t.key?'#d97706':'transparent',color:currentTerm===t.key?'white':'#92400e',cursor:'pointer',fontSize:'11px',fontWeight:'bold'}}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:'flex',gap:'6px'}}>
+                  <button onClick={()=>setShowRenzemiDeadlineModal(true)}
+                    style={{background:'#0891b2',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    📅 期限を一括登録
+                  </button>
+                  <button onClick={()=>setShowRenzemiOverview(true)}
+                    style={{background:'#d97706',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    📓 進捗一覧を見る
+                  </button>
+                </div>
               </div>
 
               {/* 生徒タブ */}
@@ -3474,35 +3547,64 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   </button>
                 </div>
 
-                {/* 練ゼミノート設定 */}
+                {/* 練ゼミノート設定 v17 */}
                 <div style={{marginBottom:'12px',padding:'12px',background:'#fef3c7',borderRadius:'10px',border:'1px solid #fbbf24'}}>
-                  <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📓 練ゼミノート設定</p>
-                  <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px'}}>自習用テキスト。生徒ごとに数学・英語それぞれ学年を設定（受講なし可）</p>
+                  <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📓 練ゼミノート設定（現在学期: {currentTerm}）</p>
+                  <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px'}}>自習用テキスト。教科ごとに「受講するか／学年／範囲（紗耶佳先生選定）」を設定</p>
                   {(()=>{
                     const sName=stripGrade(jhFullName);
-                    const assign=jhRenzemiAssign[sName]||{math:'none',eng:'none'};
-                    const renzemiOptions=[
-                      {value:'none',label:'登録なし'},
-                      {value:'1',label:'1年'},
-                      {value:'2',label:'2年'},
-                      {value:'3',label:'3年'},
+                    const assign=jhRenzemiAssign[sName]||{};
+                    const cur={
+                      math:(assign.math&&typeof assign.math==='object')?assign.math:{taking:false,grade:null,rangeStart:1,rangeEnd:1},
+                      eng:(assign.eng&&typeof assign.eng==='object')?assign.eng:{taking:false,grade:null,rangeStart:1,rangeEnd:1},
+                    };
+                    const subjConfigs=[
+                      {key:'math',label:'📐 数学',color:'#ea580c',bg:'#fff7ed',border:'#fdba74'},
+                      {key:'eng',label:'📖 英語',color:'#2563eb',bg:'#eff6ff',border:'#93c5fd'},
                     ];
                     return(
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px'}}>
-                        <div>
-                          <p style={{fontSize:'11px',color:'#78350f',marginBottom:'2px',fontWeight:'bold'}}>📐 数学</p>
-                          <select value={assign.math} onChange={e=>jhSaveRenzemiAssign(sName,'math',e.target.value)}
-                            style={{width:'100%',border:'1px solid #fbbf24',borderRadius:'6px',padding:'6px',fontSize:'13px',boxSizing:'border-box',background:'white'}}>
-                            {renzemiOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <p style={{fontSize:'11px',color:'#78350f',marginBottom:'2px',fontWeight:'bold'}}>📖 英語</p>
-                          <select value={assign.eng} onChange={e=>jhSaveRenzemiAssign(sName,'eng',e.target.value)}
-                            style={{width:'100%',border:'1px solid #fbbf24',borderRadius:'6px',padding:'6px',fontSize:'13px',boxSizing:'border-box',background:'white'}}>
-                            {renzemiOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-                          </select>
-                        </div>
+                        {subjConfigs.map(sc=>{
+                          const v=cur[sc.key];
+                          const items=v.grade?(RENZEMI_BOOKS[`${sc.key}${v.grade}${currentTerm}`]||[]):[];
+                          const maxNum=items.length||1;
+                          return(
+                            <div key={sc.key} style={{background:sc.bg,border:`1px solid ${sc.border}`,borderRadius:'8px',padding:'8px'}}>
+                              <p style={{fontSize:'12px',color:sc.color,marginBottom:'6px',fontWeight:'bold'}}>{sc.label}</p>
+                              <label style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'6px',cursor:'pointer',fontSize:'12px'}}>
+                                <input type="checkbox" checked={!!v.taking} onChange={e=>jhSaveRenzemiAssign(sName,sc.key,{...v,taking:e.target.checked})}/>
+                                <span style={{fontWeight:'bold'}}>この生徒は{sc.label.replace(/^[^ ]+ /,'')}を受講する</span>
+                              </label>
+                              {v.taking&&(
+                                <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
+                                  <div>
+                                    <label style={{fontSize:'11px',color:'#374151',marginRight:'4px'}}>学年:</label>
+                                    <select value={v.grade||''} onChange={e=>{
+                                      const g=e.target.value||null;
+                                      const newItems=g?(RENZEMI_BOOKS[`${sc.key}${g}${currentTerm}`]||[]):[];
+                                      jhSaveRenzemiAssign(sName,sc.key,{...v,grade:g,rangeStart:1,rangeEnd:newItems.length||1});
+                                    }} style={{padding:'3px 6px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}>
+                                      <option value="">選択</option>
+                                      {GRADE_LIST.map(g=><option key={g} value={g}>{g}年</option>)}
+                                    </select>
+                                  </div>
+                                  {v.grade&&(
+                                    <div>
+                                      <label style={{fontSize:'11px',color:'#374151'}}>範囲:</label>
+                                      <input type="number" min="1" max={maxNum} value={v.rangeStart||1} onChange={e=>jhSaveRenzemiAssign(sName,sc.key,{...v,rangeStart:Math.max(1,Math.min(maxNum,parseInt(e.target.value)||1))})} style={{width:'46px',padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px',marginLeft:'4px'}}/>
+                                      <span style={{fontSize:'11px',margin:'0 4px'}}>〜</span>
+                                      <input type="number" min="1" max={maxNum} value={v.rangeEnd||1} onChange={e=>jhSaveRenzemiAssign(sName,sc.key,{...v,rangeEnd:Math.max(1,Math.min(maxNum,parseInt(e.target.value)||1))})} style={{width:'46px',padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}/>
+                                      <span style={{fontSize:'10px',color:'#6b7280',marginLeft:'4px'}}>(全{maxNum}項目)</span>
+                                    </div>
+                                  )}
+                                  {v.grade&&items.length===0&&(
+                                    <p style={{fontSize:'10px',color:'#dc2626'}}>※{currentTerm}テキストはまだ未投入</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })()}
@@ -3527,73 +3629,226 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
               {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange} defaultSchool={getSchoolOf(stripGrade(jhFullName))} defaultGrade={activeGrade}/>}
               {jhShowDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{onSaveDirective(k,v);setJhShowDirectiveModal(false);}} onClose={()=>setJhShowDirectiveModal(false)}/>}
 
-              {/* 練ゼミ進捗全員一覧モーダル */}
+              {/* v17: 練ゼミ期限一括登録モーダル */}
+              {showRenzemiDeadlineModal&&(
+                <div onClick={()=>setShowRenzemiDeadlineModal(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'20px',maxWidth:'600px',width:'100%',maxHeight:'90vh',overflow:'auto'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+                      <p style={{fontWeight:'bold',fontSize:'16px',color:'#0e7490'}}>📅 練ゼミノート期限一括登録</p>
+                      <button onClick={()=>setShowRenzemiDeadlineModal(false)} style={{background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer'}}>閉じる</button>
+                    </div>
+                    <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'12px'}}>※学年×学期×教科ごとに期限日を設定。同じ学年×学期×教科を使う生徒全員の講師アプリに反映されます。</p>
+                    {TERM_LIST.map(t=>(
+                      <div key={t.key} style={{marginBottom:'14px',padding:'10px',background:'#f0f9ff',border:'1px solid #7dd3fc',borderRadius:'8px'}}>
+                        <p style={{fontWeight:'bold',fontSize:'13px',color:'#0c4a6e',marginBottom:'8px'}}>{t.full}</p>
+                        <table style={{width:'100%',fontSize:'12px',borderCollapse:'collapse'}}>
+                          <thead>
+                            <tr>
+                              <th style={{padding:'4px',textAlign:'left',color:'#6b7280',fontSize:'11px'}}>学年</th>
+                              <th style={{padding:'4px',textAlign:'left',color:'#ea580c',fontSize:'11px'}}>📐 数学</th>
+                              <th style={{padding:'4px',textAlign:'left',color:'#2563eb',fontSize:'11px'}}>📖 英語</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {GRADE_LIST.map(g=>{
+                              const dlMath=getDeadline(jhRenzemiDeadlines,g,t.key,'math');
+                              const dlEng=getDeadline(jhRenzemiDeadlines,g,t.key,'eng');
+                              return(
+                                <tr key={g}>
+                                  <td style={{padding:'4px',fontWeight:'bold'}}>{g}年</td>
+                                  <td style={{padding:'4px'}}>
+                                    <input type="date" value={dlMath} onChange={e=>jhSaveRenzemiDeadline(g,t.key,'math',e.target.value)}
+                                      style={{padding:'4px 6px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}/>
+                                  </td>
+                                  <td style={{padding:'4px'}}>
+                                    <input type="date" value={dlEng} onChange={e=>jhSaveRenzemiDeadline(g,t.key,'eng',e.target.value)}
+                                      style={{padding:'4px 6px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}/>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ))}
+                    <div style={{textAlign:'right',marginTop:'12px'}}>
+                      <button onClick={()=>setShowRenzemiDeadlineModal(false)}
+                        style={{background:'#0891b2',color:'white',border:'none',borderRadius:'6px',padding:'8px 18px',fontSize:'13px',cursor:'pointer',fontWeight:'bold'}}>
+                        OK
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 練ゼミ進捗全員一覧モーダル（v16: 停滞アラート＋周回可視化） */}
               {showRenzemiOverview&&(
                 <div onClick={()=>setShowRenzemiOverview(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
-                  <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'20px',maxWidth:'1100px',width:'100%',maxHeight:'90vh',overflow:'auto'}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',padding:'20px',maxWidth:'1200px',width:'100%',maxHeight:'90vh',overflow:'auto'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
-                      <p style={{fontWeight:'bold',fontSize:'16px',color:'#92400e'}}>📓 練ゼミノート進捗一覧</p>
+                      <p style={{fontWeight:'bold',fontSize:'16px',color:'#92400e'}}>📓 練ゼミノート進捗ダッシュボード</p>
                       <button onClick={()=>setShowRenzemiOverview(false)} style={{background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer'}}>閉じる</button>
                     </div>
                     {(()=>{
-                      // 練ゼミ割当てがある生徒だけ抽出
+                      // ── v16: 停滞判定の閾値 ──
+                      const DAYS_DANGER=14;
+                      const DAYS_WARN=7;
+                      const COUNT_DANGER_X=3;
+                      const COUNT_WARN_TRI=5;
+                      const now=new Date();
+                      const daysSince=iso=>{
+                        if(!iso) return null;
+                        const t=new Date(iso).getTime();
+                        if(isNaN(t)) return null;
+                        return Math.floor((now.getTime()-t)/(1000*60*60*24));
+                      };
+                      const fmtDaysAgo=d=>{
+                        if(d===null) return '記録なし';
+                        if(d===0) return '今日';
+                        if(d===1) return '昨日';
+                        return `${d}日前`;
+                      };
+                      // 練ゼミ割当てがある生徒だけ抽出（v17: 新形式 taking/grade ベース）
                       const targets=jhAllStudents.map(s=>{
                         const n=stripGrade(s);
                         const a=jhRenzemiAssign[n]||{};
-                        const hasMath=a.math&&a.math!=='none';
-                        const hasEng=a.eng&&a.eng!=='none';
+                        const hasMath=a.math&&a.math.taking&&a.math.grade;
+                        const hasEng=a.eng&&a.eng.taking&&a.eng.grade;
                         if(!hasMath&&!hasEng) return null;
-                        return {fullName:s,name:n,grade:extractGrade(s),math:hasMath?a.math:null,eng:hasEng?a.eng:null};
+                        return {fullName:s,name:n,grade:extractGrade(s),math:hasMath?a.math.grade:null,eng:hasEng?a.eng.grade:null};
                       }).filter(Boolean);
                       if(targets.length===0) return(
                         <p style={{color:'#9ca3af',textAlign:'center',padding:'40px'}}>練ゼミノートが割り当てられている生徒がいません</p>
                       );
+                      // 1教科ぶんの統計（v17暫定: 現在学期Rのみ集計。Phase 2で全学期対応へ）
                       const calcStats=(name,subjKey,grade)=>{
-                        const items=RENZEMI_CHAPTERS[`${subjKey}${grade}`]||[];
-                        let firstDone=0,redoDone=0;
+                        const term='R'; // 暫定：現在学期Rのみ。Phase 2でcurrentTerm参照に
+                        const items=RENZEMI_BOOKS[`${subjKey}${grade}${term}`]||[];
+                        let firstDone=0,redoDone=0,bothDone=0,xCount=0,triCount=0;
+                        let latestIso=null;
                         items.forEach(it=>{
-                          const k=`${name}|${subjKey}|${grade}|${it.num}`;
-                          const p=jhRenzemiProgress[k]||{};
+                          const p=getRenzemiProg(jhRenzemiProgress,name,subjKey,`${grade}${term}`,it.num)||{};
                           if(p.first==='◯') firstDone++;
                           if(p.redo==='◯') redoDone++;
+                          if(p.first==='◯'&&p.redo==='◯') bothDone++;
+                          if(p.first==='✗'||p.redo==='✗') xCount++;
+                          if(p.first==='△'||p.redo==='△') triCount++;
+                          if(p.updatedAt){
+                            if(!latestIso||p.updatedAt>latestIso) latestIso=p.updatedAt;
+                          }
                         });
-                        return {total:items.length,firstDone,redoDone};
+                        return {total:items.length,firstDone,redoDone,bothDone,xCount,triCount,latestIso};
                       };
+                      // 生徒1人の総合判定
+                      const judgeStudent=(t)=>{
+                        const m=t.math?calcStats(t.name,'math',t.math):null;
+                        const e=t.eng?calcStats(t.name,'eng',t.eng):null;
+                        const xTotal=(m?m.xCount:0)+(e?e.xCount:0);
+                        const triTotal=(m?m.triCount:0)+(e?e.triCount:0);
+                        let latest=null;
+                        [m,e].forEach(s=>{
+                          if(s&&s.latestIso){
+                            if(!latest||s.latestIso>latest) latest=s.latestIso;
+                          }
+                        });
+                        const dDays=daysSince(latest);
+                        let signal='🟢',label='順調',color='#10b981',bg='#d1fae5';
+                        const reasons=[];
+                        if(dDays===null){
+                          signal='🟡';label='記録待ち';color='#d97706';bg='#fef3c7';
+                          reasons.push('まだ記録なし');
+                        }else{
+                          if(dDays>=DAYS_DANGER){signal='🔴';label='停滞';color='#dc2626';bg='#fee2e2';reasons.push(`${dDays}日更新なし`);}
+                          else if(dDays>=DAYS_WARN){signal='🟡';label='注意';color='#d97706';bg='#fef3c7';reasons.push(`${dDays}日更新なし`);}
+                          if(xTotal>=COUNT_DANGER_X){signal='🔴';label='停滞';color='#dc2626';bg='#fee2e2';reasons.push(`✗放置${xTotal}個`);}
+                          else if(triTotal>=COUNT_WARN_TRI&&signal==='🟢'){signal='🟡';label='注意';color='#d97706';bg='#fef3c7';reasons.push(`△放置${triTotal}個`);}
+                        }
+                        return {m,e,signal,label,color,bg,reasons,latest,dDays};
+                      };
+                      const judged=targets.map(t=>({...t,...judgeStudent(t)}));
+                      const sigOrder={'🔴':0,'🟡':1,'🟢':2};
+                      const sorted=[...judged].sort((a,b)=>sigOrder[a.signal]-sigOrder[b.signal]);
+                      const cntDanger=judged.filter(j=>j.signal==='🔴').length;
+                      const cntWarn=judged.filter(j=>j.signal==='🟡').length;
+                      const cntGood=judged.filter(j=>j.signal==='🟢').length;
+                      let totalItems=0,totalBoth=0;
+                      judged.forEach(j=>{
+                        if(j.m){totalItems+=j.m.total;totalBoth+=j.m.bothDone;}
+                        if(j.e){totalItems+=j.e.total;totalBoth+=j.e.bothDone;}
+                      });
+                      const bothPct=totalItems>0?Math.round(totalBoth/totalItems*100):0;
                       return(
-                        <div style={{overflowX:'auto'}}>
-                          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
-                            <thead>
-                              <tr style={{background:'#fef3c7'}}>
-                                <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #fbbf24'}}>生徒名</th>
-                                <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24'}}>学年</th>
-                                <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#ea580c'}}>📐 数学（割当）</th>
-                                <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#ea580c'}}>1周目</th>
-                                <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#ea580c'}}>やり直し</th>
-                                <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#2563eb'}}>📖 英語（割当）</th>
-                                <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#2563eb'}}>1周目</th>
-                                <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#2563eb'}}>やり直し</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {targets.map((t,i)=>{
-                                const m2=t.math?calcStats(t.name,'math',t.math):null;
-                                const e=t.eng?calcStats(t.name,'eng',t.eng):null;
-                                return(
-                                  <tr key={i} style={{borderBottom:'1px solid #f3f4f6'}}>
-                                    <td style={{padding:'8px',fontWeight:'bold'}}>{t.name}</td>
-                                    <td style={{padding:'8px',textAlign:'center'}}>{t.grade}</td>
-                                    <td style={{padding:'8px',textAlign:'center'}}>{t.math?t.math+'年':'-'}</td>
-                                    <td style={{padding:'8px',textAlign:'center'}}>{m2?`${m2.firstDone}/${m2.total} (${Math.round(m2.firstDone/m2.total*100)}%)`:'-'}</td>
-                                    <td style={{padding:'8px',textAlign:'center'}}>{m2?`${m2.redoDone}/${m2.total}`:'-'}</td>
-                                    <td style={{padding:'8px',textAlign:'center'}}>{t.eng?t.eng+'年':'-'}</td>
-                                    <td style={{padding:'8px',textAlign:'center'}}>{e?`${e.firstDone}/${e.total} (${Math.round(e.firstDone/e.total*100)}%)`:'-'}</td>
-                                    <td style={{padding:'8px',textAlign:'center'}}>{e?`${e.redoDone}/${e.total}`:'-'}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                          <p style={{fontSize:'10px',color:'#6b7280',marginTop:'8px',textAlign:'right'}}>※ ◯がついた数 / 全項目数</p>
+                        <div>
+                          {/* ── サマリーカード ── */}
+                          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:'8px',marginBottom:'16px'}}>
+                            <div style={{background:'#f3f4f6',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                              <p style={{fontSize:'11px',color:'#6b7280',marginBottom:'4px'}}>対象生徒</p>
+                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#374151'}}>{targets.length}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                            </div>
+                            <div style={{background:'#fee2e2',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                              <p style={{fontSize:'11px',color:'#991b1b',marginBottom:'4px'}}>🔴 停滞中</p>
+                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#dc2626'}}>{cntDanger}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                            </div>
+                            <div style={{background:'#fef3c7',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                              <p style={{fontSize:'11px',color:'#92400e',marginBottom:'4px'}}>🟡 注意</p>
+                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#d97706'}}>{cntWarn}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                            </div>
+                            <div style={{background:'#d1fae5',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                              <p style={{fontSize:'11px',color:'#065f46',marginBottom:'4px'}}>🟢 順調</p>
+                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#10b981'}}>{cntGood}<span style={{fontSize:'12px',marginLeft:'2px'}}>名</span></p>
+                            </div>
+                            <div style={{background:'#dbeafe',borderRadius:'8px',padding:'12px',textAlign:'center'}}>
+                              <p style={{fontSize:'11px',color:'#1e40af',marginBottom:'4px'}}>全体2周完了率</p>
+                              <p style={{fontSize:'22px',fontWeight:'bold',color:'#2563eb'}}>{bothPct}<span style={{fontSize:'12px',marginLeft:'2px'}}>%</span></p>
+                            </div>
+                          </div>
+                          {/* ── 凡例 ── */}
+                          <div style={{background:'#f9fafb',borderRadius:'6px',padding:'8px 12px',marginBottom:'12px',fontSize:'11px',color:'#6b7280'}}>
+                            <span style={{marginRight:'12px'}}>🔴 停滞：{DAYS_DANGER}日以上更新なし／✗放置{COUNT_DANGER_X}個以上</span>
+                            <span style={{marginRight:'12px'}}>🟡 注意：{DAYS_WARN}日以上更新なし／△放置{COUNT_WARN_TRI}個以上／記録待ち</span>
+                            <span>🟢 順調</span>
+                          </div>
+                          {/* ── 進捗テーブル ── */}
+                          <div style={{overflowX:'auto'}}>
+                            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
+                              <thead>
+                                <tr style={{background:'#fef3c7'}}>
+                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',width:'90px'}}>状態</th>
+                                  <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #fbbf24'}}>生徒名</th>
+                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24'}}>学年</th>
+                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#ea580c'}}>📐 数学<br/><span style={{fontSize:'10px',fontWeight:'normal'}}>1周目／やり直し／2周完了</span></th>
+                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24',color:'#2563eb'}}>📖 英語<br/><span style={{fontSize:'10px',fontWeight:'normal'}}>1周目／やり直し／2周完了</span></th>
+                                  <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #fbbf24'}}>最終更新</th>
+                                  <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #fbbf24'}}>判定理由</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sorted.map((t,i)=>{
+                                  const m=t.m,e=t.e;
+                                  const fmtCell=(s)=>{
+                                    if(!s) return '-';
+                                    const fp=Math.round(s.firstDone/s.total*100);
+                                    const bp=Math.round(s.bothDone/s.total*100);
+                                    return `${s.firstDone}/${s.total}(${fp}%)／${s.redoDone}/${s.total}／${s.bothDone}/${s.total}(${bp}%)`;
+                                  };
+                                  return(
+                                    <tr key={i} style={{borderBottom:'1px solid #f3f4f6',background:t.signal==='🔴'?'#fef2f2':t.signal==='🟡'?'#fffbeb':'white'}}>
+                                      <td style={{padding:'8px',textAlign:'center'}}>
+                                        <span style={{display:'inline-block',background:t.bg,color:t.color,padding:'3px 8px',borderRadius:'10px',fontSize:'11px',fontWeight:'bold',whiteSpace:'nowrap'}}>{t.signal} {t.label}</span>
+                                      </td>
+                                      <td style={{padding:'8px',fontWeight:'bold'}}>{t.name}</td>
+                                      <td style={{padding:'8px',textAlign:'center'}}>{t.grade}</td>
+                                      <td style={{padding:'8px',textAlign:'center'}}>{m?`${t.math}年：${fmtCell(m)}`:'-'}</td>
+                                      <td style={{padding:'8px',textAlign:'center'}}>{e?`${t.eng}年：${fmtCell(e)}`:'-'}</td>
+                                      <td style={{padding:'8px',textAlign:'center',color:t.dDays!==null&&t.dDays>=DAYS_WARN?'#dc2626':'#374151',fontWeight:t.dDays!==null&&t.dDays>=DAYS_WARN?'bold':'normal'}}>{fmtDaysAgo(t.dDays)}</td>
+                                      <td style={{padding:'8px',fontSize:'11px',color:'#6b7280'}}>{t.reasons.length>0?t.reasons.join('、'):'問題なし'}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                            <p style={{fontSize:'10px',color:'#6b7280',marginTop:'8px',textAlign:'right'}}>※ 2周完了 = 1周目◯ かつ やり直しも◯ になった項目数</p>
+                          </div>
                         </div>
                       );
                     })()}
@@ -3929,9 +4184,17 @@ function App(){
   const [showDirectiveModal,setShowDirectiveModal]=useState(false);
   const [showHsAdjustModal,setShowHsAdjustModal]=useState(false);
   const [jhSchoolOverrides,setJhSchoolOverrides]=useState({});
-  // 練ゼミノート関連
-  const [jhRenzemiAssign,setJhRenzemiAssign]=useState({}); // {生徒名: {math:'none|1|2|3', eng:'none|1|2|3'}}
-  const [jhRenzemiProgress,setJhRenzemiProgress]=useState({}); // {生徒名_subj_num: {first:bool, redo:bool}}
+  // 練ゼミノート関連（v17: RSW構造）
+  // jhRenzemiAssign: {生徒名: {math:{taking,grade,rangeStart,rangeEnd}, eng:{...}}}
+  //   旧形式 {math:'none|1|2|3'} は読み込み時に自動マイグレーション
+  const [jhRenzemiAssign,setJhRenzemiAssign]=useState({});
+  // jhRenzemiProgress: {生徒名|subj|gradeTerm(例:1R)|num: {first,redo,checkedAt,checkedBy,updatedAt}}
+  //   旧形式 (生徒名|subj|grade|num) も読み込み時にgradeを「{grade}R」として扱う
+  const [jhRenzemiProgress,setJhRenzemiProgress]=useState({});
+  // jhRenzemiDeadlines: {gradeTerm(例:1R): {math:'YYYY-MM-DD', eng:'YYYY-MM-DD'}}
+  const [jhRenzemiDeadlines,setJhRenzemiDeadlines]=useState({});
+  // currentTerm: 教室全体の現在学期 'R'|'S'|'W'
+  const [currentTerm,setCurrentTerm]=useState('R');
   // 高校生英文法
   const [hsEngAssign,setHsEngAssign]=useState({}); // {生徒名: {set:'eng_oiwa|eng_hijii|none', from:1, to:99, startDate:'', deadline:''}}
   const [hsEngRecords,setHsEngRecords]=useState({}); // {生徒名: {item_id: {status:'未|◯|△|✗', askedQs:[1,3,5]}}}
@@ -3960,11 +4223,14 @@ function App(){
     const cSov=jhGetCached('schoolOverrides',{});
     const cRzA=jhGetCached('renzemiAssign',{});
     const cRzP=jhGetCached('renzemiProgress',{});
+    const cRzD=jhGetCached('renzemiDeadlines',{});
+    const cCurTerm=jhGetCached('currentTerm','R');
     const cEngA=hsGetCached('koukou:engAssign',{});
     const cEngR=hsGetCached('koukou:engRecords',{});
     setTeachers(cT);setHsStudents(cHs);setJhStudents(cJh);
     setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);setJhSchoolOverrides(cSov);
-    setJhRenzemiAssign(cRzA);setJhRenzemiProgress(cRzP);
+    setJhRenzemiAssign(migrateRenzemiAssign(cRzA));setJhRenzemiProgress(cRzP);
+    setJhRenzemiDeadlines(cRzD);setCurrentTerm(cCurTerm||'R');
     setHsEngAssign(cEngA);setHsEngRecords(cEngR);
     setPhase('teacher');  // すぐ遷移
     // ② バックグラウンドで最新データを取得してUIを更新（全データ並列で1ラウンド）
@@ -3977,8 +4243,10 @@ function App(){
       ['directives',()=>jhGet('directives',cDv),setJhDirectives],
       ['skipItems',()=>jhGet('skipItems',cSk),setJhSkipItems],
       ['schoolOverrides',()=>jhGet('schoolOverrides',cSov),setJhSchoolOverrides],
-      ['renzemiAssign',()=>jhGet('renzemiAssign',cRzA),setJhRenzemiAssign],
+      ['renzemiAssign',()=>jhGet('renzemiAssign',cRzA),(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
       ['renzemiProgress',()=>jhGet('renzemiProgress',cRzP),setJhRenzemiProgress],
+      ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
+      ['currentTerm',()=>jhGet('currentTerm',cCurTerm),(d)=>setCurrentTerm(d||'R')],
       ['engAssign',()=>hsGet('koukou:engAssign',cEngA),setHsEngAssign],
       ['engRecords',()=>hsGet('koukou:engRecords',cEngR),setHsEngRecords],
     ];
@@ -4117,32 +4385,53 @@ function App(){
     await hsSet('koukou:engRecords',updated);
   };
 
-  // 練ゼミ：生徒の学年割り当て保存
-  const jhSaveRenzemiAssign=async(name,subj,grade)=>{
+  // 練ゼミ：生徒の受講設定保存（v17: subjConfig は {taking,grade,rangeStart,rangeEnd} のオブジェクト）
+  const jhSaveRenzemiAssign=async(name,subj,subjConfig)=>{
     let updated;
     setJhRenzemiAssign(prev=>{
-      const cur=prev[name]||{math:'none',eng:'none'};
-      updated={...prev,[name]:{...cur,[subj]:grade}};
+      const cur=prev[name]||{};
+      updated={...prev,[name]:{...cur,[subj]:subjConfig}};
       return updated;
     });
     await new Promise(r=>setTimeout(r,0));
     await jhSet('renzemiAssign',updated);
-    flash(`📓 練ゼミノート（${subj==='math'?'数学':'英語'}）の学年を更新しました`);
+    flash(`📓 練ゼミ（${subj==='math'?'数学':'英語'}）設定を更新しました`);
   };
-  // 練ゼミ：進捗チェック保存
-  const jhSaveRenzemiProgress=async(name,subj,grade,num,col,value)=>{
-    // col: 'first' | 'redo'
-    // value: '未'|'◯'|'△'|'✗' （'未'なら null扱い）
-    const key=`${name}|${subj}|${grade}|${num}`;
+  // 練ゼミ：進捗チェック保存（v17: gradeTermキー、checkedAt/checkedBy 自動記録）
+  const jhSaveRenzemiProgress=async(name,subj,gradeTerm,num,col,value,teacherName)=>{
+    const key=renzemiKey(name,subj,gradeTerm,num);
+    const today=new Date();
+    const todayStr=today.toISOString().slice(0,10);
+    const nowIso=today.toISOString();
     let updated;
     setJhRenzemiProgress(prev=>{
       const cur=prev[key]||{first:'未',redo:'未'};
-      const newVal={...cur,[col]:value};
+      const newVal={...cur,[col]:value,updatedAt:nowIso,checkedAt:todayStr,checkedBy:teacherName||cur.checkedBy||''};
       updated={...prev,[key]:newVal};
       return updated;
     });
     await new Promise(r=>setTimeout(r,0));
     await jhSet('renzemiProgress',updated);
+  };
+  // 練ゼミ：期限保存（学年×学期×教科）
+  const jhSaveRenzemiDeadline=async(grade,term,subj,date)=>{
+    const k=deadlineKey(grade,term);
+    let updated;
+    setJhRenzemiDeadlines(prev=>{
+      const cur=prev[k]||{};
+      updated={...prev,[k]:{...cur,[subj]:date}};
+      return updated;
+    });
+    await new Promise(r=>setTimeout(r,0));
+    await jhSet('renzemiDeadlines',updated);
+    flash(`📅 ${grade}年${term} ${subj==='math'?'数学':'英語'}の期限を保存しました`);
+  };
+  // 学期切替（教室全体）
+  const jhSaveCurrentTerm=async(term)=>{
+    setCurrentTerm(term);
+    await new Promise(r=>setTimeout(r,0));
+    await jhSet('currentTerm',term);
+    flash(`📅 現在学期を ${term} に切替えました`);
   };
 
   const jhSaveSchool=async(name,school)=>{
@@ -4300,6 +4589,11 @@ function App(){
       jhSaveSchool={jhSaveSchool}
       jhRenzemiAssign={jhRenzemiAssign}
       jhSaveRenzemiAssign={jhSaveRenzemiAssign}
+      jhRenzemiProgress={jhRenzemiProgress}
+      jhRenzemiDeadlines={jhRenzemiDeadlines}
+      jhSaveRenzemiDeadline={jhSaveRenzemiDeadline}
+      currentTerm={currentTerm}
+      jhSaveCurrentTerm={jhSaveCurrentTerm}
       hsRecords={hsRecords}
       hsEngAssign={hsEngAssign}
       hsEngRecords={hsEngRecords}
@@ -5131,45 +5425,105 @@ function App(){
                 );
               })()}
 
-              {/* 練ゼミノート専用UI */}
+              {/* 練ゼミノート専用UI（v17: 範囲フィルタ・期限表示・自動記録） */}
               {activeSubj==='練ゼミ'&&(()=>{
                 const sN=stripGrade(jhFullName);
-                const a=jhRenzemiAssign[sN]||{math:'none',eng:'none'};
+                const a=jhRenzemiAssign[sN]||{};
+                // 旧形式互換
+                const normalize=v=>{
+                  if(v&&typeof v==='object'&&'taking' in v) return v;
+                  if(v&&v!=='none'){const items=RENZEMI_BOOKS[`math${v}${currentTerm}`]||[];return {taking:true,grade:String(v),rangeStart:1,rangeEnd:items.length||1};}
+                  return {taking:false,grade:null,rangeStart:1,rangeEnd:1};
+                };
                 const STATUS_BG={'未':'#f3f4f6','◯':'#d1fae5','△':'#fef3c7','✗':'#fee2e2'};
                 const STATUS_COL={'未':'#9ca3af','◯':'#065f46','△':'#92400e','✗':'#991b1b'};
-                const cycleNext=v=>({未:'◯','◯':'△','△':'✗','✗':'未'}[v]||'未');
-                const renderSection=(subjKey,subjLabel,grade,bgColor,borderColor,headColor)=>{
-                  if(!grade||grade==='none') return null;
-                  const items=RENZEMI_CHAPTERS[`${subjKey}${grade}`]||[];
+                const STATUS_ACTIVE_BG={'未':'#9ca3af','◯':'#10b981','△':'#f59e0b','✗':'#ef4444'};
+                const STATUS_OPTS=['未','◯','△','✗'];
+                // 残日数算出
+                const daysToDeadline=(deadline)=>{
+                  if(!deadline) return null;
+                  const t=new Date(deadline+'T23:59:59').getTime();
+                  if(isNaN(t)) return null;
+                  return Math.ceil((t-Date.now())/(1000*60*60*24));
+                };
+                const renderSection=(subjKey,subjLabel,subjConf,headColor,borderColor)=>{
+                  if(!subjConf||!subjConf.taking||!subjConf.grade) return null;
+                  const grade=subjConf.grade;
+                  const gradeTerm=`${grade}${currentTerm}`;
+                  const allItems=RENZEMI_BOOKS[`${subjKey}${gradeTerm}`]||[];
+                  // 範囲フィルタ
+                  const items=allItems.filter(it=>it.num>=(subjConf.rangeStart||1)&&it.num<=(subjConf.rangeEnd||allItems.length));
+                  const deadline=getDeadline(jhRenzemiDeadlines,grade,currentTerm,subjKey);
+                  const dDays=daysToDeadline(deadline);
+                  // 期限色判定
+                  let dlColor='#374151',dlBg='#f9fafb',dlMsg='';
+                  if(deadline){
+                    if(dDays===null) dlMsg='';
+                    else if(dDays<0){dlColor='#dc2626';dlBg='#fee2e2';dlMsg=`期限超過 ${Math.abs(dDays)}日`;}
+                    else if(dDays<=7){dlColor='#ea580c';dlBg='#ffedd5';dlMsg=`残り${dDays}日 急いで！`;}
+                    else if(dDays<=14){dlColor='#d97706';dlBg='#fef3c7';dlMsg=`残り${dDays}日`;}
+                    else {dlColor='#059669';dlBg='#d1fae5';dlMsg=`残り${dDays}日`;}
+                  }
+                  // 進捗集計
+                  const totalC=items.length;
+                  const doneC=items.filter(it=>{const p=getRenzemiProg(jhRenzemiProgress,sN,subjKey,gradeTerm,it.num);return p&&p.first==='◯';}).length;
                   return(
-                    <div style={{background:'white',borderRadius:'10px',marginBottom:'12px',overflow:'hidden',border:`2px solid ${borderColor}`}}>
-                      <div style={{background:headColor,color:'white',padding:'10px 14px',fontWeight:'bold',fontSize:'15px'}}>
-                        {subjLabel}（{grade}年） 全{items.length}項目
+                    <div style={{background:'white',borderRadius:'10px',marginBottom:'14px',overflow:'hidden',border:`2px solid ${borderColor}`}}>
+                      {/* ヘッダ */}
+                      <div style={{background:headColor,color:'white',padding:'10px 14px'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'6px'}}>
+                          <span style={{fontWeight:'bold',fontSize:'15px'}}>{subjLabel}（{grade}年{currentTerm}） 範囲 {subjConf.rangeStart}〜{subjConf.rangeEnd}（{totalC}項目）</span>
+                          <span style={{fontSize:'12px',background:'rgba(255,255,255,0.25)',padding:'2px 8px',borderRadius:'10px'}}>1周目達成 {doneC}/{totalC}</span>
+                        </div>
                       </div>
-                      <div style={{display:'grid',gridTemplateColumns:'40px 1fr 80px 80px',background:'#f9fafb',padding:'8px',fontSize:'11px',color:'#6b7280',fontWeight:'bold',borderBottom:'1px solid #e5e7eb'}}>
+                      {/* 期限バナー */}
+                      {deadline&&(
+                        <div style={{background:dlBg,padding:'8px 14px',borderBottom:'1px solid #e5e7eb',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <span style={{fontSize:'13px',color:dlColor,fontWeight:'bold'}}>🗓 期限：{deadline}</span>
+                          <span style={{fontSize:'13px',color:dlColor,fontWeight:'bold'}}>{dlMsg}</span>
+                        </div>
+                      )}
+                      {!deadline&&(
+                        <div style={{background:'#f9fafb',padding:'6px 14px',borderBottom:'1px solid #e5e7eb',fontSize:'11px',color:'#9ca3af'}}>
+                          🗓 期限：未設定（教室長アプリ「期限を一括登録」から設定可能）
+                        </div>
+                      )}
+                      {/* テーブルヘッダ */}
+                      <div style={{display:'grid',gridTemplateColumns:'34px 1fr 175px 175px 90px',background:'#f9fafb',padding:'6px 8px',fontSize:'10px',color:'#6b7280',fontWeight:'bold',borderBottom:'1px solid #e5e7eb'}}>
                         <div style={{textAlign:'center'}}>#</div>
                         <div>項目</div>
                         <div style={{textAlign:'center'}}>1周目</div>
                         <div style={{textAlign:'center'}}>×やり直し</div>
+                        <div style={{textAlign:'center'}}>最終チェック</div>
                       </div>
+                      {items.length===0&&(
+                        <p style={{padding:'24px',textAlign:'center',color:'#9ca3af',fontSize:'12px'}}>
+                          {allItems.length===0?`※ ${currentTerm}テキストはまだ未投入`:'※ 範囲内に項目がありません'}
+                        </p>
+                      )}
                       {items.map(it=>{
-                        const key=`${sN}|${subjKey}|${grade}|${it.num}`;
-                        const prog=jhRenzemiProgress[key]||{first:'未',redo:'未'};
+                        const prog=getRenzemiProg(jhRenzemiProgress,sN,subjKey,gradeTerm,it.num)||{first:'未',redo:'未'};
+                        const renderBtnGroup=(col,curVal)=>(
+                          <div style={{display:'flex',justifyContent:'center',gap:'2px'}}>
+                            {STATUS_OPTS.map(opt=>{
+                              const isActive=curVal===opt;
+                              return(
+                                <button key={opt} onClick={()=>jhSaveRenzemiProgress(sN,subjKey,gradeTerm,it.num,col,opt,selTeacher)}
+                                  style={{width:'34px',height:'34px',borderRadius:'6px',border:isActive?`2px solid ${STATUS_COL[opt]}`:'1px solid #e5e7eb',background:isActive?STATUS_ACTIVE_BG[opt]:'white',color:isActive?'white':STATUS_COL[opt],fontWeight:'bold',cursor:'pointer',fontSize:'14px',padding:0}}>
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
                         return(
-                          <div key={it.num} style={{display:'grid',gridTemplateColumns:'40px 1fr 80px 80px',padding:'8px',borderBottom:'1px solid #f3f4f6',alignItems:'center'}}>
+                          <div key={it.num} style={{display:'grid',gridTemplateColumns:'34px 1fr 175px 175px 90px',padding:'6px 8px',borderBottom:'1px solid #f3f4f6',alignItems:'center'}}>
                             <div style={{textAlign:'center',color:'#9ca3af',fontSize:'12px'}}>{it.num}</div>
-                            <div style={{fontSize:'13px',color:'#374151'}}>{it.text}</div>
-                            <div style={{textAlign:'center'}}>
-                              <button onClick={()=>jhSaveRenzemiProgress(sN,subjKey,grade,it.num,'first',cycleNext(prog.first))}
-                                style={{width:'36px',height:'36px',borderRadius:'8px',border:'none',background:STATUS_BG[prog.first],color:STATUS_COL[prog.first],fontWeight:'bold',cursor:'pointer',fontSize:'16px'}}>
-                                {prog.first}
-                              </button>
-                            </div>
-                            <div style={{textAlign:'center'}}>
-                              <button onClick={()=>jhSaveRenzemiProgress(sN,subjKey,grade,it.num,'redo',cycleNext(prog.redo))}
-                                style={{width:'36px',height:'36px',borderRadius:'8px',border:'none',background:STATUS_BG[prog.redo],color:STATUS_COL[prog.redo],fontWeight:'bold',cursor:'pointer',fontSize:'16px'}}>
-                                {prog.redo}
-                              </button>
+                            <div style={{fontSize:'12px',color:'#374151'}}>{it.text}</div>
+                            <div>{renderBtnGroup('first',prog.first)}</div>
+                            <div>{renderBtnGroup('redo',prog.redo)}</div>
+                            <div style={{textAlign:'center',fontSize:'10px',color:'#6b7280',lineHeight:1.3}}>
+                              {prog.checkedAt?(<>{prog.checkedAt}<br/>{prog.checkedBy||'-'}</>):'-'}
                             </div>
                           </div>
                         );
@@ -5177,17 +5531,20 @@ function App(){
                     </div>
                   );
                 };
+                const mathConf=normalize(a.math);
+                const engConf=normalize(a.eng);
+                const noAssign=!mathConf.taking&&!engConf.taking;
                 return(
                   <div>
                     <div style={{background:'#fef3c7',border:'1px solid #fbbf24',borderRadius:'8px',padding:'10px 14px',marginBottom:'12px'}}>
-                      <p style={{fontWeight:'bold',fontSize:'13px',color:'#92400e',marginBottom:'4px'}}>📓 練ゼミノート（自習用）</p>
-                      <p style={{fontSize:'11px',color:'#78350f'}}>1周目とやり直しを別々にチェックできます。タップで「未→◯→△→✗→未」と切り替わります。</p>
+                      <p style={{fontWeight:'bold',fontSize:'13px',color:'#92400e',marginBottom:'4px'}}>📓 練ゼミノート（自習用） {currentTerm}テキスト</p>
+                      <p style={{fontSize:'11px',color:'#78350f'}}>未・◯・△・✗ から直接タップして記録します。日付と先生名は自動で残ります。</p>
                     </div>
-                    {renderSection('math','📐 数学',a.math,'#fff7ed','#fdba74','#ea580c')}
-                    {renderSection('eng','📖 英語',a.eng,'#eff6ff','#93c5fd','#2563eb')}
-                    {(a.math==='none'||!a.math)&&(a.eng==='none'||!a.eng)&&(
+                    {renderSection('math','📐 数学',mathConf,'#ea580c','#fdba74')}
+                    {renderSection('eng','📖 英語',engConf,'#2563eb','#93c5fd')}
+                    {noAssign&&(
                       <p style={{textAlign:'center',color:'#9ca3af',padding:'40px 20px',fontSize:'13px'}}>
-                        この生徒には練ゼミノートの割り当てがありません
+                        この生徒には練ゼミノートの受講設定がありません
                       </p>
                     )}
                   </div>
