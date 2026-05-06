@@ -107,10 +107,14 @@ const RENZEMI_BOOKS = {"math1R":[{"num":1,"text":"小学校の復習…数と計
 // 学期マスタ
 const TERM_LIST = [{key:"R",label:"1学期(R)",full:"1学期(春・R)"},{key:"S",label:"2学期(S)",full:"2学期(夏・S)"},{key:"W",label:"3学期(W)",full:"3学期(冬・W)"}];
 const GRADE_LIST = ["1","2","3"];
+// v21: 練ゼミレベル仕様（1〜10段階、実項目数に関係なく常に1〜10で選択可能）
+const RENZEMI_LEVEL_MAX = 10;
+const RENZEMI_LEVELS = [1,2,3,4,5,6,7,8,9,10];
 
 // v17ヘルパー：練ゼミ関連
 // 旧形式 {生徒名: {math:'1', eng:'none'}} を 新形式に変換
 //   新形式: {生徒名: {math:{taking, grade, rangeStart, rangeEnd}, eng:{...}}}
+//   v21: rangeStart/rangeEnd は「レベル」(1〜10) を表す
 function migrateRenzemiAssign(raw){
   if(!raw||typeof raw!=='object') return {};
   const out={};
@@ -120,16 +124,14 @@ function migrateRenzemiAssign(raw){
     ['math','eng'].forEach(subj=>{
       const v=a[subj];
       if(v&&typeof v==='object'&&'taking' in v){
-        // 既に新形式
-        out[name][subj]={taking:!!v.taking,grade:v.grade||null,rangeStart:v.rangeStart||1,rangeEnd:v.rangeEnd||1};
+        // 既に新形式（既存rangeEndがあればそれを尊重、なければ10）
+        out[name][subj]={taking:!!v.taking,grade:v.grade||null,rangeStart:v.rangeStart||1,rangeEnd:v.rangeEnd||RENZEMI_LEVEL_MAX};
       }else if(v&&v!=='none'){
-        // 旧形式：'1'/'2'/'3' → 新形式に展開（範囲は全項目とする）
+        // 旧形式：'1'/'2'/'3' → 新形式に展開（v21: デフォルトはレベル1〜10）
         const grade=String(v);
-        // 旧アプリはRSWの概念がなかったので、Rとして扱う
-        const items=(typeof RENZEMI_BOOKS!=='undefined'?(RENZEMI_BOOKS[`${subj}${grade}R`]||[]):[]);
-        out[name][subj]={taking:true,grade,rangeStart:1,rangeEnd:items.length||1};
+        out[name][subj]={taking:true,grade,rangeStart:1,rangeEnd:RENZEMI_LEVEL_MAX};
       }else{
-        out[name][subj]={taking:false,grade:null,rangeStart:1,rangeEnd:1};
+        out[name][subj]={taking:false,grade:null,rangeStart:1,rangeEnd:RENZEMI_LEVEL_MAX};
       }
     });
   });
@@ -138,15 +140,15 @@ function migrateRenzemiAssign(raw){
 // v20ヘルパー：単一教科の受講設定を新形式に正規化
 //   旧形式 '1'/'2'/'3'（文字列学年）も新形式 {taking,grade,rangeStart,rangeEnd} に変換
 //   教室長UIと講師UIの両方で使い、データの解釈ズレを防ぐ
+//   v21: rangeStart/rangeEnd は「レベル」(1〜10) を表す
 function normalizeRenzemiSubj(v,subj,term){
   if(v&&typeof v==='object'&&'taking' in v){
-    return {taking:!!v.taking,grade:v.grade||null,rangeStart:v.rangeStart||1,rangeEnd:v.rangeEnd||1};
+    return {taking:!!v.taking,grade:v.grade||null,rangeStart:v.rangeStart||1,rangeEnd:v.rangeEnd||RENZEMI_LEVEL_MAX};
   }
   if(v&&typeof v==='string'&&v!=='none'&&['1','2','3'].includes(v)){
-    const items=(typeof RENZEMI_BOOKS!=='undefined'?(RENZEMI_BOOKS[`${subj}${v}${term||'R'}`]||[]):[]);
-    return {taking:true,grade:String(v),rangeStart:1,rangeEnd:items.length||1};
+    return {taking:true,grade:String(v),rangeStart:1,rangeEnd:RENZEMI_LEVEL_MAX};
   }
-  return {taking:false,grade:null,rangeStart:1,rangeEnd:1};
+  return {taking:false,grade:null,rangeStart:1,rangeEnd:RENZEMI_LEVEL_MAX};
 }
 
 // 進捗キーを構築：生徒名|教科|学年学期|項目番号
@@ -3616,7 +3618,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 {/* 練ゼミノート設定 v17 */}
                 <div style={{marginBottom:'12px',padding:'12px',background:'#fef3c7',borderRadius:'10px',border:'1px solid #fbbf24'}}>
                   <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📓 練ゼミノート設定（現在学期: {currentTerm}）</p>
-                  <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px'}}>自習用テキスト。教科ごとに「受講するか／学年／範囲（紗耶佳先生選定）」を設定</p>
+                  <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px'}}>自習用テキスト。教科ごとに「受講するか／学年／レベル(1〜10、紗耶佳先生選定)」を設定</p>
                   {(()=>{
                     const sName=stripGrade(jhFullName);
                     const assign=jhRenzemiAssign[sName]||{};
@@ -3660,8 +3662,8 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                                     <label style={{fontSize:'11px',color:'#374151',marginRight:'4px'}}>学年:</label>
                                     <select value={v.grade||''} onChange={e=>{
                                       const g=e.target.value||null;
-                                      const newItems=g?(RENZEMI_BOOKS[`${sc.key}${g}${currentTerm}`]||[]):[];
-                                      jhSaveRenzemiAssign(sName,sc.key,{...v,grade:g,rangeStart:1,rangeEnd:newItems.length||1});
+                                      // v21: 学年変更時のデフォルトはレベル1〜10
+                                      jhSaveRenzemiAssign(sName,sc.key,{...v,grade:g,rangeStart:1,rangeEnd:RENZEMI_LEVEL_MAX});
                                     }} style={{padding:'3px 6px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}>
                                       <option value="">選択</option>
                                       {GRADE_LIST.map(g=><option key={g} value={g}>{g}年</option>)}
@@ -3669,15 +3671,36 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                                   </div>
                                   {v.grade&&(
                                     <div>
-                                      <label style={{fontSize:'11px',color:'#374151'}}>範囲:</label>
-                                      <input type="number" min="1" max={maxNum} value={v.rangeStart||1} onChange={e=>jhSaveRenzemiAssign(sName,sc.key,{...v,rangeStart:Math.max(1,Math.min(maxNum,parseInt(e.target.value)||1))})} style={{width:'46px',padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px',marginLeft:'4px'}}/>
+                                      <label style={{fontSize:'11px',color:'#374151'}}>レベル:</label>
+                                      <select value={v.rangeStart||1} onChange={e=>{
+                                        const start=parseInt(e.target.value)||1;
+                                        // 開始 > 終了 になったら終了を自動補正
+                                        const end=Math.max(start,v.rangeEnd||1);
+                                        jhSaveRenzemiAssign(sName,sc.key,{...v,rangeStart:start,rangeEnd:end});
+                                      }} style={{padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px',marginLeft:'4px'}}>
+                                        {RENZEMI_LEVELS.map(lv=><option key={lv} value={lv}>レベル{lv}</option>)}
+                                      </select>
                                       <span style={{fontSize:'11px',margin:'0 4px'}}>〜</span>
-                                      <input type="number" min="1" max={maxNum} value={v.rangeEnd||1} onChange={e=>jhSaveRenzemiAssign(sName,sc.key,{...v,rangeEnd:Math.max(1,Math.min(maxNum,parseInt(e.target.value)||1))})} style={{width:'46px',padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}/>
-                                      <span style={{fontSize:'10px',color:'#6b7280',marginLeft:'4px'}}>(全{maxNum}項目)</span>
+                                      <select value={v.rangeEnd||1} onChange={e=>{
+                                        const end=parseInt(e.target.value)||1;
+                                        // 終了 < 開始 になったら開始を自動補正
+                                        const start=Math.min(end,v.rangeStart||1);
+                                        jhSaveRenzemiAssign(sName,sc.key,{...v,rangeStart:start,rangeEnd:end});
+                                      }} style={{padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}>
+                                        {RENZEMI_LEVELS.map(lv=><option key={lv} value={lv}>レベル{lv}</option>)}
+                                      </select>
+                                      <span style={{fontSize:'10px',color:'#6b7280',marginLeft:'4px'}}>
+                                        ({currentTerm}テキスト：全{items.length}項目)
+                                      </span>
                                     </div>
                                   )}
                                   {v.grade&&items.length===0&&(
                                     <p style={{fontSize:'10px',color:'#dc2626'}}>※{currentTerm}テキストはまだ未投入</p>
+                                  )}
+                                  {v.grade&&items.length>0&&(v.rangeEnd||0)>items.length&&(
+                                    <p style={{fontSize:'10px',color:'#d97706'}}>
+                                      ⚠️ レベル{(items.length+1)}〜{v.rangeEnd}は{currentTerm}テキストには項目がありません（{items.length}項目まで収録）
+                                    </p>
                                   )}
                                 </div>
                               )}
@@ -5597,7 +5620,7 @@ function App(){
                       {/* ヘッダ */}
                       <div style={{background:headColor,color:'white',padding:'10px 14px'}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'6px'}}>
-                          <span style={{fontWeight:'bold',fontSize:'15px'}}>{subjLabel}（{grade}年{currentTerm}） 範囲 {subjConf.rangeStart}〜{subjConf.rangeEnd}（{totalC}項目）</span>
+                          <span style={{fontWeight:'bold',fontSize:'15px'}}>{subjLabel}（{grade}年{currentTerm}） レベル{subjConf.rangeStart}〜{subjConf.rangeEnd}（{totalC}項目）</span>
                           <span style={{fontSize:'12px',background:'rgba(255,255,255,0.25)',padding:'2px 8px',borderRadius:'10px'}}>1周目達成 {doneC}/{totalC}</span>
                         </div>
                       </div>
@@ -5623,7 +5646,7 @@ function App(){
                       </div>
                       {items.length===0&&(
                         <p style={{padding:'24px',textAlign:'center',color:'#9ca3af',fontSize:'12px'}}>
-                          {allItems.length===0?`※ ${currentTerm}テキストはまだ未投入`:'※ 範囲内に項目がありません'}
+                          {allItems.length===0?`※ ${currentTerm}テキストはまだ未投入`:'※ 設定レベル内に項目がありません'}
                         </p>
                       )}
                       {items.map(it=>{
