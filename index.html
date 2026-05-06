@@ -135,6 +135,20 @@ function migrateRenzemiAssign(raw){
   });
   return out;
 }
+// v20ヘルパー：単一教科の受講設定を新形式に正規化
+//   旧形式 '1'/'2'/'3'（文字列学年）も新形式 {taking,grade,rangeStart,rangeEnd} に変換
+//   教室長UIと講師UIの両方で使い、データの解釈ズレを防ぐ
+function normalizeRenzemiSubj(v,subj,term){
+  if(v&&typeof v==='object'&&'taking' in v){
+    return {taking:!!v.taking,grade:v.grade||null,rangeStart:v.rangeStart||1,rangeEnd:v.rangeEnd||1};
+  }
+  if(v&&typeof v==='string'&&v!=='none'&&['1','2','3'].includes(v)){
+    const items=(typeof RENZEMI_BOOKS!=='undefined'?(RENZEMI_BOOKS[`${subj}${v}${term||'R'}`]||[]):[]);
+    return {taking:true,grade:String(v),rangeStart:1,rangeEnd:items.length||1};
+  }
+  return {taking:false,grade:null,rangeStart:1,rangeEnd:1};
+}
+
 // 進捗キーを構築：生徒名|教科|学年学期|項目番号
 function renzemiKey(name,subj,gradeTerm,num){return `${name}|${subj}|${gradeTerm}|${num}`;}
 // 進捗値を取り出し（旧形式：生徒名|教科|学年|項目 もR扱いでフォールバック）
@@ -1343,9 +1357,11 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
   const subj1 = isElem ? "算数" : "数学";
   const subj2 = isElem ? "国語" : "英語";
 
-  // テキスト名（表示用）
-  const xLabel = isElem ? "X生（ウィンパス）" : "X生（ウィンパス）";
-  const yLabel = isElem ? "Y生（明光式ワーク）" : "Y生（明光式ワーク）";
+  // テキスト名（表示用）v20: 小学生と中学生でテキスト名が異なる
+  //   小学生: X生（ウィンパス）／ Y生（明光式ワーク）
+  //   中学生: X生（ウイニング）／ Y生（練成テキストα）
+  const xLabel = isElem ? "X生（ウィンパス）" : "X生（ウイニング）";
+  const yLabel = isElem ? "Y生（明光式ワーク）" : "Y生（練成テキストα）";
 
   // 現在の設定を読み込む（新形式優先、なければ旧形式から）
   React.useEffect(() => {
@@ -3416,11 +3432,11 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 <div style={{display:'flex',gap:'6px'}}>
                   <button onClick={()=>setShowRenzemiDeadlineModal(true)}
                     style={{background:'#0891b2',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
-                    📅 期限を一括登録
+                    📅 練ゼミの期限を一括登録
                   </button>
                   <button onClick={()=>setShowRenzemiOverview(true)}
                     style={{background:'#d97706',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
-                    📓 進捗一覧を見る
+                    📓 練ゼミの進捗一覧を見る
                   </button>
                 </div>
               </div>
@@ -3575,14 +3591,18 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                         </div>
                       );
                     };
+                    // v20: 学年に応じてテキスト名を切替
+                    const isElemGrade=activeGrade&&activeGrade.startsWith('小');
+                    const xLbl=isElemGrade?'📚 X生（ウィンパス）':'📚 X生（ウイニング）';
+                    const yLbl=isElemGrade?'📚 Y生（明光式ワーク）':'📚 Y生（練成テキストα）';
                     return(
                       <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'8px'}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <p style={{fontSize:'11px',color:'#78350f'}}>🎯 {sch}・{activeGrade}・現状のテスト予想範囲（{monthInfo||'次回テスト'}）</p>
                           <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
                         </div>
-                        {renderRange('X','📚 X生（ウィンパス）','#fff7ed','#7c2d12')}
-                        {renderRange('Y','📚 Y生（明光式ワーク）','#eff6ff','#1e40af')}
+                        {renderRange('X',xLbl,'#fff7ed','#7c2d12')}
+                        {renderRange('Y',yLbl,'#eff6ff','#1e40af')}
                       </div>
                     );
                   })()}
@@ -3600,9 +3620,10 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   {(()=>{
                     const sName=stripGrade(jhFullName);
                     const assign=jhRenzemiAssign[sName]||{};
+                    // v20: 旧形式・新形式どちらでも正しく認識できるよう正規化ヘルパーを使用
                     const cur={
-                      math:(assign.math&&typeof assign.math==='object')?assign.math:{taking:false,grade:null,rangeStart:1,rangeEnd:1},
-                      eng:(assign.eng&&typeof assign.eng==='object')?assign.eng:{taking:false,grade:null,rangeStart:1,rangeEnd:1},
+                      math:normalizeRenzemiSubj(assign.math,'math',currentTerm),
+                      eng:normalizeRenzemiSubj(assign.eng,'eng',currentTerm),
                     };
                     const subjConfigs=[
                       {key:'math',label:'📐 数学',color:'#ea580c',bg:'#fff7ed',border:'#fdba74'},
@@ -3614,9 +3635,21 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                           const v=cur[sc.key];
                           const items=v.grade?(RENZEMI_BOOKS[`${sc.key}${v.grade}${currentTerm}`]||[]):[];
                           const maxNum=items.length||1;
+                          // v20: 登録状態の視覚化
+                          //   登録済み(taking=true & grade有): 緑枠＋✓登録済みバッジ
+                          //   未登録(taking=false): 灰色枠
+                          const isRegistered=v.taking&&v.grade;
+                          const cardBg=isRegistered?'#f0fdf4':'#f9fafb';
+                          const cardBorder=isRegistered?'#22c55e':'#d1d5db';
                           return(
-                            <div key={sc.key} style={{background:sc.bg,border:`1px solid ${sc.border}`,borderRadius:'8px',padding:'8px'}}>
-                              <p style={{fontSize:'12px',color:sc.color,marginBottom:'6px',fontWeight:'bold'}}>{sc.label}</p>
+                            <div key={sc.key} style={{background:cardBg,border:`2px solid ${cardBorder}`,borderRadius:'8px',padding:'8px',position:'relative'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px'}}>
+                                <p style={{fontSize:'12px',color:sc.color,fontWeight:'bold',margin:0}}>{sc.label}</p>
+                                {isRegistered?
+                                  <span style={{background:'#22c55e',color:'white',fontSize:'10px',fontWeight:'bold',padding:'2px 8px',borderRadius:'10px'}}>✓ 登録済み</span>
+                                  :<span style={{background:'#9ca3af',color:'white',fontSize:'10px',fontWeight:'bold',padding:'2px 8px',borderRadius:'10px'}}>未登録</span>
+                                }
+                              </div>
                               <label style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'6px',cursor:'pointer',fontSize:'12px'}}>
                                 <input type="checkbox" checked={!!v.taking} onChange={e=>jhSaveRenzemiAssign(sName,sc.key,{...v,taking:e.target.checked})}/>
                                 <span style={{fontWeight:'bold'}}>この生徒は{sc.label.replace(/^[^ ]+ /,'')}を受講する</span>
@@ -5524,12 +5557,9 @@ function App(){
               {activeSubj==='練ゼミ'&&(()=>{
                 const sN=stripGrade(jhFullName);
                 const a=jhRenzemiAssign[sN]||{};
-                // 旧形式互換
-                const normalize=v=>{
-                  if(v&&typeof v==='object'&&'taking' in v) return v;
-                  if(v&&v!=='none'){const items=RENZEMI_BOOKS[`math${v}${currentTerm}`]||[];return {taking:true,grade:String(v),rangeStart:1,rangeEnd:items.length||1};}
-                  return {taking:false,grade:null,rangeStart:1,rangeEnd:1};
-                };
+                // v20: 教室長UIと統一した正規化ヘルパーを使用（旧形式・新形式どちらでもOK）
+                const normalize=v=>normalizeRenzemiSubj(v,'math',currentTerm);
+                // ※ math/eng で同じ判定式なので、教科キーは仮で'math'を渡しても結果は変わらない
                 const STATUS_BG={'未':'#f3f4f6','◯':'#d1fae5','△':'#fef3c7','✗':'#fee2e2'};
                 const STATUS_COL={'未':'#9ca3af','◯':'#065f46','△':'#92400e','✗':'#991b1b'};
                 const STATUS_ACTIVE_BG={'未':'#9ca3af','◯':'#10b981','△':'#f59e0b','✗':'#ef4444'};
@@ -5626,8 +5656,8 @@ function App(){
                     </div>
                   );
                 };
-                const mathConf=normalize(a.math);
-                const engConf=normalize(a.eng);
+                const mathConf=normalizeRenzemiSubj(a.math,'math',currentTerm);
+                const engConf=normalizeRenzemiSubj(a.eng,'eng',currentTerm);
                 const noAssign=!mathConf.taking&&!engConf.taking;
                 return(
                   <div>
