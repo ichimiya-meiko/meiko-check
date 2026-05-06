@@ -3618,7 +3618,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 {/* 練ゼミノート設定 v17 */}
                 <div style={{marginBottom:'12px',padding:'12px',background:'#fef3c7',borderRadius:'10px',border:'1px solid #fbbf24'}}>
                   <p style={{fontWeight:'bold',fontSize:'14px',color:'#92400e',marginBottom:'4px'}}>📓 練ゼミノート設定（現在学期: {currentTerm}）</p>
-                  <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px'}}>自習用テキスト。教科ごとに「受講するか／学年／レベル(1〜10、紗耶佳先生選定)」を設定</p>
+                  <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px'}}>自習用テキスト。教科ごとに「受講するか／学年／レベル(1〜10、紗耶佳先生選定)」を設定。レベルは「○まで」を選びます。</p>
                   {(()=>{
                     const sName=stripGrade(jhFullName);
                     const assign=jhRenzemiAssign[sName]||{};
@@ -3672,24 +3672,15 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                                   {v.grade&&(
                                     <div>
                                       <label style={{fontSize:'11px',color:'#374151'}}>レベル:</label>
-                                      <select value={v.rangeStart||1} onChange={e=>{
-                                        const start=parseInt(e.target.value)||1;
-                                        // 開始 > 終了 になったら終了を自動補正
-                                        const end=Math.max(start,v.rangeEnd||1);
-                                        jhSaveRenzemiAssign(sName,sc.key,{...v,rangeStart:start,rangeEnd:end});
+                                      {/* v22: 「○まで」のシンプル仕様。rangeStartは常に1で固定。 */}
+                                      <select value={v.rangeEnd||RENZEMI_LEVEL_MAX} onChange={e=>{
+                                        const end=parseInt(e.target.value)||1;
+                                        jhSaveRenzemiAssign(sName,sc.key,{...v,rangeStart:1,rangeEnd:end});
                                       }} style={{padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px',marginLeft:'4px'}}>
                                         {RENZEMI_LEVELS.map(lv=><option key={lv} value={lv}>レベル{lv}</option>)}
                                       </select>
-                                      <span style={{fontSize:'11px',margin:'0 4px'}}>〜</span>
-                                      <select value={v.rangeEnd||1} onChange={e=>{
-                                        const end=parseInt(e.target.value)||1;
-                                        // 終了 < 開始 になったら開始を自動補正
-                                        const start=Math.min(end,v.rangeStart||1);
-                                        jhSaveRenzemiAssign(sName,sc.key,{...v,rangeStart:start,rangeEnd:end});
-                                      }} style={{padding:'2px 4px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}>
-                                        {RENZEMI_LEVELS.map(lv=><option key={lv} value={lv}>レベル{lv}</option>)}
-                                      </select>
-                                      <span style={{fontSize:'10px',color:'#6b7280',marginLeft:'4px'}}>
+                                      <span style={{fontSize:'11px',marginLeft:'4px',fontWeight:'bold',color:'#374151'}}>まで</span>
+                                      <span style={{fontSize:'10px',color:'#6b7280',marginLeft:'8px'}}>
                                         ({currentTerm}テキスト：全{items.length}項目)
                                       </span>
                                     </div>
@@ -5620,7 +5611,7 @@ function App(){
                       {/* ヘッダ */}
                       <div style={{background:headColor,color:'white',padding:'10px 14px'}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'6px'}}>
-                          <span style={{fontWeight:'bold',fontSize:'15px'}}>{subjLabel}（{grade}年{currentTerm}） レベル{subjConf.rangeStart}〜{subjConf.rangeEnd}（{totalC}項目）</span>
+                          <span style={{fontWeight:'bold',fontSize:'15px'}}>{subjLabel}（{grade}年{currentTerm}） レベル{subjConf.rangeEnd}まで（{totalC}項目）</span>
                           <span style={{fontSize:'12px',background:'rgba(255,255,255,0.25)',padding:'2px 8px',borderRadius:'10px'}}>1周目達成 {doneC}/{totalC}</span>
                         </div>
                       </div>
