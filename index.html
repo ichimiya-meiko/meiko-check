@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v24"/>
-  <meta name="app-build-date" content="2026-05-06"/>
+  <meta name="app-version" content="v25"/>
+  <meta name="app-build-date" content="2026-05-07"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v24</title>
+  <title>明光義塾 チェックアプリ v25</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,9 +47,9 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v24-20260506";  // 🚨 v23→v24 更新。リリースごとに必ず変更してください
-      const APP_DISPLAY_VERSION = "v24";  // バージョンバッジ表示用
-      const APP_BUILD_DATE = "2026/05/06"; // ビルド日（バッジ表示用）
+      const APP_VERSION = "v25-20260507";  // 🚨 v24→v25 更新。リリースごとに必ず変更してください
+      const APP_DISPLAY_VERSION = "v25";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/07"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
       // グローバルから参照可能に（バージョンバッジで使用）
@@ -2075,7 +2075,10 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
   const gradeOf=name=>(name.match(/（(.+?)）/)||[])[1]||'';
 
   // 学年順（上の学年から）
-  const HS_GRADE_ORDER = ['高3','高2','高1'];
+  // v25: 「中3・一貫」を高校生グループの末尾に追加
+  //   中高一貫生は中3だが高校カリキュラム（数学チャート式・英語ルート）を履修するため、
+  //   システム的には「高校生」として扱い、表示上だけ「中3・一貫」と区別する。
+  const HS_GRADE_ORDER = ['高3','高2','高1','中3・一貫'];
   const CHU_GRADE_ORDER = ['中3','中2','中1'];
   const SHO_GRADE_ORDER = ['小6','小5','小4','小3','小2','小1'];
 
@@ -2235,7 +2238,9 @@ function AddStudentForm({type,onAdd,onCancel}){
     const list=SCHOOLS.filter(s=>isElem?s.endsWith('小'):s.endsWith('中'));
     if(list.length>0&&!list.includes(school)) setSchool(list[0]);
   },[grade]);
-  const grades=type==='hs'?['高1','高2','高3']:['小1','小2','小3','小4','小5','小6','中1','中2','中3'];
+  // v25: 高校生として登録できる学年に「中3・一貫」を追加
+  //   中高一貫生（中学3年で高校カリキュラム履修中の生徒）はここで登録する
+  const grades=type==='hs'?['高1','高2','高3','中3・一貫']:['小1','小2','小3','小4','小5','小6','中1','中2','中3'];
   const submit=()=>{
     if(!name.trim()){alert('名前を入力してください');return;}
     if(type==='hs') onAdd(name.trim(),grade);
