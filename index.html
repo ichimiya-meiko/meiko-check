@@ -3,23 +3,39 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <!-- v23: キャッシュ抑止強化（A対策） -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0"/>
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
-  <title>明光義塾 チェックアプリ</title>
+  <!-- v23: アプリバージョン情報（B対策） -->
+  <meta name="app-version" content="v23"/>
+  <meta name="app-build-date" content="2026-05-06"/>
+  <title>明光義塾 チェックアプリ v23</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;}</style>
+  <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Hiragino Kaku Gothic ProN',sans-serif;}
+    /* v23: バージョン表示用スタイル */
+    .app-version-badge{position:fixed;bottom:6px;right:8px;font-size:10px;color:#9ca3af;background:rgba(255,255,255,0.85);padding:2px 8px;border-radius:10px;z-index:50;font-family:monospace;pointer-events:auto;cursor:pointer;border:1px solid #e5e7eb;}
+    .app-version-badge:hover{background:#dbeafe;color:#1e40af;border-color:#60a5fa;}
+    .app-reload-btn{position:fixed;bottom:6px;right:108px;font-size:10px;color:white;background:#10b981;padding:3px 10px;border-radius:10px;z-index:50;cursor:pointer;border:none;font-weight:bold;box-shadow:0 1px 3px rgba(0,0,0,0.15);}
+    .app-reload-btn:hover{background:#059669;}
+  </style>
 </head>
 <body>
   <script>
-    // === 強力キャッシュ対策システム（v3） ===
+    // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v1777893579";  // ファイル更新時に自動更新される
+      const APP_VERSION = "v23-20260506";  // 🚨 v22→v23 更新。リリースごとに必ず変更してください
+      const APP_DISPLAY_VERSION = "v23";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/06"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
+      // グローバルから参照可能に（バージョンバッジで使用）
+      window.__APP_VERSION__ = APP_DISPLAY_VERSION;
+      window.__APP_BUILD_DATE__ = APP_BUILD_DATE;
+      window.__APP_VERSION_FULL__ = APP_VERSION;
 
       // ① ServiceWorker完全削除（過去登録があれば解除）
       if('serviceWorker' in navigator){
@@ -4326,9 +4342,10 @@ function App(){
 
   const flash=(msg,type='info')=>{setSaveMsg(msg);setSaveMsgType(type);setTimeout(()=>setSaveMsg(''),type==='error'?6000:2500);};
 
-  // DB(chapters.json)ロード
+  // DB(chapters.json)ロード v23: キャッシュバスター付き（C対策）
   useEffect(()=>{
-    fetch('chapters.json')
+    const cacheBuster=window.__APP_VERSION_FULL__||Date.now();
+    fetch(`chapters.json?_v=${cacheBuster}`,{cache:'no-cache'})
       .then(r=>r.json())
       .then(d=>{DB=d;})
       .catch(()=>{});
@@ -5798,5 +5815,45 @@ function App(){
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);</script>
+<!-- v23: バージョンバッジ（B対策）と強制リロードボタン（D対策） -->
+<div id="app-version-badge" class="app-version-badge" title="クリックで詳細表示"></div>
+<button id="app-reload-btn" class="app-reload-btn" title="キャッシュをクリアして最新版を取得">🔄 最新版に更新</button>
+<script>
+  // v23: バージョンバッジに表示
+  (function(){
+    const badge=document.getElementById('app-version-badge');
+    const btn=document.getElementById('app-reload-btn');
+    if(badge){
+      badge.textContent=`📱 ${window.__APP_VERSION__||'?'} (${window.__APP_BUILD_DATE__||'?'})`;
+      badge.addEventListener('click',()=>{
+        const msg=`明光義塾チェックアプリ\nバージョン: ${window.__APP_VERSION_FULL__||'?'}\nビルド日: ${window.__APP_BUILD_DATE__||'?'}\n\n表示が古いと感じたら「🔄 最新版に更新」ボタンを押してください。`;
+        alert(msg);
+      });
+    }
+    if(btn){
+      btn.addEventListener('click',async()=>{
+        if(!confirm('🔄 最新版に更新しますか？\n\n（保存中のデータがある場合は完了を待ってから実行してください。\n  キャッシュをクリアして最新版を再取得します）')) return;
+        try{
+          // ServiceWorkerをすべて削除
+          if('serviceWorker' in navigator){
+            const regs=await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r=>r.unregister()));
+          }
+          // Cache APIをすべて削除
+          if('caches' in window){
+            const names=await caches.keys();
+            await Promise.all(names.map(n=>caches.delete(n)));
+          }
+          // localStorageのバージョン記録だけリセット（他のデータは保持）
+          localStorage.removeItem('_meiko_app_version');
+        }catch(e){console.error('Cache clear error:',e);}
+        // URLにタイムスタンプ付きで強制リロード
+        const url=new URL(window.location.href);
+        url.searchParams.set('_force', Date.now());
+        window.location.replace(url.toString());
+      });
+    }
+  })();
+</script>
 </body>
 </html>
