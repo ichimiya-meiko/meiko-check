@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v27"/>
+  <meta name="app-version" content="v25"/>
   <meta name="app-build-date" content="2026-05-07"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v27</title>
+  <title>明光義塾 チェックアプリ v25</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v27-20260507";  // 🚨 v26→v27 更新。no-cors+読み戻し検証方式へ。リリースごとに必ず変更してください
-      const APP_DISPLAY_VERSION = "v27";  // バージョンバッジ表示用
+      const APP_VERSION = "v25-20260507";  // 🚨 v24→v25 更新。リリースごとに必ず変更してください
+      const APP_DISPLAY_VERSION = "v25";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/07"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -281,17 +281,10 @@ function hsGetCached(key,fb){
   return fb;
 }
 async function hsSet(key,val){
-  // v27: no-cors POST + 読み戻し検証方式（CORSエラー回避・確実な成功判定）
   try{
     // 保存前にキャッシュも更新（即時反映のため）
     try{localStorage.setItem('cache:hs:'+key,JSON.stringify({v:val,t:Date.now()}));}catch{}
-    // GAS doPostへ no-cors モードで送信。応答は読めないが書き込みは届く
-    await fetch(GAS_HS,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'set',key,value:JSON.stringify(val)})
-    });
+    await fetch(`${GAS_HS}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(JSON.stringify(val))}`);
   }catch{}
 }
 async function jhGet(key,fb){
@@ -303,92 +296,52 @@ function jhGetCached(key,fb){
   try{const c=localStorage.getItem('cache:jh:'+key);if(c){return JSON.parse(c).v;}}catch{}
   return fb;
 }
-
-// v27ヘルパー：JSONを正規化してから比較（キー順差を吸収）
-function _stableStringify(o){
-  if(o===null||typeof o!=='object') return JSON.stringify(o);
-  if(Array.isArray(o)) return '['+o.map(_stableStringify).join(',')+']';
-  return '{'+Object.keys(o).sort().map(k=>JSON.stringify(k)+':'+_stableStringify(o[k])).join(',')+'}';
-}
-
 async function jhSet(key,val){
-  // v27: no-cors POST + 読み戻し検証 で確実な成功判定
-  // 流れ: ① localStorageに即時保存 ② no-cors POSTで送信 ③ 少し待ってGETで読み戻し ④ 一致確認
-  // 戻り値: {ok:true, sizeKB} 成功、{ok:false, reason:...} 失敗
+  // v19: リトライ＋成功判定付き
+  // 戻り値: {ok:true} 成功、{ok:false, reason:...} 失敗
   // 1. localStorageに即時保存（オフライン保険）
   try{localStorage.setItem('cache:jh:'+key,JSON.stringify({v:val,t:Date.now()}));}catch(e){
     console.warn('[jhSet] localStorage保存失敗:',key,e);
   }
+  // 2. データサイズチェック（B: 段階警告）
   const payload=JSON.stringify(val);
   const sizeKB=Math.round(payload.length/1024*10)/10;
-  if(sizeKB>=500){
-    console.warn(`[jhSet] ⚠️ データサイズが500KB超えています（${sizeKB}KB）。key=${key}`);
+  const url=`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(payload)}`;
+  if(url.length>=8000){
+    console.error(`[jhSet] ⚠️ URLが長すぎます（${url.length}文字）。GASに到達しない可能性。key=${key}, データ=${sizeKB}KB`);
+  }else if(url.length>=5000){
+    console.warn(`[jhSet] ⚠️ URLが5KB超え（${url.length}文字）。リミットに近づいています。key=${key}, データ=${sizeKB}KB`);
   }
-  // 期待値（書き込まれるべき値）を正規化文字列で持っておく
-  const expectedNormalized=_stableStringify(val);
-  // POST用body
-  const fullKey=JH_PREFIX+key;
-  const body=JSON.stringify({action:'set',key:fullKey,value:payload});
-  // 最大3回リトライ
+  // 3. リトライ付きfetch（A: 3回まで）
   let lastErr=null;
   for(let attempt=1;attempt<=3;attempt++){
     try{
-      // ② no-cors POSTで送信（応答は読めないがGASには届く）
-      await fetch(GAS_JH,{
-        method:'POST',
-        mode:'no-cors',
-        headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body,
-        cache:'no-store'
-      });
-      // ③ 少し待つ（GASがスプレッドシートに反映する時間。500ms）
-      await new Promise(res=>setTimeout(res,500));
-      // ④ GETで読み戻して、書いたデータと一致するか確認
-      try{
-        const r=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(fullKey)}&_cb=${Date.now()}`,{cache:'no-store'});
-        if(r.ok){
-          const d=await r.json();
-          if(d&&d.value){
-            const actual=JSON.parse(d.value);
-            const actualNormalized=_stableStringify(actual);
-            if(actualNormalized===expectedNormalized){
-              if(attempt>1) console.log(`[jhSet] 試行${attempt}回目で成功（読み戻し検証OK）: key=${key}`);
-              return {ok:true,sizeKB};
-            }else{
-              // 値が一致しない → 反映遅延の可能性もあるので、もう1秒待ってから再検証
-              await new Promise(res=>setTimeout(res,1000));
-              const r2=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(fullKey)}&_cb=${Date.now()+1}`,{cache:'no-store'});
-              if(r2.ok){
-                const d2=await r2.json();
-                if(d2&&d2.value){
-                  const actual2=JSON.parse(d2.value);
-                  if(_stableStringify(actual2)===expectedNormalized){
-                    if(attempt>1) console.log(`[jhSet] 試行${attempt}回目で成功（読み戻し再検証OK）: key=${key}`);
-                    return {ok:true,sizeKB};
-                  }
-                }
-              }
-              lastErr=new Error('読み戻し検証で値が不一致');
-              console.warn(`[jhSet] 試行${attempt}/3 検証NG: 値が一致しない key=${key}`);
-            }
-          }else{
-            lastErr=new Error('読み戻し時 value が空');
-            console.warn(`[jhSet] 試行${attempt}/3 検証NG: 読み戻し時valueが空 key=${key}`);
-          }
-        }else{
-          lastErr=new Error(`読み戻しHTTP ${r.status}`);
-          console.warn(`[jhSet] 試行${attempt}/3 読み戻し失敗: HTTP ${r.status}`);
-        }
-      }catch(e2){
-        lastErr=e2;
-        console.warn(`[jhSet] 試行${attempt}/3 読み戻しエラー:`,e2&&e2.message);
+      const r=await fetch(url,{method:'GET',cache:'no-store'});
+      if(!r.ok){
+        lastErr=new Error(`HTTP ${r.status}`);
+        console.warn(`[jhSet] 試行${attempt}/3 失敗: HTTP ${r.status}, key=${key}`);
+        await new Promise(res=>setTimeout(res,300*attempt));
+        continue;
       }
-      // 検証NG時は少し待ってリトライ
-      await new Promise(res=>setTimeout(res,500*attempt));
+      // GAS応答の成功判定（C）
+      try{
+        const d=await r.json();
+        if(d&&d.ok===false){
+          lastErr=new Error('GAS reported failure');
+          console.warn(`[jhSet] 試行${attempt}/3 GAS側失敗:`,d);
+          await new Promise(res=>setTimeout(res,300*attempt));
+          continue;
+        }
+      }catch{
+        // 応答がJSONでない場合もOK扱い（旧GAS仕様への互換）
+      }
+      // 成功
+      if(attempt>1) console.log(`[jhSet] 試行${attempt}回目で成功: key=${key}`);
+      return {ok:true,sizeKB};
     }catch(e){
       lastErr=e;
-      console.warn(`[jhSet] 試行${attempt}/3 送信エラー:`,key,e&&e.message);
-      await new Promise(res=>setTimeout(res,500*attempt));
+      console.warn(`[jhSet] 試行${attempt}/3 ネットワークエラー:`,key,e&&e.message);
+      await new Promise(res=>setTimeout(res,300*attempt));
     }
   }
   // 3回すべて失敗
@@ -1330,15 +1283,7 @@ async function jhGasGet(key,fallback){
   }catch(e){return fallback;}
 }
 async function jhGasSave(key,val){
-  // v27: no-cors POST方式に統一（CORSエラー回避）
-  try{
-    await fetch(GAS_JH,{
-      method:'POST',
-      mode:'no-cors',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body:JSON.stringify({action:'set',key:JH_PREFIX+key,value:JSON.stringify(val)})
-    });
-  }catch(e){}
+  try{ await fetch(`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(JSON.stringify(val))}`); }catch(e){}
 }
 
 // ─── 生徒サイドバー ──────────────────────────────────────────
