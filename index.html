@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v30"/>
+  <meta name="app-version" content="v31"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v30</title>
+  <title>明光義塾 チェックアプリ v31</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v30-20260509";  // 🚨 v29→v30 練ゼミレベル選択：項目数表示と矛盾警告を完全削除（レベルと項目は別概念のため）
-      const APP_DISPLAY_VERSION = "v30";  // バージョンバッジ表示用
+      const APP_VERSION = "v31-20260509";  // 🚨 v30→v31 講師画面の表示バグ修正：テスト範囲のキー形式統一＋学習方針バナー新規追加
+      const APP_DISPLAY_VERSION = "v31";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -5595,27 +5595,75 @@ function App(){
                 const sName=(jhFullName||'').replace(/（.+?）/,'');
                 const school=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
                 if(!school) return null;
-                const rk=`${school}_${activeGrade}_${activeTestRound}`;
-                const rng=jhTestRanges[rk];
+                // v31: 新形式キー（学校_学年）優先、なければ旧形式（学校_学年_round）から最新を取得
+                const newKey=`${school}_${activeGrade}`;
+                let rng=jhTestRanges[newKey];
+                if(!rng){
+                  const oldKeys=Object.keys(jhTestRanges).filter(k=>k.startsWith(`${school}_${activeGrade}_`));
+                  if(oldKeys.length>0){
+                    const sorted=oldKeys.sort((a,b)=>{
+                      const da=jhTestRanges[a]?.updatedAt||'';
+                      const db=jhTestRanges[b]?.updatedAt||'';
+                      return db.localeCompare(da);
+                    });
+                    rng=jhTestRanges[sorted[0]];
+                  }
+                }
                 if(!rng) return null;
+                // v31: テキストタイプ判定（X生 or Y生）でフィールドを切替
+                const tKey=jhTextbookKey(jhSi,activeSubj)||'';
+                const isXType=tKey.includes('X_');
                 const isEng=activeSubj==='英語';
-                const startId=isEng?rng.engStart:rng.mathStart;
-                const endId=isEng?rng.engEnd:rng.mathEnd;
+                let startId,endId;
+                if(isXType){
+                  startId=isEng?rng.xEngStart:rng.xMathStart;
+                  endId=isEng?rng.xEngEnd:rng.xMathEnd;
+                }else{
+                  startId=isEng?(rng.yEngStart||rng.engStart):(rng.yMathStart||rng.mathStart);
+                  endId=isEng?(rng.yEngEnd||rng.engEnd):(rng.yMathEnd||rng.mathEnd);
+                }
                 if(!endId&&!startId) return null;
-                const tKey=jhTextbookKey(jhSi,activeSubj);
                 const allItems=(CHAPTERS[tKey]||[]).flatMap(c=>c.items);
                 const startItem=allItems.find(it=>it.id===startId);
                 const endItem=allItems.find(it=>it.id===endId);
-                const rLabel=TEST_ROUNDS.find(r=>r.id===activeTestRound)?.label||'';
+                const roundLabel=rng.round?`(${rng.round})`:'';
                 return(
                   <div style={{background:'#fff7ed',border:'2px solid #f97316',borderRadius:'8px',padding:'8px 14px',marginBottom:'10px',display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
                     <span style={{fontSize:'14px'}}>🎯</span>
-                    <span style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{rLabel} {activeSubj}テスト予想範囲</span>
+                    <span style={{fontWeight:'bold',fontSize:'12px',color:'#c2410c'}}>{school}・{activeGrade} {activeSubj}テスト予想範囲{roundLabel}</span>
                     <span style={{fontSize:'12px',color:'#9a3412'}}>
-                      {startItem?startItem.text.slice(0,14)+'…':'（開始未設定）'}
+                      {startItem?startItem.text.slice(0,16)+'…':(startId?'（開始項目みつからず）':'（開始未設定）')}
                       　〜　
-                      <span style={{fontWeight:'bold',textDecoration:'underline'}}>{endItem?endItem.text.slice(0,14)+'…':'（終了未設定）'}</span>
+                      <span style={{fontWeight:'bold',textDecoration:'underline'}}>{endItem?endItem.text.slice(0,16)+'…':(endId?'（終了項目みつからず）':'（終了未設定）')}</span>
                     </span>
+                  </div>
+                );
+              })()}
+
+              {/* v31: 教室長からの学習方針バナー（講師画面に新規追加） */}
+              {jhSi>=0&&isChu(activeGrade)&&(()=>{
+                const sName=(jhFullName||'').replace(/（.+?）/,'');
+                const sch=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
+                if(!sch) return null;
+                // 優先順位：学校_学年_教科 → 学校_学年_全教科 → 学校_全学年_教科 → 学校_全学年_全教科
+                const d1=jhDirectives[`${sch}_${activeGrade}_${activeSubj}`];
+                const d2=jhDirectives[`${sch}_${activeGrade}_all`];
+                const d3=jhDirectives[`${sch}_all_${activeSubj}`];
+                const d4=jhDirectives[`${sch}_all_all`];
+                const directive=d1||d2||d3||d4;
+                if(!directive) return null;
+                const label=d1?`${activeGrade}・${activeSubj}`:d2?`${activeGrade}・全教科`:d3?`全学年・${activeSubj}`:'全学年・全教科';
+                const subjColor=activeSubj==='数学'?'#1e40af':activeSubj==='英語'?'#166534':'#6b21a8';
+                const subjBg=activeSubj==='数学'?'#dbeafe':activeSubj==='英語'?'#dcfce7':'#f3e8ff';
+                const subjBorder=activeSubj==='数学'?'#3b82f6':activeSubj==='英語'?'#22c55e':'#a855f7';
+                return(
+                  <div style={{margin:'0 0 10px',background:subjBg,border:`2px solid ${subjBorder}`,borderRadius:'8px',padding:'10px 14px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'4px',flexWrap:'wrap'}}>
+                      <span style={{fontSize:'14px'}}>📢</span>
+                      <span style={{fontWeight:'bold',fontSize:'12px',color:subjColor}}>教室長からの方針</span>
+                      <span style={{fontSize:'10px',background:'white',color:subjColor,borderRadius:'4px',padding:'1px 6px',border:`1px solid ${subjBorder}`}}>{sch} {label}</span>
+                    </div>
+                    <div style={{fontSize:'13px',color:subjColor,lineHeight:'1.6',fontWeight:'bold',whiteSpace:'pre-wrap'}}>{directive}</div>
                   </div>
                 );
               })()}
