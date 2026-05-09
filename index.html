@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v41"/>
+  <meta name="app-version" content="v42"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v41</title>
+  <title>明光義塾 チェックアプリ v42</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v41-20260509";  // 🚨 v40→v41 予防的措置：練ゼミ進捗データ（renzemiProgress）も個別キー保存方式に。講師全員が記録した時のURL長制限超過を未然に回避
-      const APP_DISPLAY_VERSION = "v41";  // バージョンバッジ表示用
+      const APP_VERSION = "v42-20260509";  // 🚨 v41→v42 records（通常チェック記録）も個別キー保存方式に。130名運用時のURL長制限突破を未然回避。これで全データの保存方式統一が完了
+      const APP_DISPLAY_VERSION = "v42";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -4807,8 +4807,24 @@ function App(){
         if(p) np[n]=p;
       }
       if(jhNeeded){
-        const jr=await jhGet('records',{});
-        setJhRecords(jr);
+        // v42: 旧マップ（si→records）と個別キー（sName→records）を統合
+        //   旧形式: jr[si] = {key: {status,...}}
+        //   新形式: jhGetMap('records')[sName] = {key: {status,...}}
+        //   統合：sName→si に変換してから旧マップを上書き
+        const jrOld=await jhGet('records',{});
+        const jrNew=await jhGetMap('records');
+        const merged={...jrOld};
+        if(jrNew){
+          // sName を si にマッピング
+          for(const [sName, recs] of Object.entries(jrNew)){
+            // sName → 該当する si を見つける
+            const si=jhStudents.findIndex(s=>stripGrade(s)===sName);
+            if(si>=0){
+              merged[si]={...(merged[si]||{}), ...recs};
+            }
+          }
+        }
+        setJhRecords(merged);
       }
       setHsRecords(nr);setHsPlans(np);
       setBgLoading(false);
@@ -4848,12 +4864,32 @@ function App(){
     return jhStudents.indexOf(full);
   };
   const jhGetRecord=(si,key)=>jhRecords[si]?.[key]||{status:'未',teacher:'',date:''};
+  // v42: 通常チェック記録も個別キー保存方式に変更
+  //   旧: shochugaku:records 全体を1キーで保存 → 130名運用で確実にURL長制限突破
+  //   新: shochugaku:records__item__生徒index のように生徒ごとに分割保存
+  //   ※テンポを邪魔しないため、バッジは「保存中」「保存しました」だけシンプルに
   const jhCycleStatus=async(si,key)=>{
     const cur=jhGetRecord(si,key).status;
     const next=STATUS_CYCLE[cur];
-    const nr={...jhRecords,[si]:{...(jhRecords[si]||{}),[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}}};
-    setJhRecords(nr);flash('💾 保存中...');
-    await jhSet('records',nr);flash('💾 保存しました');
+    const studentRecords={...(jhRecords[si]||{}),[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
+    let nr;
+    setJhRecords(prev=>{
+      nr={...prev,[si]:studentRecords};
+      return nr;
+    });
+    flash('💾 保存中...','saving');
+    await new Promise(r=>setTimeout(r,0));
+    // v42: 個別キー保存（その生徒のデータだけ保存）
+    //   生徒名でキーを作る（si=index は端末ごとに変わる可能性があるので、生徒名で永続化）
+    const fullName=jhStudents[si]||'';
+    const sName=stripGrade(fullName);
+    const result=await jhSetMap('records',sName,studentRecords,nr);
+    if(!result.ok){
+      flash(`❌ 保存失敗：${result.reason||''}`,'error');
+      console.error('[records保存失敗]',{si,sName,key,result});
+    }else{
+      flash('💾 保存しました');
+    }
   };
 
   const jhSaveTextbook=async(si,vals)=>{
