@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v34"/>
+  <meta name="app-version" content="v36"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v34</title>
+  <title>明光義塾 チェックアプリ v36</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v34-20260509";  // 🚨 v33→v34 緊急対応：URL長制限によるデータ消失バグを根治。testRanges・directivesを個別キー保存方式へ。保存後の読み戻し検証も実装
-      const APP_DISPLAY_VERSION = "v34";  // バージョンバッジ表示用
+      const APP_VERSION = "v36-20260509";  // 🚨 v35→v36 いっちー先生の設計：学校×学年マスタを自動学習。同じ学校・学年の生徒で月が自動初期化される
+      const APP_DISPLAY_VERSION = "v36";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -1447,7 +1447,7 @@ function DirectiveModal({directives, onSave, onClose}){
 }
 
 // ─── テスト範囲設定モーダル（教室長専用） ──────────────────────
-function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrade}){
+function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrade, schoolGradeMaster}){
   const [school, setSchool] = useState(defaultSchool||SCHOOLS[0]);
   const [grade, setGrade] = useState(defaultGrade||"中1");
   const [round, setRound] = useState(()=>{
@@ -1474,11 +1474,19 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
   const xLabel = isElem ? "X生（ウィンパス）" : "X生（ウイニング）";
   const yLabel = isElem ? "Y生（明光式ワーク）" : "Y生（練成テキストα）";
 
+  // v35: モーダルを開いた時の round 初期値ロジックを修正
+  //   - 既に保存済みデータがある場合：そのデータの round を表示
+  //   - データがない場合：今後一番近いテスト月を選ぶ（過去月は意味がないため）
   // 現在の設定を読み込む（新形式優先、なければ旧形式から）
   React.useEffect(() => {
     const newKey = `${school}_${grade}`;
     let existing = testRanges[newKey];
-    if(!existing){
+    let roundFromData = null;
+    if(existing){
+      // 新形式キーがあれば、そのroundを使う
+      if(existing.round) roundFromData = existing.round;
+    }else{
+      // 旧形式キーから最新を取得
       const allKeys = Object.keys(testRanges).filter(k=>k.startsWith(`${school}_${grade}_`));
       if(allKeys.length>0){
         const sorted = allKeys.sort((a,b)=>{
@@ -1487,8 +1495,19 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
           return db.localeCompare(da);
         });
         existing = testRanges[sorted[0]];
-        if(existing&&existing.round) setRound(existing.round);
+        if(existing&&existing.round) roundFromData = existing.round;
       }
+    }
+    // round の決定：①保存データがあればそれ、②マスタ（v36）にあればそれ、③なければ今月
+    if(roundFromData){
+      setRound(roundFromData);
+    }else if(schoolGradeMaster&&schoolGradeMaster[`${school}_${grade}`]?.defaultRound){
+      // v36: 学校×学年マスタから初期月を取得
+      setRound(schoolGradeMaster[`${school}_${grade}`].defaultRound);
+    }else{
+      // データもマスタもない場合：今月（最終フォールバック）
+      const m=new Date().getMonth()+1;
+      setRound(`m${m}`);
     }
     existing = existing || {};
     // X生範囲（新フィールド）
@@ -3920,7 +3939,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
 
               {/* モーダル */}
               {jhShowTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhAllStudents} textbookOverrides={jhTextbookOverrides} onSave={(si,vals)=>{onSaveTextbook(si,vals);setJhShowTextbookModal(false);}} onClose={()=>setJhShowTextbookModal(false)}/>}
-              {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange} defaultSchool={getSchoolOf(stripGrade(jhFullName))} defaultGrade={activeGrade}/>}
+              {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange} defaultSchool={getSchoolOf(stripGrade(jhFullName))} defaultGrade={activeGrade} schoolGradeMaster={jhSchoolGradeMaster}/>}
               {jhShowDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{onSaveDirective(k,v);setJhShowDirectiveModal(false);}} onClose={()=>setJhShowDirectiveModal(false)}/>}
 
               {/* v17: 練ゼミ期限一括登録モーダル */}
@@ -4519,6 +4538,11 @@ function App(){
   const [jhRenzemiProgress,setJhRenzemiProgress]=useState({});
   // jhRenzemiDeadlines: {gradeTerm(例:1R): {math:'YYYY-MM-DD', eng:'YYYY-MM-DD'}}
   const [jhRenzemiDeadlines,setJhRenzemiDeadlines]=useState({});
+  // v36: 学校×学年のテスト月マスタ
+  // {schoolGrade(例:'白川中_中3'): {defaultRound:'m9', updatedAt:'2026-05-09'}}
+  // テスト範囲を保存するたびに自動学習
+  // モーダルを開いた時、データがなければマスタから初期月を取得
+  const [jhSchoolGradeMaster,setJhSchoolGradeMaster]=useState({});
   // currentTerm: 教室全体の現在学期 'R'|'S'|'W'
   const [currentTerm,setCurrentTerm]=useState('R');
   // 高校生英文法
@@ -4557,13 +4581,14 @@ function App(){
     const cRzA=jhGetCached('renzemiAssign',{});
     const cRzP=jhGetCached('renzemiProgress',{});
     const cRzD=jhGetCached('renzemiDeadlines',{});
+    const cSGM=jhGetCached('schoolGradeMaster',{}); // v36
     const cCurTerm=jhGetCached('currentTerm','R');
     const cEngA=hsGetCached('koukou:engAssign',{});
     const cEngR=hsGetCached('koukou:engRecords',{});
     setTeachers(cT);setHsStudents(cHs);setJhStudents(cJh);
     setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);setJhSchoolOverrides(cSov);
     setJhRenzemiAssign(migrateRenzemiAssign(cRzA));setJhRenzemiProgress(cRzP);
-    setJhRenzemiDeadlines(cRzD);setCurrentTerm(cCurTerm||'R');
+    setJhRenzemiDeadlines(cRzD);setJhSchoolGradeMaster(cSGM);setCurrentTerm(cCurTerm||'R'); // v36
     setHsEngAssign(cEngA);setHsEngRecords(cEngR);
     setPhase('teacher');  // すぐ遷移
     // ② バックグラウンドで最新データを取得してUIを更新（全データ並列で1ラウンド）
@@ -4589,6 +4614,7 @@ function App(){
       ['renzemiAssign',()=>jhGet('renzemiAssign',cRzA),(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
       ['renzemiProgress',()=>jhGet('renzemiProgress',cRzP),setJhRenzemiProgress],
       ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
+      ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster], // v36
       ['currentTerm',()=>jhGet('currentTerm',cCurTerm),(d)=>setCurrentTerm(d||'R')],
       ['engAssign',()=>hsGet('koukou:engAssign',cEngA),setHsEngAssign],
       ['engRecords',()=>hsGet('koukou:engRecords',cEngR),setHsEngRecords],
@@ -4822,6 +4848,19 @@ function App(){
     if(result&&result.ok===false){
       flash(`❌ テスト範囲の保存失敗：${result.reason||''}（紗耶佳先生に確認お願いします）`,'error');
       return;
+    }
+    // v36: 学校×学年マスタを自動学習
+    //   保存されたkey（例: '白川中_中3'）と data.round（例: 'm9'）から、マスタを更新
+    //   こうすることで、同じ学校×学年の他生徒を開いた時、月が自動で選ばれる
+    if(data.round&&key.includes('_')){
+      const parts=key.split('_');
+      // key形式は'白川中_中3'（新形式）か'白川中_中3_m6'（旧形式）の2パターン
+      // どちらの場合も最初の2要素が「学校_学年」
+      const sgKey=`${parts[0]}_${parts[1]}`;
+      const updatedMaster={...jhSchoolGradeMaster,[sgKey]:{defaultRound:data.round,updatedAt:new Date().toISOString()}};
+      setJhSchoolGradeMaster(updatedMaster);
+      // GASに保存（マスタはサイズ小さいのでjhSetでOK）
+      jhSet('schoolGradeMaster',updatedMaster).catch(e=>console.warn('マスタ保存失敗:',e));
     }
     // 読み戻し検証: 100ms待ってから保存内容を取得して照合
     await new Promise(r=>setTimeout(r,300));
@@ -5768,7 +5807,7 @@ function App(){
 
               {/* モーダル */}
               {showTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhStudents} textbookOverrides={jhTextbookOverrides} onSave={jhSaveTextbook} onClose={()=>setShowTextbookModal(false)}/>}
-              {showTestRangeModal&&<TestRangeModal onClose={()=>setShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={jhSaveTestRange} defaultSchool={jhSchoolOverrides[stripGrade(jhFullName||'')]||STUDENT_SCHOOLS[stripGrade(jhFullName||'')]} defaultGrade={activeGrade}/>}
+              {showTestRangeModal&&<TestRangeModal onClose={()=>setShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={jhSaveTestRange} defaultSchool={jhSchoolOverrides[stripGrade(jhFullName||'')]||STUDENT_SCHOOLS[stripGrade(jhFullName||'')]} defaultGrade={activeGrade} schoolGradeMaster={jhSchoolGradeMaster}/>}
               {showDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{jhSaveDirective(k,v);setShowDirectiveModal(false);}} onClose={()=>setShowDirectiveModal(false)}/>}
 
               {/* テスト範囲アラートバナー */}
