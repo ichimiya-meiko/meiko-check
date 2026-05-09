@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v39"/>
+  <meta name="app-version" content="v41"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v39</title>
+  <title>明光義塾 チェックアプリ v41</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v39-20260509";  // 🚨 v38→v39 練ゼミ設定もURL長制限の犠牲に。個別キー保存方式（jhSetMap）に変更してv34/v36と同じパターンで根治＋保存検証付き
-      const APP_DISPLAY_VERSION = "v39";  // バージョンバッジ表示用
+      const APP_VERSION = "v41-20260509";  // 🚨 v40→v41 予防的措置：練ゼミ進捗データ（renzemiProgress）も個別キー保存方式に。講師全員が記録した時のURL長制限超過を未然に回避
+      const APP_DISPLAY_VERSION = "v41";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -2909,7 +2909,7 @@ function StudentReport({data,onClose}){
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhSchoolGradeMaster,jhStudentDirectives,jhSaveStudentDirective,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhSchoolGradeMaster,jhStudentDirectives,jhSaveStudentDirective,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack,saveMsg,saveMsgType}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -3136,9 +3136,18 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   return(
     <div style={{minHeight:'100vh',background:'#f0f4f8',padding:'16px'}}>
       <div style={{maxWidth:'720px',margin:'0 auto'}}>
-        <div style={{background:'#065f46',color:'white',borderRadius:'12px',padding:'14px 16px',marginBottom:'14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <p style={{fontWeight:'bold',fontSize:'16px'}}>🏫 教室長設定</p>
-          <button onClick={onBack} style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
+        <div style={{background:'#065f46',color:'white',borderRadius:'12px',padding:'14px 16px',marginBottom:'14px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+          <p style={{fontWeight:'bold',fontSize:'16px',margin:0}}>🏫 教室長設定</p>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            {saveMsg&&(
+              saveMsgType==='error'?
+                <span style={{background:'#dc2626',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px',animation:'pulse 1s infinite'}}>{saveMsg}</span>
+              :saveMsgType==='saving'?
+                <span style={{background:'#f59e0b',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
+              :<span style={{background:'#22c55e',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
+            )}
+            <button onClick={onBack} style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
+          </div>
         </div>
 
         {/* タブ */}
@@ -3935,21 +3944,33 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                                 }
                               </div>
                               <label style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'6px',cursor:'pointer',fontSize:'12px'}}>
-                                <input type="checkbox" checked={!!v.taking} onChange={e=>jhSaveRenzemiAssign(sName,sc.key,{...v,taking:e.target.checked})}/>
+                                <input type="checkbox" checked={!!v.taking} onChange={e=>{
+                                  // v40: 紗耶佳先生のご要望「受講チェックで自動的に当学年＆レベル10をセット」
+                                  //   99.9%の生徒は当学年なので、新規登録のクリック手間をゼロにする
+                                  if(e.target.checked&&!v.grade){
+                                    // 受講チェック ON で学年未設定 → 生徒の現学年とレベル10を自動セット
+                                    const currentGrade=activeGrade?activeGrade.replace(/[^0-9]/g,''):'';
+                                    jhSaveRenzemiAssign(sName,sc.key,{...v,taking:true,grade:currentGrade||'',rangeStart:1,rangeEnd:RENZEMI_LEVEL_MAX});
+                                  }else{
+                                    jhSaveRenzemiAssign(sName,sc.key,{...v,taking:e.target.checked});
+                                  }
+                                }}/>
                                 <span style={{fontWeight:'bold'}}>この生徒は{sc.label.replace(/^[^ ]+ /,'')}を受講する</span>
                               </label>
                               {v.taking&&(
                                 <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
                                   <div>
                                     <label style={{fontSize:'11px',color:'#374151',marginRight:'4px'}}>学年:</label>
-                                    <select value={v.grade||''} onChange={e=>{
+                                    <select value={v.grade||(activeGrade?activeGrade.replace(/[^0-9]/g,''):'')} onChange={e=>{
                                       const g=e.target.value||null;
                                       // v21: 学年変更時のデフォルトはレベル1〜10
                                       jhSaveRenzemiAssign(sName,sc.key,{...v,grade:g,rangeStart:1,rangeEnd:RENZEMI_LEVEL_MAX});
                                     }} style={{padding:'3px 6px',border:'1px solid #d1d5db',borderRadius:'4px',fontSize:'12px'}}>
-                                      <option value="">選択</option>
                                       {GRADE_LIST.map(g=><option key={g} value={g}>{g}年</option>)}
                                     </select>
+                                    {activeGrade&&v.grade&&v.grade!==activeGrade.replace(/[^0-9]/g,'')&&(
+                                      <span style={{fontSize:'10px',color:'#dc2626',marginLeft:'4px'}}>※当学年と異なります</span>
+                                    )}
                                   </div>
                                   {v.grade&&(
                                     <div>
@@ -4721,7 +4742,12 @@ function App(){
         const newMap=await jhGetMap('renzemiAssign');
         return {...(oldMap||{}),...(newMap||{})};
       },(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
-      ['renzemiProgress',()=>jhGet('renzemiProgress',cRzP),setJhRenzemiProgress],
+      // v41: renzemiProgress → 旧マップ + 個別キーを統合（個別が優先）
+      ['renzemiProgress',async()=>{
+        const oldMap=await jhGet('renzemiProgress',cRzP);
+        const newMap=await jhGetMap('renzemiProgress');
+        return {...(oldMap||{}),...(newMap||{})};
+      },setJhRenzemiProgress],
       ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
       ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster], // v36
       ['studentDirectives',()=>jhGet('studentDirectives',cSDir),setJhStudentDirectives], // v38
@@ -4910,6 +4936,11 @@ function App(){
     }
   };
   // 練ゼミ：進捗チェック保存（v19: setState前に updated を構築、保存失敗を画面通知）
+  // v41: 練ゼミ進捗を個別キー保存方式に変更（予防的措置）
+  //   旧: shochugaku:renzemiProgress 全体を1キーで保存（v40時点で1448文字、まだ余裕あり）
+  //   新: shochugaku:renzemiProgress__item__生徒名|教科|学期|番号 のように個別保存
+  //   理由：講師全員が記録すれば一気に増えるので、testRanges/directives/renzemiAssignと同じ罠を予防
+  //   ※講師の操作はテンポが大事なのでバッジは出さない（v40の方針継承）
   const jhSaveRenzemiProgress=async(name,subj,gradeTerm,num,col,value,teacherName)=>{
     const key=renzemiKey(name,subj,gradeTerm,num);
     const today=new Date();
@@ -4920,18 +4951,18 @@ function App(){
     //   こうすることで「await jhSet時に updated が確実に参照可能」になる。
     const cur=jhRenzemiProgress[key]||{first:'未',redo:'未'};
     const newVal={...cur,[col]:value,updatedAt:nowIso,checkedAt:todayStr,checkedBy:teacherName||cur.checkedBy||''};
-    const updated={...jhRenzemiProgress,[key]:newVal};
-    // 即座にstateに反映（UIの即時更新）
-    setJhRenzemiProgress(updated);
-    // GASに保存（リトライ付き）
-    const result=await jhSet('renzemiProgress',updated);
+    let updated;
+    setJhRenzemiProgress(prev=>{
+      updated={...prev,[key]:newVal};
+      return updated;
+    });
+    await new Promise(r=>setTimeout(r,0));
+    // v41: 個別キー保存（その1項目のデータだけを保存）
+    const result=await jhSetMap('renzemiProgress',key,newVal,updated);
     if(!result.ok){
       // 失敗時は画面に大きく赤いトーストで通知
       flash(`❌ 保存に失敗しました（${result.reason||'通信エラー'}）。もう一度押してください。`,'error');
       console.error('[練ゼミ進捗保存失敗]',{key,col,value,result});
-    }else if(result.sizeKB>=8){
-      // データサイズが8KB超え：警告
-      console.warn(`[練ゼミ進捗] データサイズ ${result.sizeKB}KB（リミット間近）`);
     }
   };
   // 練ゼミ：期限保存（学年×学期×教科）v19: 堅牢化
@@ -5292,6 +5323,8 @@ function App(){
       jhSchoolGradeMaster={jhSchoolGradeMaster}
       jhStudentDirectives={jhStudentDirectives}
       jhSaveStudentDirective={jhSaveStudentDirective}
+      saveMsg={saveMsg}
+      saveMsgType={saveMsgType}
       onBack={()=>setPhase('students')}/>
   );
   if(phase==='loading') return(
