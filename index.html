@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v29"/>
+  <meta name="app-version" content="v30"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v29</title>
+  <title>明光義塾 チェックアプリ v30</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v29-20260509";  // 🚨 v25→v29 学校情報カスタムも見るように修正・学習方針表示修正・練ゼミレベルメッセージ改善
-      const APP_DISPLAY_VERSION = "v29";  // バージョンバッジ表示用
+      const APP_VERSION = "v30-20260509";  // 🚨 v29→v30 練ゼミレベル選択：項目数表示と矛盾警告を完全削除（レベルと項目は別概念のため）
+      const APP_DISPLAY_VERSION = "v30";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -3722,19 +3722,12 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                                         {RENZEMI_LEVELS.map(lv=><option key={lv} value={lv}>レベル{lv}</option>)}
                                       </select>
                                       <span style={{fontSize:'11px',marginLeft:'4px',fontWeight:'bold',color:'#374151'}}>まで</span>
-                                      <span style={{fontSize:'10px',color:'#6b7280',marginLeft:'8px'}}>
-                                        ({currentTerm}テキスト：全{items.length}項目)
-                                      </span>
                                     </div>
                                   )}
                                   {v.grade&&items.length===0&&(
                                     <p style={{fontSize:'10px',color:'#dc2626'}}>※{currentTerm}テキストはまだ未投入</p>
                                   )}
-                                  {v.grade&&items.length>0&&(v.rangeEnd||0)>items.length&&(
-                                    <p style={{fontSize:'10px',color:'#d97706'}}>
-                                      ℹ️ {currentTerm}テキスト{v.grade}年は問題が{items.length}個まで（レベル{items.length}まで）です。レベル{v.rangeEnd}までの設定はそのまま反映されます
-                                    </p>
-                                  )}
+                                  {/* v30: レベルと項目は別概念。レベルは1〜10で常に有効なので警告不要 */}
                                 </div>
                               )}
                             </div>
