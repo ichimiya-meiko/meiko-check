@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v31"/>
+  <meta name="app-version" content="v33"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v31</title>
+  <title>明光義塾 チェックアプリ v33</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v31-20260509";  // 🚨 v30→v31 講師画面の表示バグ修正：テスト範囲のキー形式統一＋学習方針バナー新規追加
-      const APP_DISPLAY_VERSION = "v31";  // バージョンバッジ表示用
+      const APP_VERSION = "v33-20260509";  // 🚨 v32→v33 紗耶佳先生指摘②：①X/Y両方表示でグレーアウト ②アラート基準を「テスト月から1ヶ月以上経過」に
+      const APP_DISPLAY_VERSION = "v33";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -3390,19 +3390,58 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                       }
                     }
                   });
+                  // v33: 紗耶佳先生指示「目的から逆算」
+                  //   旧: 最終更新から1ヶ月以上 → ❌
+                  //   新: 該当テスト月から1ヶ月以上経過 → ✅
+                  //     例：6月テストの範囲を5月に登録 → 6月中はOK → 7月になったら更新催促
+                  //   data.round = 'm6', 'm9'等の月情報を活用
+                  // テスト範囲のうち「最も新しいテスト月」を取得
+                  let latestTestMonth=null; // {year, month}
+                  let latestTestRoundLabel='';
+                  const allRangeData=[];
+                  if(jhTestRanges[newKey]) allRangeData.push(jhTestRanges[newKey]);
+                  Object.keys(jhTestRanges).forEach(k=>{
+                    if(k.startsWith(`${sch}_${g}_`)) allRangeData.push(jhTestRanges[k]);
+                  });
+                  allRangeData.forEach(d=>{
+                    if(!d||!d.round) return;
+                    let normalizedRound=d.round;
+                    if(LEGACY_TEST_ROUND_MAP[d.round]) normalizedRound=LEGACY_TEST_ROUND_MAP[d.round];
+                    const roundInfo=TEST_ROUNDS.find(r=>r.id===normalizedRound);
+                    if(!roundInfo) return;
+                    // updatedAt（登録日）の「年」と round（テスト月）を組み合わせて、テストの実施年月を推定
+                    // 登録日の年月 → 直後のテスト月を当てる
+                    const upd=d.updatedAt?new Date(d.updatedAt):new Date();
+                    const updY=upd.getFullYear();
+                    const updM=upd.getMonth()+1;
+                    // テスト月：登録月以降の最初の該当月
+                    let testY=updY;
+                    if(roundInfo.month<updM) testY=updY+1; // 翌1月など
+                    const testDate=new Date(testY,roundInfo.month-1,1);
+                    if(!latestTestMonth||testDate>latestTestMonth.date){
+                      latestTestMonth={date:testDate,year:testY,month:roundInfo.month,label:roundInfo.label};
+                      latestTestRoundLabel=roundInfo.label;
+                    }
+                  });
                   if(!hasAnyData){
                     // この学校・学年は1件も登録なし → 未登録
                     missing.push({sch,g});
+                  }else if(latestTestMonth){
+                    // テスト月から1ヶ月以上経過しているか判定
+                    // 例：testMonth=6月, today=7月なら経過1ヶ月→アラート
+                    //     testMonth=6月, today=6月ならまだOK
+                    const monthsSinceTest=(curYear-latestTestMonth.year)*12+(curMonth-latestTestMonth.month);
+                    if(monthsSinceTest>=1){
+                      stale.push({sch,g,testLabel:latestTestRoundLabel,monthsSinceTest});
+                    }
                   }else if(latestUpdate){
+                    // round情報がない場合のフォールバック（旧データ用）
                     const updMonth=latestUpdate.getMonth()+1;
                     const updYear=latestUpdate.getFullYear();
                     const monthsSinceUpdate=(curYear-updYear)*12+(curMonth-updMonth);
-                    if(monthsSinceUpdate>=1){
-                      stale.push({sch,g,updated:latestUpdate.toLocaleDateString('ja-JP')});
+                    if(monthsSinceUpdate>=2){ // 旧データは2ヶ月以上で警告（緩めに）
+                      stale.push({sch,g,testLabel:'',updated:latestUpdate.toLocaleDateString('ja-JP')});
                     }
-                  }else{
-                    // updatedAtなし古いデータ
-                    stale.push({sch,g,updated:'不明'});
                   }
                 });
                 if(missing.length===0&&stale.length===0&&noSchool.length===0) return null;
@@ -3428,13 +3467,14 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                     {stale.length>0&&(
                       <div style={{background:'#fffbeb',border:'2px solid #fbbf24',borderRadius:'10px',padding:'12px 14px',marginBottom:'8px'}}>
                         <p style={{fontWeight:'bold',fontSize:'13px',color:'#92400e',marginBottom:'6px'}}>
-                          🔄 テスト範囲の更新が必要 ({stale.length}件)
+                          🔄 次のテスト範囲の登録が必要 ({stale.length}件)
                         </p>
-                        <p style={{fontSize:'10px',color:'#78350f',marginBottom:'6px'}}>1ヶ月以上更新されていない設定です。最新のテスト情報に更新してください。</p>
+                        <p style={{fontSize:'10px',color:'#78350f',marginBottom:'6px'}}>前回テストから1ヶ月以上経過しました。次のテスト範囲を登録してください。</p>
                         <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
                           {stale.slice(0,20).map((m2,i)=>(
                             <span key={i} style={{background:'white',color:'#92400e',fontSize:'12px',padding:'4px 10px',borderRadius:'4px',border:'1px solid #fbbf24',fontWeight:'bold'}}>
-                              {m2.sch} {m2.g}（最終更新：{m2.updated}）
+                              {m2.sch} {m2.g}
+                              {m2.testLabel?`（前回${m2.testLabel}テスト）`:m2.updated?`（最終更新：${m2.updated}）`:''}
                             </span>
                           ))}
                           {stale.length>20&&<span style={{fontSize:'11px',color:'#92400e'}}>...他{stale.length-20}件</span>}
@@ -3593,60 +3633,96 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                     );
                     const updTxt=data.updatedAt?new Date(data.updatedAt).toLocaleDateString('ja-JP'):'不明';
                     const monthInfo=data.round?(TEST_ROUNDS.find(r=>r.id===data.round)?.label||''):'';
-                    // X生・Y生両方の範囲を取得して表示
-                    const renderRange=(typeKey,label,bg,color)=>{
-                      const rangeData=subjects.map(subj=>{
-                        const isFirst=(subj==='数学'||subj==='算数');
-                        let sId,eId;
-                        if(typeKey==='X'){
-                          sId=isFirst?data.xMathStart:data.xEngStart;
-                          eId=isFirst?data.xMathEnd:data.xEngEnd;
+                    // v33: 両方表示するが、その生徒のテキストでない方はグレーアウト
+                    //   理由：紗耶佳先生が登録忘れに気づきやすくするため
+                    //   - X生（田村くん）の画面では：X生がくっきり表示／Y生は薄くグレー
+                    //   - Y生の画面では逆
+                    //   - 数学・英語が別テキストの場合もそれぞれ独立判定
+                    const renderRangeForStudent=()=>{
+                      // この生徒の各教科のテキストタイプを取得
+                      const studentTypeMap={};
+                      subjects.forEach(subj=>{
+                        const tKey=jhTextbookOverrides[jhSi]?.[subj]||'';
+                        if(tKey.startsWith('none_')){
+                          studentTypeMap[subj]=null; // 受講なし
+                        }else if(tKey.includes('X_')){
+                          studentTypeMap[subj]='X';
                         }else{
-                          sId=isFirst?(data.yMathStart||data.mathStart):(data.yEngStart||data.engStart);
-                          eId=isFirst?(data.yMathEnd||data.mathEnd):(data.yEngEnd||data.engEnd);
+                          studentTypeMap[subj]='Y'; // デフォルト含む
                         }
-                        const tk=`${activeGrade}${typeKey}_${subj}`;
-                        const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
-                        const sItem=items.find(it=>it.id===sId);
-                        const eItem=items.find(it=>it.id===eId);
-                        return {subj,sId,eId,sItem,eItem};
                       });
-                      const hasAny=rangeData.some(r=>r.sId||r.eId);
-                      if(!hasAny) return(
-                        <div style={{background:bg,borderRadius:'6px',padding:'6px 10px',border:`1px solid ${color}33`,opacity:0.6}}>
-                          <p style={{fontSize:'11px',fontWeight:'bold',color}}>{label}</p>
-                          <p style={{fontSize:'10px',color:'#9ca3af'}}>未設定</p>
-                        </div>
-                      );
-                      return(
-                        <div style={{background:bg,borderRadius:'6px',padding:'6px 10px',border:`1px solid ${color}66`}}>
-                          <p style={{fontSize:'11px',fontWeight:'bold',color,marginBottom:'2px'}}>{label}</p>
-                          {rangeData.map(({subj,sId,eId,sItem,eItem})=>{
-                            if(!sId&&!eId) return null;
-                            return(
+                      // X生・Y生のセクションを両方とも表示（関係ない方はグレーアウト）
+                      const xLbl=isElemGrade?'X生（ウィンパス）':'X生（ウイニング）';
+                      const yLbl=isElemGrade?'Y生（明光式ワーク）':'Y生（練成テキストα）';
+                      const renderTypeSection=(typeKey,label)=>{
+                        // この生徒のうち、このtypeKeyに該当する教科だけ抽出
+                        const relevantSubjects=subjects.filter(s=>studentTypeMap[s]===typeKey);
+                        const isRelevant=relevantSubjects.length>0;
+                        const bgColor=typeKey==='X'?'#fff7ed':'#eff6ff';
+                        const borderColor=typeKey==='X'?'#fdba74':'#93c5fd';
+                        const textColor=typeKey==='X'?'#7c2d12':'#1e40af';
+                        // 関係ある教科の範囲を取得
+                        const rows=relevantSubjects.map(subj=>{
+                          const isFirst=(subj==='数学'||subj==='算数');
+                          let sId,eId;
+                          if(typeKey==='X'){
+                            sId=isFirst?data.xMathStart:data.xEngStart;
+                            eId=isFirst?data.xMathEnd:data.xEngEnd;
+                          }else{
+                            sId=isFirst?(data.yMathStart||data.mathStart):(data.yEngStart||data.engStart);
+                            eId=isFirst?(data.yMathEnd||data.mathEnd):(data.yEngEnd||data.engEnd);
+                          }
+                          const tk=`${activeGrade}${typeKey}_${subj}`;
+                          const items=(CHAPTERS[tk]||[]).flatMap(c=>c.items);
+                          const sItem=items.find(it=>it.id===sId);
+                          const eItem=items.find(it=>it.id===eId);
+                          return {subj,sId,eId,sItem,eItem};
+                        });
+                        if(!isRelevant){
+                          // この生徒に関係ないテキスト → グレーアウト
+                          return(
+                            <div key={typeKey} style={{background:'#f3f4f6',borderRadius:'6px',padding:'6px 10px',border:'1px solid #d1d5db',opacity:0.5}}>
+                              <p style={{fontSize:'11px',fontWeight:'bold',color:'#9ca3af',marginBottom:'2px'}}>📚 {label}</p>
+                              <p style={{fontSize:'10px',color:'#9ca3af'}}>※ この生徒は使用していません</p>
+                            </div>
+                          );
+                        }
+                        // この生徒に関係あるテキスト → くっきり表示
+                        const hasAny=rows.some(r=>r.sId||r.eId);
+                        return(
+                          <div key={typeKey} style={{background:bgColor,borderRadius:'6px',padding:'6px 10px',border:`2px solid ${borderColor}`}}>
+                            <p style={{fontSize:'11px',fontWeight:'bold',color:textColor,marginBottom:'2px'}}>📚 {label}</p>
+                            {hasAny?rows.map(({subj,sId,eId,sItem,eItem})=>(
                               <p key={subj} style={{fontSize:'11px',color:'#374151',marginTop:'2px'}}>
                                 <span style={{fontWeight:'bold'}}>{subj}：</span>
-                                {sItem?sItem.text.slice(0,16):'（開始未設定）'}
-                                　〜　
-                                {eItem?eItem.text.slice(0,16):'（終了未設定）'}
+                                {sId||eId?(
+                                  <>{sItem?sItem.text.slice(0,16):'（開始未設定）'}　〜　{eItem?eItem.text.slice(0,16):'（終了未設定）'}</>
+                                ):(
+                                  <span style={{color:'#dc2626',fontWeight:'bold'}}>⚠️ 未登録です</span>
+                                )}
                               </p>
-                            );
-                          })}
-                        </div>
+                            )):(
+                              <p style={{fontSize:'11px',color:'#dc2626',fontWeight:'bold',marginTop:'2px'}}>⚠️ 未登録です</p>
+                            )}
+                          </div>
+                        );
+                      };
+                      return(
+                        <>
+                          {renderTypeSection('X',xLbl)}
+                          {renderTypeSection('Y',yLbl)}
+                        </>
                       );
                     };
                     // v20: 学年に応じてテキスト名を切替
                     const isElemGrade=activeGrade&&activeGrade.startsWith('小');
-                    const xLbl=isElemGrade?'📚 X生（ウィンパス）':'📚 X生（ウイニング）';
-                    const yLbl=isElemGrade?'📚 Y生（明光式ワーク）':'📚 Y生（練成テキストα）';
                     return(
                       <div style={{display:'flex',flexDirection:'column',gap:'6px',marginBottom:'8px'}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <p style={{fontSize:'11px',color:'#78350f'}}>🎯 {sch}・{activeGrade}・現状のテスト予想範囲（{monthInfo||'次回テスト'}）</p>
                           <p style={{fontSize:'10px',color:'#9ca3af'}}>更新：{updTxt}</p>
                         </div>
-                        {renderRange('X',xLbl,'#fff7ed','#7c2d12')}
-                        {renderRange('Y',yLbl,'#eff6ff','#1e40af')}
+                        {renderRangeForStudent()}
                       </div>
                     );
                   })()}
@@ -4376,7 +4452,13 @@ function App(){
   const [hsEngAssign,setHsEngAssign]=useState({}); // {生徒名: {set:'eng_oiwa|eng_hijii|none', from:1, to:99, startDate:'', deadline:''}}
   const [hsEngRecords,setHsEngRecords]=useState({}); // {生徒名: {item_id: {status:'未|◯|△|✗', askedQs:[1,3,5]}}}
 
-  const flash=(msg,type='info')=>{setSaveMsg(msg);setSaveMsgType(type);setTimeout(()=>setSaveMsg(''),type==='error'?6000:2500);};
+  // v32: 'saving' = 保存中（黄、消えない）／'info' = 成功（緑、2.5秒）／'error' = 失敗（赤、6秒・点滅）
+  const flash=(msg,type='info')=>{
+    setSaveMsg(msg);
+    setSaveMsgType(type);
+    if(type==='saving') return; // 保存中は次のflashで上書きされるまで残す
+    setTimeout(()=>setSaveMsg(''),type==='error'?6000:2500);
+  };
 
   // DB(chapters.json)ロード v23: キャッシュバスター付き（C対策）
   useEffect(()=>{
@@ -4627,6 +4709,7 @@ function App(){
   };
 
   const jhSaveSchool=async(name,school)=>{
+    flash('💾 学校情報を保存中...','saving');
     // 競合防止：functional updateで確実に最新stateベースで更新
     let updated;
     setJhSchoolOverrides(prev=>{
@@ -4635,28 +4718,42 @@ function App(){
     });
     // 少し待ってstateが反映されてから保存（state更新後の値を使う）
     await new Promise(r=>setTimeout(r,0));
-    await jhSet('schoolOverrides',updated);
-    flash(`🏫 ${name}の学校を「${school}」に設定しました`);
+    const result=await jhSet('schoolOverrides',updated);
+    if(result&&result.ok===false){
+      flash(`❌ ${name}の学校保存失敗：${result.reason||''}`,'error');
+    }else{
+      flash(`✅ ${name}の学校を「${school}」に設定しました`);
+    }
   };
   const jhSaveTestRange=async(key,data)=>{
+    flash('💾 テスト範囲を保存中...','saving');
     let updated;
     setJhTestRanges(prev=>{
       updated={...prev,[key]:data};
       return updated;
     });
     await new Promise(r=>setTimeout(r,0));
-    await jhSet('testRanges',updated);
-    flash('📝 テスト範囲を保存しました');
+    const result=await jhSet('testRanges',updated);
+    if(result&&result.ok===false){
+      flash(`❌ テスト範囲の保存失敗：${result.reason||''}`,'error');
+    }else{
+      flash('✅ テスト範囲を保存しました');
+    }
   };
   const jhSaveDirective=async(key,text)=>{
+    flash('💾 学習方針を保存中...','saving');
     let updated;
     setJhDirectives(prev=>{
       updated={...prev,[key]:text};
       return updated;
     });
     await new Promise(r=>setTimeout(r,0));
-    await jhSet('directives',updated);
-    flash('📢 方針を保存しました');
+    const result=await jhSet('directives',updated);
+    if(result&&result.ok===false){
+      flash(`❌ 学習方針の保存失敗：${result.reason||''}`,'error');
+    }else{
+      flash('✅ 学習方針を保存しました');
+    }
   };
   const jhToggleSkip=async(grade,subjKey,itemId)=>{
     const key=`${grade}_${subjKey}`;
@@ -4963,9 +5060,12 @@ function App(){
           <p style={{color:'#93c5fd',fontSize:'11px'}}>👨‍🏫 {selTeacher}　｜　{selStudents.length}人表示中</p>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          {saveMsg&&(saveMsgType==='error'?
-            <span style={{background:'#dc2626',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px',animation:'pulse 1s infinite'}}>{saveMsg}</span>
-            :<span style={{color:'#86efac',fontSize:'12px',fontWeight:'bold'}}>{saveMsg}</span>
+          {saveMsg&&(
+            saveMsgType==='error'?
+              <span style={{background:'#dc2626',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px',animation:'pulse 1s infinite'}}>{saveMsg}</span>
+            :saveMsgType==='saving'?
+              <span style={{background:'#f59e0b',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
+            :<span style={{background:'#22c55e',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
           )}
           {bgLoading&&(()=>{
             const pct=bgProgress&&bgProgress.total>0?Math.round(bgProgress.done/bgProgress.total*100):0;
@@ -5610,15 +5710,18 @@ function App(){
                   }
                 }
                 if(!rng) return null;
-                // v31: テキストタイプ判定（X生 or Y生）でフィールドを切替
+                // v32: テキストタイプに応じてX生/Y生のフィールドのみ参照（フォールバックなし）
+                //   フォールバックは講師の混乱の元（紗耶佳先生指摘）
                 const tKey=jhTextbookKey(jhSi,activeSubj)||'';
                 const isXType=tKey.includes('X_');
                 const isEng=activeSubj==='英語';
                 let startId,endId;
                 if(isXType){
+                  // X生：X生フィールドのみ
                   startId=isEng?rng.xEngStart:rng.xMathStart;
                   endId=isEng?rng.xEngEnd:rng.xMathEnd;
                 }else{
+                  // Y生：Y生フィールドのみ（旧形式 mathStart/engStart はY生のマイグレーション用）
                   startId=isEng?(rng.yEngStart||rng.engStart):(rng.yMathStart||rng.mathStart);
                   endId=isEng?(rng.yEngEnd||rng.engEnd):(rng.yMathEnd||rng.mathEnd);
                 }
