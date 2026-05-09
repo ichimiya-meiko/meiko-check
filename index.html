@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v33"/>
+  <meta name="app-version" content="v34"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v33</title>
+  <title>明光義塾 チェックアプリ v34</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v33-20260509";  // 🚨 v32→v33 紗耶佳先生指摘②：①X/Y両方表示でグレーアウト ②アラート基準を「テスト月から1ヶ月以上経過」に
-      const APP_DISPLAY_VERSION = "v33";  // バージョンバッジ表示用
+      const APP_VERSION = "v34-20260509";  // 🚨 v33→v34 緊急対応：URL長制限によるデータ消失バグを根治。testRanges・directivesを個別キー保存方式へ。保存後の読み戻し検証も実装
+      const APP_DISPLAY_VERSION = "v34";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -307,8 +307,10 @@ async function jhSet(key,val){
   const payload=JSON.stringify(val);
   const sizeKB=Math.round(payload.length/1024*10)/10;
   const url=`${GAS_JH}?action=set&key=${encodeURIComponent(JH_PREFIX+key)}&value=${encodeURIComponent(payload)}`;
+  // v34: URL長制限を「警告」ではなく「明確なエラー」に！
   if(url.length>=8000){
-    console.error(`[jhSet] ⚠️ URLが長すぎます（${url.length}文字）。GASに到達しない可能性。key=${key}, データ=${sizeKB}KB`);
+    console.error(`[jhSet] 🔴 URLが長すぎます（${url.length}文字, 上限~8000）。データ消失リスク。key=${key}, データ=${sizeKB}KB`);
+    return {ok:false,reason:`URL長制限超過(${url.length}文字)。jhSetMapを使ってください。`};
   }else if(url.length>=5000){
     console.warn(`[jhSet] ⚠️ URLが5KB超え（${url.length}文字）。リミットに近づいています。key=${key}, データ=${sizeKB}KB`);
   }
@@ -347,6 +349,77 @@ async function jhSet(key,val){
   // 3回すべて失敗
   console.error(`[jhSet] ❌ 保存失敗（3回リトライ）: key=${key}`,lastErr);
   return {ok:false,reason:lastErr?lastErr.message:'unknown'};
+}
+
+// v34: 巨大なオブジェクト（testRanges、directivesなど）を「キーごとに分割保存」する
+//   - 全体サイズが大きい場合でも、変更があったエントリーだけ個別保存することでURL長制限を回避
+//   - 引数: mapKey='testRanges', changedSubKey='白川中_中3', val=（その単独データ）
+//   - 戻り値: {ok:true} or {ok:false, reason}
+async function jhSetMap(mapKey,changedSubKey,val,fullMap){
+  // 1. ローカルにフルマップを保存（読み込み高速化）
+  try{localStorage.setItem('cache:jh:'+mapKey,JSON.stringify({v:fullMap,t:Date.now()}));}catch(e){
+    console.warn('[jhSetMap] localStorage保存失敗:',mapKey,e);
+  }
+  // 2. 個別キーをGASに保存（変更分だけ）
+  const subKey=`${mapKey}__item__${changedSubKey}`;
+  const itemResult=await jhSet(subKey,val);
+  if(!itemResult.ok){
+    return itemResult;
+  }
+  // 3. インデックスキー（その mapKey に存在する全 subKey の一覧）も更新
+  const indexKey=`${mapKey}__index`;
+  // 現在のindexを取得して更新
+  let curIndex=[];
+  try{
+    const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+indexKey)}`;
+    const r=await fetch(url,{method:'GET',cache:'no-store'});
+    if(r.ok){
+      const d=await r.json();
+      if(d&&d.value){
+        try{curIndex=JSON.parse(d.value);}catch{}
+      }
+    }
+  }catch{}
+  if(!Array.isArray(curIndex)) curIndex=[];
+  if(!curIndex.includes(changedSubKey)){
+    curIndex.push(changedSubKey);
+    await jhSet(indexKey,curIndex);
+  }
+  return {ok:true};
+}
+
+// v34: 個別キー保存方式から、フルマップを再構築して読み込む
+async function jhGetMap(mapKey){
+  // 1. インデックスを取得
+  const indexKey=`${mapKey}__index`;
+  let curIndex=[];
+  try{
+    const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+indexKey)}`;
+    const r=await fetch(url,{method:'GET',cache:'no-store'});
+    if(r.ok){
+      const d=await r.json();
+      if(d&&d.value){
+        try{curIndex=JSON.parse(d.value);}catch{}
+      }
+    }
+  }catch{}
+  if(!Array.isArray(curIndex)||curIndex.length===0) return null;
+  // 2. 各エントリーを取得して結合
+  const result={};
+  for(const subKey of curIndex){
+    try{
+      const itemKeyFull=`${mapKey}__item__${subKey}`;
+      const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+itemKeyFull)}`;
+      const r=await fetch(url,{method:'GET',cache:'no-store'});
+      if(r.ok){
+        const d=await r.json();
+        if(d&&d.value){
+          try{result[subKey]=JSON.parse(d.value);}catch{}
+        }
+      }
+    }catch{}
+  }
+  return result;
 }
 
 
@@ -4499,8 +4572,18 @@ function App(){
       ['hsStudents',()=>hsGet('koukou:students',cHs),setHsStudents],
       ['jhStudents',()=>jhGet('students',cJh),setJhStudents],
       ['textbookOverrides',()=>jhGet('textbookOverrides',cTb),setJhTextbookOverrides],
-      ['testRanges',()=>jhGet('testRanges',cTr),setJhTestRanges],
-      ['directives',()=>jhGet('directives',cDv),setJhDirectives],
+      // v34: testRanges → 旧マップ + 個別キーを統合（個別が優先）
+      ['testRanges',async()=>{
+        const oldMap=await jhGet('testRanges',cTr);
+        const newMap=await jhGetMap('testRanges');
+        // 統合：旧マップをベースに、新マップで上書き（新の方が個別保存で信頼性高い）
+        return {...(oldMap||{}),...(newMap||{})};
+      },setJhTestRanges],
+      ['directives',async()=>{
+        const oldMap=await jhGet('directives',cDv);
+        const newMap=await jhGetMap('directives');
+        return {...(oldMap||{}),...(newMap||{})};
+      },setJhDirectives],
       ['skipItems',()=>jhGet('skipItems',cSk),setJhSkipItems],
       ['schoolOverrides',()=>jhGet('schoolOverrides',cSov),setJhSchoolOverrides],
       ['renzemiAssign',()=>jhGet('renzemiAssign',cRzA),(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
@@ -4733,11 +4816,36 @@ function App(){
       return updated;
     });
     await new Promise(r=>setTimeout(r,0));
-    const result=await jhSet('testRanges',updated);
+    // v34: 個別キー保存（URL長制限回避）
+    const result=await jhSetMap('testRanges',key,data,updated);
+    // 保存後の読み戻し検証（紗耶佳先生指摘対応）
     if(result&&result.ok===false){
-      flash(`❌ テスト範囲の保存失敗：${result.reason||''}`,'error');
-    }else{
-      flash('✅ テスト範囲を保存しました');
+      flash(`❌ テスト範囲の保存失敗：${result.reason||''}（紗耶佳先生に確認お願いします）`,'error');
+      return;
+    }
+    // 読み戻し検証: 100ms待ってから保存内容を取得して照合
+    await new Promise(r=>setTimeout(r,300));
+    try{
+      const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+'testRanges__item__'+key)}`;
+      const r=await fetch(url,{cache:'no-store'});
+      const d=await r.json();
+      if(d&&d.value){
+        const saved=JSON.parse(d.value);
+        // 重要フィールドの照合（X生 or Y生のうち、登録されたフィールドが反映されているか）
+        const matches=['xMathStart','xMathEnd','xEngStart','xEngEnd','yMathStart','yMathEnd','yEngStart','yEngEnd']
+          .filter(f=>data[f])
+          .every(f=>saved[f]===data[f]);
+        if(matches){
+          flash('✅ テスト範囲を保存しました（検証済）');
+        }else{
+          flash('⚠️ 保存に不一致が検出されました。紗耶佳先生に再確認してください','error');
+        }
+      }else{
+        flash('⚠️ 保存後の検証で取得できませんでした','error');
+      }
+    }catch(e){
+      console.warn('保存検証失敗:',e);
+      flash('✅ テスト範囲を保存しました（検証スキップ）');
     }
   };
   const jhSaveDirective=async(key,text)=>{
@@ -4748,11 +4856,30 @@ function App(){
       return updated;
     });
     await new Promise(r=>setTimeout(r,0));
-    const result=await jhSet('directives',updated);
+    // v34: 個別キー保存
+    const result=await jhSetMap('directives',key,text,updated);
     if(result&&result.ok===false){
       flash(`❌ 学習方針の保存失敗：${result.reason||''}`,'error');
-    }else{
-      flash('✅ 学習方針を保存しました');
+      return;
+    }
+    // 読み戻し検証
+    await new Promise(r=>setTimeout(r,300));
+    try{
+      const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+'directives__item__'+key)}`;
+      const r=await fetch(url,{cache:'no-store'});
+      const d=await r.json();
+      if(d&&d.value){
+        const saved=JSON.parse(d.value);
+        if(saved===text){
+          flash('✅ 学習方針を保存しました（検証済）');
+        }else{
+          flash('⚠️ 保存に不一致が検出されました','error');
+        }
+      }else{
+        flash('⚠️ 保存後の検証で取得できませんでした','error');
+      }
+    }catch(e){
+      flash('✅ 学習方針を保存しました（検証スキップ）');
     }
   };
   const jhToggleSkip=async(grade,subjKey,itemId)=>{
