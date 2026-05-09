@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v37"/>
+  <meta name="app-version" content="v38"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v37</title>
+  <title>明光義塾 チェックアプリ v38</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v37-20260509";  // 🚨 v36→v37 緊急修正：DirectorSettingコンポーネントにjhSchoolGradeMasterのpropsを正しく渡すよう修正（テスト範囲モーダルで画面真っ白問題）
-      const APP_DISPLAY_VERSION = "v37";  // バージョンバッジ表示用
+      const APP_VERSION = "v38-20260509";  // 🚨 v37→v38 学習方針バグ修正＋いっちー先生設計：①モーダル開いた時に学校・学年が自動入力（紗耶佳先生の登録ミス防止） ②生徒別の個別方針タブ追加（特殊な10名向け）
+      const APP_DISPLAY_VERSION = "v38";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -1363,78 +1363,150 @@ async function jhGasSave(key,val){
 
 
 // ─── 方針設定モーダル（教室長専用） ────────────────────────────
-function DirectiveModal({directives, onSave, onClose}){
-  const [school, setSchool] = useState(SCHOOLS[0]);
-  const [grade, setGrade] = useState("全学年");
+function DirectiveModal({directives, onSave, onClose, defaultSchool, defaultGrade, studentName, studentDirectives, onSaveStudentDirective}){
+  // v38: 学校・学年は生徒情報から自動入力（紗耶佳先生の負担を減らす）
+  // 紗耶佳先生は方針メッセージを書くことだけに集中できる
+  // タブ切替: 'school' = 学校×学年マスタ / 'student' = 生徒別の例外（特殊な10名用）
+  const [tab, setTab] = useState('school');
+  const [school, setSchool] = useState(defaultSchool||SCHOOLS[0]);
+  const [grade, setGrade] = useState(defaultGrade||"中1");
   const [subj, setSubj] = useState("全教科");
   const [text, setText] = useState("");
+  const [studentText, setStudentText] = useState("");
 
   React.useEffect(()=>{
     const gradeStr=grade==="全学年"?"all":grade;
     const subjStr=subj==="全教科"?"all":subj;
     const key=`${school}_${gradeStr}_${subjStr}`;
     setText(directives[key]||"");
-  },[school,grade,subj]);
+  },[school,grade,subj,directives]);
+
+  // v38: 生徒別の方針を読み込み
+  React.useEffect(()=>{
+    if(studentName&&studentDirectives){
+      setStudentText(studentDirectives[studentName]||"");
+    }
+  },[studentName,studentDirectives]);
 
   const handleSave=()=>{
-    const gradeStr=grade==="全学年"?"all":grade;
-    const subjStr=subj==="全教科"?"all":subj;
-    const key=`${school}_${gradeStr}_${subjStr}`;
-    onSave(key,text);
+    if(tab==='school'){
+      const gradeStr=grade==="全学年"?"all":grade;
+      const subjStr=subj==="全教科"?"all":subj;
+      const key=`${school}_${gradeStr}_${subjStr}`;
+      onSave(key,text);
+    }else{
+      // 生徒別保存
+      if(onSaveStudentDirective&&studentName){
+        onSaveStudentDirective(studentName,studentText);
+      }
+    }
     onClose();
   };
 
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"12px"}} onClick={onClose}>
-      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"420px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"460px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
         <div style={{fontWeight:"bold",fontSize:"15px",color:"#1e3a8a",marginBottom:"4px"}}>📢 教室長からの方針設定</div>
-        <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"14px"}}>設定した方針はチェック画面の上部に常時表示されます</div>
+        <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"14px"}}>方針はチェック画面の上部に常時表示されます</div>
 
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"12px"}}>
-          <div>
-            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
-            <select value={school} onChange={e=>setSchool(e.target.value)}
-              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
-              {SCHOOLS.filter(s=>grade.startsWith('小')?s.endsWith('小'):s.endsWith('中')).map(s=><option key={s} value={s}>{s}</option>)}
-            </select>
+        {/* v38: タブ切替（学校×学年マスタ / 生徒別例外） */}
+        {studentName&&(
+          <div style={{display:"flex",gap:"4px",marginBottom:"14px",borderBottom:"2px solid #e5e7eb"}}>
+            <button onClick={()=>setTab('school')}
+              style={{flex:1,background:tab==='school'?'#1e3a8a':'transparent',color:tab==='school'?'white':'#6b7280',border:"none",borderRadius:"6px 6px 0 0",padding:"8px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
+              🏫 学校×学年で設定（マスタ）
+            </button>
+            <button onClick={()=>setTab('student')}
+              style={{flex:1,background:tab==='student'?'#1e3a8a':'transparent',color:tab==='student'?'white':'#6b7280',border:"none",borderRadius:"6px 6px 0 0",padding:"8px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
+              👤 この生徒だけ（例外）
+            </button>
           </div>
-          <div>
-            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学年</div>
-            <select value={grade} onChange={e=>setGrade(e.target.value)}
-              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
-              {["全学年","中1","中2","中3"].map(g=><option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-          <div>
-            <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>教科</div>
-            <select value={subj} onChange={e=>setSubj(e.target.value)}
-              style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
-              {["全教科","数学","英語"].map(s=><option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
+        )}
 
-        <div style={{marginBottom:"16px"}}>
-          <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"4px"}}>
-            方針メッセージ
-            <span style={{marginLeft:"8px",color:"#9ca3af"}}>（{school} {grade} {subj}）</span>
-          </div>
-          <textarea
-            value={text}
-            onChange={e=>setText(e.target.value)}
-            placeholder={"例：第1回テストまで第2章を重点的に進めること。解き直しを必ず行うこと。"}
-            rows={4}
-            style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"8px",fontSize:"13px",boxSizing:"border-box",resize:"vertical",lineHeight:"1.6"}}
-          />
-          {text&&(
-            <div style={{marginTop:"8px",background:"#dbeafe",border:"1px solid #93c5fd",borderRadius:"6px",padding:"8px 12px",fontSize:"12px",color:"#1e40af"}}>
-              <span style={{fontWeight:"bold"}}>📢 プレビュー：</span> {text}
+        {tab==='school'?(
+          <>
+            <div style={{fontSize:"11px",color:"#1e40af",background:"#dbeafe",padding:"6px 10px",borderRadius:"6px",marginBottom:"10px"}}>
+              💡 同じ学校・学年の生徒すべてに反映されます
             </div>
-          )}
-        </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"12px"}}>
+              <div>
+                <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学校</div>
+                <select value={school} onChange={e=>setSchool(e.target.value)}
+                  style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
+                  {SCHOOLS.filter(s=>grade.startsWith('小')?s.endsWith('小'):s.endsWith('中')).map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>学年</div>
+                <select value={grade} onChange={e=>setGrade(e.target.value)}
+                  style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
+                  {["全学年","中1","中2","中3"].map(g=><option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"3px"}}>教科</div>
+                <select value={subj} onChange={e=>setSubj(e.target.value)}
+                  style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"6px",fontSize:"12px",boxSizing:"border-box"}}>
+                  {["全教科","数学","英語"].map(s=><option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{marginBottom:"16px"}}>
+              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"4px"}}>
+                方針メッセージ
+                <span style={{marginLeft:"8px",color:"#9ca3af"}}>（{school} {grade} {subj}）</span>
+              </div>
+              <textarea
+                value={text}
+                onChange={e=>setText(e.target.value)}
+                placeholder={"例：第1回テストまで第2章を重点的に進めること。解き直しを必ず行うこと。"}
+                rows={4}
+                style={{width:"100%",border:"1px solid #d1d5db",borderRadius:"6px",padding:"8px",fontSize:"13px",boxSizing:"border-box",resize:"vertical",lineHeight:"1.6"}}
+              />
+              {text&&(
+                <div style={{marginTop:"8px",background:"#dbeafe",border:"1px solid #93c5fd",borderRadius:"6px",padding:"8px 12px",fontSize:"12px",color:"#1e40af"}}>
+                  <span style={{fontWeight:"bold"}}>📢 プレビュー：</span> {text}
+                </div>
+              )}
+            </div>
+          </>
+        ):(
+          <>
+            <div style={{fontSize:"11px",color:"#7c2d12",background:"#fff7ed",padding:"6px 10px",borderRadius:"6px",marginBottom:"10px"}}>
+              ⚠️ この生徒（{studentName}）だけに適用される特別な方針です。<br/>
+              　例：前の学年の内容を学習中・進度が特殊な生徒
+            </div>
+            <div style={{marginBottom:"16px"}}>
+              <div style={{fontSize:"11px",color:"#6b7280",marginBottom:"4px"}}>
+                {studentName} さんの個別方針
+              </div>
+              <textarea
+                value={studentText}
+                onChange={e=>setStudentText(e.target.value)}
+                placeholder={"例：本来は中3生だが中2の内容を学習中。中2範囲のテストに合わせて指導すること。"}
+                rows={4}
+                style={{width:"100%",border:"1px solid #fdba74",background:'#fffbeb',borderRadius:"6px",padding:"8px",fontSize:"13px",boxSizing:"border-box",resize:"vertical",lineHeight:"1.6"}}
+              />
+              {studentText&&(
+                <div style={{marginTop:"8px",background:"#fef3c7",border:"1px solid #fbbf24",borderRadius:"6px",padding:"8px 12px",fontSize:"12px",color:"#78350f"}}>
+                  <span style={{fontWeight:"bold"}}>👤 プレビュー（生徒別）：</span> {studentText}
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         <div style={{display:"flex",gap:"8px"}}>
-          <button onClick={()=>{const gs=grade==="全学年"?"all":grade;const ss=subj==="全教科"?"all":subj;onSave(`${school}_${gs}_${ss}`,"");onClose();}}
+          <button onClick={()=>{
+            if(tab==='school'){
+              const gs=grade==="全学年"?"all":grade;const ss=subj==="全教科"?"all":subj;
+              onSave(`${school}_${gs}_${ss}`,"");
+            }else{
+              if(onSaveStudentDirective&&studentName) onSaveStudentDirective(studentName,"");
+            }
+            onClose();
+          }}
             style={{flex:1,background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"12px"}}>クリア</button>
           <button onClick={onClose}
             style={{flex:1,background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"13px"}}>キャンセル</button>
@@ -2837,7 +2909,7 @@ function StudentReport({data,onClose}){
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhSchoolGradeMaster,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhSchoolGradeMaster,jhStudentDirectives,jhSaveStudentDirective,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -3909,26 +3981,45 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 {/* 方針設定 */}
                 <div style={{padding:'12px',background:'#f0fdf4',borderRadius:'10px',border:'1px solid #6ee7b7',marginBottom:'12px'}}>
                   <p style={{fontWeight:'bold',fontSize:'14px',color:'#065f46',marginBottom:'4px'}}>📢 学習方針</p>
-                  <p style={{fontSize:'12px',color:'#374151',marginBottom:'8px',whiteSpace:'pre-wrap',background:'white',padding:'6px',borderRadius:'4px',minHeight:'40px'}}>
+                  <div style={{fontSize:'12px',color:'#374151',marginBottom:'8px',whiteSpace:'pre-wrap',background:'white',padding:'6px',borderRadius:'4px',minHeight:'40px'}}>
                     {(()=>{
-                      // v29修正: DirectiveModalと同じキー形式（学校_学年_教科）で取得
                       const sName=stripGrade(jhFullName);
                       const sch=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
-                      if(!sch) return '（学校未登録）';
-                      // 優先順: 学校_学年_全教科 → 学校_全学年_全教科
-                      const d1=jhDirectives[`${sch}_${activeGrade}_all`];
-                      const d2=jhDirectives[`${sch}_all_all`];
-                      // 教科別も確認: 学校_学年_数学/英語
-                      const d3=jhDirectives[`${sch}_${activeGrade}_数学`];
-                      const d4=jhDirectives[`${sch}_${activeGrade}_英語`];
-                      const merged=[];
-                      if(d1) merged.push(`【${sch} ${activeGrade} 全教科】\n${d1}`);
-                      if(d2) merged.push(`【${sch} 全学年 全教科】\n${d2}`);
-                      if(d3) merged.push(`【${sch} ${activeGrade} 数学】\n${d3}`);
-                      if(d4) merged.push(`【${sch} ${activeGrade} 英語】\n${d4}`);
-                      return merged.length>0?merged.join('\n\n'):'（未設定）';
+                      // v38: 生徒別の個別方針があれば最初に表示
+                      const studentSpecific=jhStudentDirectives[sName];
+                      const elements=[];
+                      if(studentSpecific){
+                        elements.push(
+                          <div key="student" style={{background:'#fff7ed',border:'2px solid #fdba74',borderRadius:'6px',padding:'6px 10px',marginBottom:'4px'}}>
+                            <p style={{fontSize:'11px',fontWeight:'bold',color:'#7c2d12',marginBottom:'2px'}}>👤 この生徒だけの個別方針（最優先）</p>
+                            <p style={{fontSize:'12px',color:'#7c2d12',whiteSpace:'pre-wrap'}}>{studentSpecific}</p>
+                          </div>
+                        );
+                      }
+                      if(sch){
+                        // 学校×学年マスタ
+                        const d1=jhDirectives[`${sch}_${activeGrade}_all`];
+                        const d2=jhDirectives[`${sch}_all_all`];
+                        const d3=jhDirectives[`${sch}_${activeGrade}_数学`];
+                        const d4=jhDirectives[`${sch}_${activeGrade}_英語`];
+                        const merged=[];
+                        if(d1) merged.push(`【${sch} ${activeGrade} 全教科】\n${d1}`);
+                        if(d2) merged.push(`【${sch} 全学年 全教科】\n${d2}`);
+                        if(d3) merged.push(`【${sch} ${activeGrade} 数学】\n${d3}`);
+                        if(d4) merged.push(`【${sch} ${activeGrade} 英語】\n${d4}`);
+                        if(merged.length>0){
+                          elements.push(
+                            <div key="school" style={{fontSize:'12px',color:'#374151',whiteSpace:'pre-wrap'}}>{merged.join('\n\n')}</div>
+                          );
+                        }
+                      }
+                      if(elements.length===0){
+                        if(!sch) return <span style={{color:'#9ca3af'}}>（学校未登録）</span>;
+                        return <span style={{color:'#9ca3af'}}>（未設定）</span>;
+                      }
+                      return elements;
                     })()}
-                  </p>
+                  </div>
                   <button onClick={()=>setJhShowDirectiveModal(true)}
                     style={{background:'#059669',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
                     📢 方針を編集
@@ -3940,7 +4031,15 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
               {/* モーダル */}
               {jhShowTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhAllStudents} textbookOverrides={jhTextbookOverrides} onSave={(si,vals)=>{onSaveTextbook(si,vals);setJhShowTextbookModal(false);}} onClose={()=>setJhShowTextbookModal(false)}/>}
               {jhShowTestRangeModal&&<TestRangeModal onClose={()=>setJhShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={onSaveTestRange} defaultSchool={getSchoolOf(stripGrade(jhFullName))} defaultGrade={activeGrade} schoolGradeMaster={jhSchoolGradeMaster}/>}
-              {jhShowDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{onSaveDirective(k,v);setJhShowDirectiveModal(false);}} onClose={()=>setJhShowDirectiveModal(false)}/>}
+              {jhShowDirectiveModal&&<DirectiveModal
+                directives={jhDirectives}
+                onSave={(k,v)=>{onSaveDirective(k,v);setJhShowDirectiveModal(false);}}
+                onClose={()=>setJhShowDirectiveModal(false)}
+                defaultSchool={getSchoolOf(stripGrade(jhFullName))}
+                defaultGrade={activeGrade}
+                studentName={stripGrade(jhFullName)}
+                studentDirectives={jhStudentDirectives}
+                onSaveStudentDirective={jhSaveStudentDirective}/>}
 
               {/* v17: 練ゼミ期限一括登録モーダル */}
               {showRenzemiDeadlineModal&&(
@@ -4543,6 +4642,10 @@ function App(){
   // テスト範囲を保存するたびに自動学習
   // モーダルを開いた時、データがなければマスタから初期月を取得
   const [jhSchoolGradeMaster,setJhSchoolGradeMaster]=useState({});
+  // v38: 生徒別の個別学習方針（特殊な10名向け）
+  // {studentName: '特別な方針'}
+  // 生徒別方針があれば学校×学年マスタより優先される
+  const [jhStudentDirectives,setJhStudentDirectives]=useState({});
   // currentTerm: 教室全体の現在学期 'R'|'S'|'W'
   const [currentTerm,setCurrentTerm]=useState('R');
   // 高校生英文法
@@ -4582,13 +4685,14 @@ function App(){
     const cRzP=jhGetCached('renzemiProgress',{});
     const cRzD=jhGetCached('renzemiDeadlines',{});
     const cSGM=jhGetCached('schoolGradeMaster',{}); // v36
+    const cSDir=jhGetCached('studentDirectives',{}); // v38
     const cCurTerm=jhGetCached('currentTerm','R');
     const cEngA=hsGetCached('koukou:engAssign',{});
     const cEngR=hsGetCached('koukou:engRecords',{});
     setTeachers(cT);setHsStudents(cHs);setJhStudents(cJh);
     setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);setJhSchoolOverrides(cSov);
     setJhRenzemiAssign(migrateRenzemiAssign(cRzA));setJhRenzemiProgress(cRzP);
-    setJhRenzemiDeadlines(cRzD);setJhSchoolGradeMaster(cSGM);setCurrentTerm(cCurTerm||'R'); // v36
+    setJhRenzemiDeadlines(cRzD);setJhSchoolGradeMaster(cSGM);setJhStudentDirectives(cSDir);setCurrentTerm(cCurTerm||'R'); // v36, v38
     setHsEngAssign(cEngA);setHsEngRecords(cEngR);
     setPhase('teacher');  // すぐ遷移
     // ② バックグラウンドで最新データを取得してUIを更新（全データ並列で1ラウンド）
@@ -4615,6 +4719,7 @@ function App(){
       ['renzemiProgress',()=>jhGet('renzemiProgress',cRzP),setJhRenzemiProgress],
       ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
       ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster], // v36
+      ['studentDirectives',()=>jhGet('studentDirectives',cSDir),setJhStudentDirectives], // v38
       ['currentTerm',()=>jhGet('currentTerm',cCurTerm),(d)=>setCurrentTerm(d||'R')],
       ['engAssign',()=>hsGet('koukou:engAssign',cEngA),setHsEngAssign],
       ['engRecords',()=>hsGet('koukou:engRecords',cEngR),setHsEngRecords],
@@ -4921,6 +5026,43 @@ function App(){
       flash('✅ 学習方針を保存しました（検証スキップ）');
     }
   };
+  // v38: 生徒別の個別方針を保存（特殊な10名向け）
+  const jhSaveStudentDirective=async(studentName,text)=>{
+    flash('💾 個別方針を保存中...','saving');
+    let updated;
+    setJhStudentDirectives(prev=>{
+      updated={...prev};
+      if(text){
+        updated[studentName]=text;
+      }else{
+        delete updated[studentName]; // 空文字なら削除
+      }
+      return updated;
+    });
+    await new Promise(r=>setTimeout(r,0));
+    const result=await jhSet('studentDirectives',updated);
+    if(result&&result.ok===false){
+      flash(`❌ 個別方針の保存失敗：${result.reason||''}`,'error');
+      return;
+    }
+    // 検証
+    await new Promise(r=>setTimeout(r,300));
+    try{
+      const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+'studentDirectives')}`;
+      const r=await fetch(url,{cache:'no-store'});
+      const d=await r.json();
+      if(d&&d.value){
+        const saved=JSON.parse(d.value);
+        if((!text&&!saved[studentName])||saved[studentName]===text){
+          flash(`✅ ${studentName}の個別方針を保存しました（検証済）`);
+        }else{
+          flash('⚠️ 個別方針の保存に不一致が検出されました','error');
+        }
+      }
+    }catch(e){
+      flash('✅ 個別方針を保存しました（検証スキップ）');
+    }
+  };
   const jhToggleSkip=async(grade,subjKey,itemId)=>{
     const key=`${grade}_${subjKey}`;
     const cur=jhSkipItems[key]||[];
@@ -5111,6 +5253,8 @@ function App(){
       onSaveTestRange={jhSaveTestRange}
       onSaveDirective={jhSaveDirective}
       jhSchoolGradeMaster={jhSchoolGradeMaster}
+      jhStudentDirectives={jhStudentDirectives}
+      jhSaveStudentDirective={jhSaveStudentDirective}
       onBack={()=>setPhase('students')}/>
   );
   if(phase==='loading') return(
@@ -5809,7 +5953,15 @@ function App(){
               {/* モーダル */}
               {showTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhStudents} textbookOverrides={jhTextbookOverrides} onSave={jhSaveTextbook} onClose={()=>setShowTextbookModal(false)}/>}
               {showTestRangeModal&&<TestRangeModal onClose={()=>setShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={jhSaveTestRange} defaultSchool={jhSchoolOverrides[stripGrade(jhFullName||'')]||STUDENT_SCHOOLS[stripGrade(jhFullName||'')]} defaultGrade={activeGrade} schoolGradeMaster={jhSchoolGradeMaster}/>}
-              {showDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{jhSaveDirective(k,v);setShowDirectiveModal(false);}} onClose={()=>setShowDirectiveModal(false)}/>}
+              {showDirectiveModal&&<DirectiveModal
+                directives={jhDirectives}
+                onSave={(k,v)=>{jhSaveDirective(k,v);setShowDirectiveModal(false);}}
+                onClose={()=>setShowDirectiveModal(false)}
+                defaultSchool={jhSchoolOverrides[stripGrade(jhFullName||'')]||STUDENT_SCHOOLS[stripGrade(jhFullName||'')]}
+                defaultGrade={activeGrade}
+                studentName={stripGrade(jhFullName||'')}
+                studentDirectives={jhStudentDirectives}
+                onSaveStudentDirective={jhSaveStudentDirective}/>}
 
               {/* テスト範囲アラートバナー */}
               {curTestAlert&&curTestAlert.color&&(
@@ -5910,28 +6062,38 @@ function App(){
                 );
               })()}
 
-              {/* v31: 教室長からの学習方針バナー（講師画面に新規追加） */}
+              {/* v31: 教室長からの学習方針バナー（v38: 生徒別方針を最優先） */}
               {jhSi>=0&&isChu(activeGrade)&&(()=>{
                 const sName=(jhFullName||'').replace(/（.+?）/,'');
                 const sch=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
-                if(!sch) return null;
-                // 優先順位：学校_学年_教科 → 学校_学年_全教科 → 学校_全学年_教科 → 学校_全学年_全教科
-                const d1=jhDirectives[`${sch}_${activeGrade}_${activeSubj}`];
-                const d2=jhDirectives[`${sch}_${activeGrade}_all`];
-                const d3=jhDirectives[`${sch}_all_${activeSubj}`];
-                const d4=jhDirectives[`${sch}_all_all`];
-                const directive=d1||d2||d3||d4;
+                // v38: 生徒別の個別方針があれば最優先
+                const studentSpecific=jhStudentDirectives[sName];
+                let directive='';
+                let label='';
+                let isStudentSpecific=false;
+                if(studentSpecific){
+                  directive=studentSpecific;
+                  label='👤 個別方針';
+                  isStudentSpecific=true;
+                }else if(sch){
+                  // 優先順位：学校_学年_教科 → 学校_学年_全教科 → 学校_全学年_教科 → 学校_全学年_全教科
+                  const d1=jhDirectives[`${sch}_${activeGrade}_${activeSubj}`];
+                  const d2=jhDirectives[`${sch}_${activeGrade}_all`];
+                  const d3=jhDirectives[`${sch}_all_${activeSubj}`];
+                  const d4=jhDirectives[`${sch}_all_all`];
+                  directive=d1||d2||d3||d4;
+                  label=d1?`${activeGrade}・${activeSubj}`:d2?`${activeGrade}・全教科`:d3?`全学年・${activeSubj}`:'全学年・全教科';
+                }
                 if(!directive) return null;
-                const label=d1?`${activeGrade}・${activeSubj}`:d2?`${activeGrade}・全教科`:d3?`全学年・${activeSubj}`:'全学年・全教科';
-                const subjColor=activeSubj==='数学'?'#1e40af':activeSubj==='英語'?'#166534':'#6b21a8';
-                const subjBg=activeSubj==='数学'?'#dbeafe':activeSubj==='英語'?'#dcfce7':'#f3e8ff';
-                const subjBorder=activeSubj==='数学'?'#3b82f6':activeSubj==='英語'?'#22c55e':'#a855f7';
+                const subjColor=isStudentSpecific?'#7c2d12':(activeSubj==='数学'?'#1e40af':activeSubj==='英語'?'#166534':'#6b21a8');
+                const subjBg=isStudentSpecific?'#fff7ed':(activeSubj==='数学'?'#dbeafe':activeSubj==='英語'?'#dcfce7':'#f3e8ff');
+                const subjBorder=isStudentSpecific?'#fdba74':(activeSubj==='数学'?'#3b82f6':activeSubj==='英語'?'#22c55e':'#a855f7');
                 return(
                   <div style={{margin:'0 0 10px',background:subjBg,border:`2px solid ${subjBorder}`,borderRadius:'8px',padding:'10px 14px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'4px',flexWrap:'wrap'}}>
-                      <span style={{fontSize:'14px'}}>📢</span>
-                      <span style={{fontWeight:'bold',fontSize:'12px',color:subjColor}}>教室長からの方針</span>
-                      <span style={{fontSize:'10px',background:'white',color:subjColor,borderRadius:'4px',padding:'1px 6px',border:`1px solid ${subjBorder}`}}>{sch} {label}</span>
+                      <span style={{fontSize:'14px'}}>{isStudentSpecific?'👤':'📢'}</span>
+                      <span style={{fontWeight:'bold',fontSize:'12px',color:subjColor}}>{isStudentSpecific?'この生徒だけの個別方針':'教室長からの方針'}</span>
+                      <span style={{fontSize:'10px',background:'white',color:subjColor,borderRadius:'4px',padding:'1px 6px',border:`1px solid ${subjBorder}`}}>{isStudentSpecific?label:`${sch} ${label}`}</span>
                     </div>
                     <div style={{fontSize:'13px',color:subjColor,lineHeight:'1.6',fontWeight:'bold',whiteSpace:'pre-wrap'}}>{directive}</div>
                   </div>
