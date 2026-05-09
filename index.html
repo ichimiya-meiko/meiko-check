@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v25"/>
-  <meta name="app-build-date" content="2026-05-07"/>
+  <meta name="app-version" content="v29"/>
+  <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v25</title>
+  <title>明光義塾 チェックアプリ v29</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,9 +47,9 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v25-20260507";  // 🚨 v24→v25 更新。リリースごとに必ず変更してください
-      const APP_DISPLAY_VERSION = "v25";  // バージョンバッジ表示用
-      const APP_BUILD_DATE = "2026/05/07"; // ビルド日（バッジ表示用）
+      const APP_VERSION = "v29-20260509";  // 🚨 v25→v29 学校情報カスタムも見るように修正・学習方針表示修正・練ゼミレベルメッセージ改善
+      const APP_DISPLAY_VERSION = "v29";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
       // グローバルから参照可能に（バージョンバッジで使用）
@@ -3561,10 +3561,11 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   {/* 現在のテスト範囲を表示 */}
                   {(()=>{
                     const sName=stripGrade(jhFullName);
-                    const sch=STUDENT_SCHOOLS[sName];
+                    const sch=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
                     if(!sch) return(
                       <p style={{fontSize:'11px',color:'#78350f',marginBottom:'8px',background:'white',padding:'6px',borderRadius:'4px'}}>
-                        ⚠️ この生徒の学校情報が登録されていません
+                        ⚠️ この生徒の学校情報が登録されていません<br/>
+                        <span style={{fontSize:'10px',color:'#92400e'}}>上の「🏫 学校を設定」ボタンで学校を選んでください</span>
                       </p>
                     );
                     const subjects=GRADE_SUBJECTS[activeGrade]||[];
@@ -3731,7 +3732,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                                   )}
                                   {v.grade&&items.length>0&&(v.rangeEnd||0)>items.length&&(
                                     <p style={{fontSize:'10px',color:'#d97706'}}>
-                                      ⚠️ レベル{(items.length+1)}〜{v.rangeEnd}は{currentTerm}テキストには項目がありません（{items.length}項目まで収録）
+                                      ℹ️ {currentTerm}テキスト{v.grade}年は問題が{items.length}個まで（レベル{items.length}まで）です。レベル{v.rangeEnd}までの設定はそのまま反映されます
                                     </p>
                                   )}
                                 </div>
@@ -3748,7 +3749,24 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 <div style={{padding:'12px',background:'#f0fdf4',borderRadius:'10px',border:'1px solid #6ee7b7',marginBottom:'12px'}}>
                   <p style={{fontWeight:'bold',fontSize:'14px',color:'#065f46',marginBottom:'4px'}}>📢 学習方針</p>
                   <p style={{fontSize:'12px',color:'#374151',marginBottom:'8px',whiteSpace:'pre-wrap',background:'white',padding:'6px',borderRadius:'4px',minHeight:'40px'}}>
-                    {jhDirectives[`directive_${stripGrade(jhFullName)}`]||'（未設定）'}
+                    {(()=>{
+                      // v29修正: DirectiveModalと同じキー形式（学校_学年_教科）で取得
+                      const sName=stripGrade(jhFullName);
+                      const sch=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
+                      if(!sch) return '（学校未登録）';
+                      // 優先順: 学校_学年_全教科 → 学校_全学年_全教科
+                      const d1=jhDirectives[`${sch}_${activeGrade}_all`];
+                      const d2=jhDirectives[`${sch}_all_all`];
+                      // 教科別も確認: 学校_学年_数学/英語
+                      const d3=jhDirectives[`${sch}_${activeGrade}_数学`];
+                      const d4=jhDirectives[`${sch}_${activeGrade}_英語`];
+                      const merged=[];
+                      if(d1) merged.push(`【${sch} ${activeGrade} 全教科】\n${d1}`);
+                      if(d2) merged.push(`【${sch} 全学年 全教科】\n${d2}`);
+                      if(d3) merged.push(`【${sch} ${activeGrade} 数学】\n${d3}`);
+                      if(d4) merged.push(`【${sch} ${activeGrade} 英語】\n${d4}`);
+                      return merged.length>0?merged.join('\n\n'):'（未設定）';
+                    })()}
                   </p>
                   <button onClick={()=>setJhShowDirectiveModal(true)}
                     style={{background:'#059669',color:'white',border:'none',borderRadius:'6px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
@@ -4912,7 +4930,7 @@ function App(){
   const getTestAlert=(si,subj,roundId)=>{
     const fullName=jhStudents[si]||'';
     const sName=fullName.replace(/（.+?）/,'');
-    const school=STUDENT_SCHOOLS[sName];
+    const school=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
     const grade=extractGrade(fullName);
     if(!school||!grade.startsWith('中')) return null;
     const key=`${school}_${grade}_${roundId}`;
@@ -5530,7 +5548,7 @@ function App(){
 
               {/* モーダル */}
               {showTextbookModal&&jhSi>=0&&<TextbookModal si={jhSi} students={jhStudents} textbookOverrides={jhTextbookOverrides} onSave={jhSaveTextbook} onClose={()=>setShowTextbookModal(false)}/>}
-              {showTestRangeModal&&<TestRangeModal onClose={()=>setShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={jhSaveTestRange} defaultSchool={STUDENT_SCHOOLS[stripGrade(jhFullName||'')]} defaultGrade={activeGrade}/>}
+              {showTestRangeModal&&<TestRangeModal onClose={()=>setShowTestRangeModal(false)} testRanges={jhTestRanges} onSave={jhSaveTestRange} defaultSchool={jhSchoolOverrides[stripGrade(jhFullName||'')]||STUDENT_SCHOOLS[stripGrade(jhFullName||'')]} defaultGrade={activeGrade}/>}
               {showDirectiveModal&&<DirectiveModal directives={jhDirectives} onSave={(k,v)=>{jhSaveDirective(k,v);setShowDirectiveModal(false);}} onClose={()=>setShowDirectiveModal(false)}/>}
 
               {/* テスト範囲アラートバナー */}
@@ -5582,7 +5600,7 @@ function App(){
               {/* テスト範囲バナー（どの単元からどの単元か表示） */}
               {jhSi>=0&&isChu(activeGrade)&&(()=>{
                 const sName=(jhFullName||'').replace(/（.+?）/,'');
-                const school=STUDENT_SCHOOLS[sName];
+                const school=jhSchoolOverrides[sName]||STUDENT_SCHOOLS[sName];
                 if(!school) return null;
                 const rk=`${school}_${activeGrade}_${activeTestRound}`;
                 const rng=jhTestRanges[rk];
