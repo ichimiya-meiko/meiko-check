@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v38"/>
+  <meta name="app-version" content="v39"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v38</title>
+  <title>明光義塾 チェックアプリ v39</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v38-20260509";  // 🚨 v37→v38 学習方針バグ修正＋いっちー先生設計：①モーダル開いた時に学校・学年が自動入力（紗耶佳先生の登録ミス防止） ②生徒別の個別方針タブ追加（特殊な10名向け）
-      const APP_DISPLAY_VERSION = "v38";  // バージョンバッジ表示用
+      const APP_VERSION = "v39-20260509";  // 🚨 v38→v39 練ゼミ設定もURL長制限の犠牲に。個別キー保存方式（jhSetMap）に変更してv34/v36と同じパターンで根治＋保存検証付き
+      const APP_DISPLAY_VERSION = "v39";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -4715,7 +4715,12 @@ function App(){
       },setJhDirectives],
       ['skipItems',()=>jhGet('skipItems',cSk),setJhSkipItems],
       ['schoolOverrides',()=>jhGet('schoolOverrides',cSov),setJhSchoolOverrides],
-      ['renzemiAssign',()=>jhGet('renzemiAssign',cRzA),(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
+      // v39: renzemiAssign → 旧マップ + 個別キーを統合（個別が優先）
+      ['renzemiAssign',async()=>{
+        const oldMap=await jhGet('renzemiAssign',cRzA);
+        const newMap=await jhGetMap('renzemiAssign');
+        return {...(oldMap||{}),...(newMap||{})};
+      },(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
       ['renzemiProgress',()=>jhGet('renzemiProgress',cRzP),setJhRenzemiProgress],
       ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
       ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster], // v36
@@ -4859,17 +4864,49 @@ function App(){
     await hsSet('koukou:engRecords',updated);
   };
 
-  // 練ゼミ：生徒の受講設定保存（v19: updated変数キャプチャ問題を解消、保存失敗通知）
+  // 練ゼミ：生徒の受講設定保存（v39: 個別キー保存方式に変更してURL長制限を根治）
+  //   旧: shochugaku:renzemiAssign 全体を1キーで保存 → 8039文字でURL長超過
+  //   新: shochugaku:renzemiAssign__item__田村悠高 のように生徒ごとに分割保存
   const jhSaveRenzemiAssign=async(name,subj,subjConfig)=>{
+    flash('💾 練ゼミ設定を保存中...','saving');
     const cur=jhRenzemiAssign[name]||{};
-    const updated={...jhRenzemiAssign,[name]:{...cur,[subj]:subjConfig}};
-    setJhRenzemiAssign(updated);
-    const result=await jhSet('renzemiAssign',updated);
+    const updatedStudent={...cur,[subj]:subjConfig};
+    let updatedAll;
+    setJhRenzemiAssign(prev=>{
+      updatedAll={...prev,[name]:updatedStudent};
+      return updatedAll;
+    });
+    await new Promise(r=>setTimeout(r,0));
+    // v39: 個別キー保存（その生徒のデータだけを保存）
+    const result=await jhSetMap('renzemiAssign',name,updatedStudent,updatedAll);
     if(!result.ok){
-      flash(`❌ 練ゼミ設定の保存に失敗しました（${result.reason||'通信エラー'}）`,'error');
+      flash(`❌ 練ゼミ設定の保存失敗：${result.reason||''}（紗耶佳先生にご報告ください）`,'error');
       console.error('[練ゼミ設定保存失敗]',{name,subj,result});
-    }else{
-      flash(`📓 練ゼミ（${subj==='math'?'数学':'英語'}）設定を更新しました`);
+      return;
+    }
+    // v39: 保存検証
+    await new Promise(r=>setTimeout(r,300));
+    try{
+      const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+'renzemiAssign__item__'+name)}`;
+      const r=await fetch(url,{cache:'no-store'});
+      const d=await r.json();
+      if(d&&d.value){
+        const saved=JSON.parse(d.value);
+        // 保存された内容と、保存しようとした内容を比較
+        const subjData=saved[subj];
+        const targetGrade=subjConfig?.grade||'';
+        const targetEnd=subjConfig?.rangeEnd||0;
+        if(subjData&&subjData.grade==targetGrade&&subjData.rangeEnd==targetEnd){
+          flash(`✅ ${name}の練ゼミ（${subj==='math'?'数学':'英語'}）設定を保存しました（検証済）`);
+        }else{
+          flash('⚠️ 練ゼミ設定の保存に不一致が検出されました','error');
+        }
+      }else{
+        flash(`✅ ${name}の練ゼミ設定を保存しました（検証スキップ）`);
+      }
+    }catch(e){
+      console.warn('保存検証失敗:',e);
+      flash(`✅ ${name}の練ゼミ設定を保存しました（検証スキップ）`);
     }
   };
   // 練ゼミ：進捗チェック保存（v19: setState前に updated を構築、保存失敗を画面通知）
