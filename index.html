@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v42"/>
+  <meta name="app-version" content="v43"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v42</title>
+  <title>明光義塾 チェックアプリ v43</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,9 +47,9 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v42-20260509";  // 🚨 v41→v42 records（通常チェック記録）も個別キー保存方式に。130名運用時のURL長制限突破を未然回避。これで全データの保存方式統一が完了
-      const APP_DISPLAY_VERSION = "v42";  // バージョンバッジ表示用
-      const APP_BUILD_DATE = "2026/05/09"; // ビルド日（バッジ表示用）
+      const APP_VERSION = "v43-20260512";  // 🚨 v42→v43 講師画面の練ゼミ：項目とレベルの混同を解消（rangeEndで項目フィルタしていたバグ修正）。全項目を常に表示し、ヘッダに「レベル○まで解く」と明示
+      const APP_DISPLAY_VERSION = "v43";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/12"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
       // グローバルから参照可能に（バージョンバッジで使用）
@@ -6229,8 +6229,12 @@ function App(){
                   const grade=subjConf.grade;
                   const gradeTerm=`${grade}${currentTerm}`;
                   const allItems=RENZEMI_BOOKS[`${subjKey}${gradeTerm}`]||[];
-                  // 範囲フィルタ
-                  const items=allItems.filter(it=>it.num>=(subjConf.rangeStart||1)&&it.num<=(subjConf.rangeEnd||allItems.length));
+                  // v43: 紗耶佳先生のお言葉「項目とレベルは別概念」に沿って、全項目を常に表示
+                  //   旧バグ: it.num <= rangeEnd で項目を絞っていた（レベル3→項目3つしか表示されない）
+                  //   新仕様: 全項目を表示し、各項目内で「レベル○までの問題を解く」と講師に伝える
+                  const items=allItems;
+                  // 設定レベル（ヘッダーに表示するための値）
+                  const lv=subjConf.rangeEnd||RENZEMI_LEVEL_MAX;
                   const deadline=getDeadline(jhRenzemiDeadlines,grade,currentTerm,subjKey);
                   const dDays=daysToDeadline(deadline);
                   // 期限色判定
@@ -6250,7 +6254,10 @@ function App(){
                       {/* ヘッダ */}
                       <div style={{background:headColor,color:'white',padding:'10px 14px'}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'6px'}}>
-                          <span style={{fontWeight:'bold',fontSize:'15px'}}>{subjLabel}（{grade}年{currentTerm}） レベル{subjConf.rangeEnd}まで（{totalC}項目）</span>
+                          <div>
+                            <div style={{fontWeight:'bold',fontSize:'15px'}}>{subjLabel}（{grade}年{currentTerm}） 全{totalC}項目</div>
+                            <div style={{fontSize:'11px',marginTop:'2px',background:'rgba(255,255,255,0.25)',display:'inline-block',padding:'2px 8px',borderRadius:'4px'}}>💡 各項目内のレベル{lv}までの問題を解かせる</div>
+                          </div>
                           <span style={{fontSize:'12px',background:'rgba(255,255,255,0.25)',padding:'2px 8px',borderRadius:'10px'}}>1周目達成 {doneC}/{totalC}</span>
                         </div>
                       </div>
@@ -6276,7 +6283,7 @@ function App(){
                       </div>
                       {items.length===0&&(
                         <p style={{padding:'24px',textAlign:'center',color:'#9ca3af',fontSize:'12px'}}>
-                          {allItems.length===0?`※ ${currentTerm}テキストはまだ未投入`:'※ 設定レベル内に項目がありません'}
+                          ※ {currentTerm}テキストはまだ未投入
                         </p>
                       )}
                       {items.map(it=>{
