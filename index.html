@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v43"/>
+  <meta name="app-version" content="v44"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v43</title>
+  <title>明光義塾 チェックアプリ v44</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v43-20260512";  // 🚨 v42→v43 講師画面の練ゼミ：項目とレベルの混同を解消（rangeEndで項目フィルタしていたバグ修正）。全項目を常に表示し、ヘッダに「レベル○まで解く」と明示
-      const APP_DISPLAY_VERSION = "v43";  // バージョンバッジ表示用
+      const APP_VERSION = "v44-20260512";  // 🚨 v43→v44 紗耶佳先生のデータ消失問題：jhSetMapのインデックス競合バグを根治。20人連続書き込み時にインデックスが上書きされる問題を、グローバルキュー（直列化）＋localStorage活用で解決
+      const APP_DISPLAY_VERSION = "v44";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/12"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -355,36 +355,68 @@ async function jhSet(key,val){
 //   - 全体サイズが大きい場合でも、変更があったエントリーだけ個別保存することでURL長制限を回避
 //   - 引数: mapKey='testRanges', changedSubKey='白川中_中3', val=（その単独データ）
 //   - 戻り値: {ok:true} or {ok:false, reason}
+// v44: jhSetMap のインデックス競合を根治
+//   旧バグ: 20人連続で書き込むと、それぞれが独立にインデックスを取得→更新するため、
+//          後発のリクエストが先発のインデックス更新を上書きしてしまう
+//   修正: ① 個別キーは並行書き込み可（衝突しない）
+//        ② インデックスはグローバルなキュー（promise chain）で直列化
+//        ③ localStorageのインデックスキャッシュを真の最新として使う（毎回GETしない）
+
+// v44: グローバルなインデックス更新用のpromise chain（直列化）
+let __indexUpdateQueue = Promise.resolve();
+
 async function jhSetMap(mapKey,changedSubKey,val,fullMap){
   // 1. ローカルにフルマップを保存（読み込み高速化）
   try{localStorage.setItem('cache:jh:'+mapKey,JSON.stringify({v:fullMap,t:Date.now()}));}catch(e){
     console.warn('[jhSetMap] localStorage保存失敗:',mapKey,e);
   }
-  // 2. 個別キーをGASに保存（変更分だけ）
+  // 2. 個別キーをGASに保存（変更分だけ・並行書き込み可）
   const subKey=`${mapKey}__item__${changedSubKey}`;
   const itemResult=await jhSet(subKey,val);
   if(!itemResult.ok){
     return itemResult;
   }
-  // 3. インデックスキー（その mapKey に存在する全 subKey の一覧）も更新
-  const indexKey=`${mapKey}__index`;
-  // 現在のindexを取得して更新
-  let curIndex=[];
-  try{
-    const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+indexKey)}`;
-    const r=await fetch(url,{method:'GET',cache:'no-store'});
-    if(r.ok){
-      const d=await r.json();
-      if(d&&d.value){
-        try{curIndex=JSON.parse(d.value);}catch{}
+  // 3. インデックス更新を「キュー」に追加（前のインデックス更新が完了してから実行）
+  //    これにより20人連続書き込みでも、各インデックス更新は順番に実行される
+  __indexUpdateQueue = __indexUpdateQueue.then(async () => {
+    const indexKey=`${mapKey}__index`;
+    const idxLocalKey='cache:jh:'+indexKey;
+    // ① まずlocalStorageから現在のインデックスを取得（前の書き込みの結果が確実に反映されている）
+    let curIndex=[];
+    try{
+      const cached=localStorage.getItem(idxLocalKey);
+      if(cached){
+        const obj=JSON.parse(cached);
+        if(Array.isArray(obj.v)) curIndex=obj.v;
       }
+    }catch{}
+    // ② localStorage に何もなければGASから取得（初回のみ）
+    if(curIndex.length===0){
+      try{
+        const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+indexKey)}`;
+        const r=await fetch(url,{method:'GET',cache:'no-store'});
+        if(r.ok){
+          const d=await r.json();
+          if(d&&d.value){
+            try{curIndex=JSON.parse(d.value);}catch{}
+          }
+        }
+      }catch{}
+      if(!Array.isArray(curIndex)) curIndex=[];
     }
-  }catch{}
-  if(!Array.isArray(curIndex)) curIndex=[];
-  if(!curIndex.includes(changedSubKey)){
+    // ③ 既に含まれている場合はスキップ
+    if(curIndex.includes(changedSubKey)) return;
+    // ④ 追加して保存
     curIndex.push(changedSubKey);
+    // localStorageに即座に反映（次の書き込みがすぐ参照できるように）
+    try{localStorage.setItem(idxLocalKey,JSON.stringify({v:curIndex,t:Date.now()}));}catch{}
+    // GASに書き込み
     await jhSet(indexKey,curIndex);
-  }
+  }).catch(err => {
+    console.error('[jhSetMap] インデックス更新エラー:', mapKey, err);
+  });
+  // インデックス更新の完了を待つ（必須ではないが、失敗が見えやすくなる）
+  await __indexUpdateQueue;
   return {ok:true};
 }
 
