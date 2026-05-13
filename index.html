@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v44"/>
+  <meta name="app-version" content="v46"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v44</title>
+  <title>明光義塾 チェックアプリ v46</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,9 +47,9 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v44-20260512";  // 🚨 v43→v44 紗耶佳先生のデータ消失問題：jhSetMapのインデックス競合バグを根治。20人連続書き込み時にインデックスが上書きされる問題を、グローバルキュー（直列化）＋localStorage活用で解決
-      const APP_DISPLAY_VERSION = "v44";  // バージョンバッジ表示用
-      const APP_BUILD_DATE = "2026/05/12"; // ビルド日（バッジ表示用）
+      const APP_VERSION = "v46-20260513";  // 🚨 v45→v46 学校情報（schoolOverrides）もURL長制限の犠牲に。個別キー保存方式に変更して根治。これで全データの保存方式統一が本当に完了
+      const APP_DISPLAY_VERSION = "v46";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/13"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
       // グローバルから参照可能に（バージョンバッジで使用）
@@ -4767,7 +4767,12 @@ function App(){
         return {...(oldMap||{}),...(newMap||{})};
       },setJhDirectives],
       ['skipItems',()=>jhGet('skipItems',cSk),setJhSkipItems],
-      ['schoolOverrides',()=>jhGet('schoolOverrides',cSov),setJhSchoolOverrides],
+      // v46: schoolOverrides → 旧マップ + 個別キーを統合
+      ['schoolOverrides',async()=>{
+        const oldMap=await jhGet('schoolOverrides',cSov);
+        const newMap=await jhGetMap('schoolOverrides');
+        return {...(oldMap||{}),...(newMap||{})};
+      },setJhSchoolOverrides],
       // v39: renzemiAssign → 旧マップ + 個別キーを統合（個別が優先）
       ['renzemiAssign',async()=>{
         const oldMap=await jhGet('renzemiAssign',cRzA);
@@ -4978,28 +4983,40 @@ function App(){
       console.error('[練ゼミ設定保存失敗]',{name,subj,result});
       return;
     }
-    // v39: 保存検証
-    await new Promise(r=>setTimeout(r,300));
-    try{
-      const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+'renzemiAssign__item__'+name)}`;
-      const r=await fetch(url,{cache:'no-store'});
-      const d=await r.json();
-      if(d&&d.value){
-        const saved=JSON.parse(d.value);
-        // 保存された内容と、保存しようとした内容を比較
-        const subjData=saved[subj];
-        const targetGrade=subjConfig?.grade||'';
-        const targetEnd=subjConfig?.rangeEnd||0;
-        if(subjData&&subjData.grade==targetGrade&&subjData.rangeEnd==targetEnd){
-          flash(`✅ ${name}の練ゼミ（${subj==='math'?'数学':'英語'}）設定を保存しました（検証済）`);
-        }else{
-          flash('⚠️ 練ゼミ設定の保存に不一致が検出されました','error');
+    // v45: 保存検証をリトライ式に（v44で書き込みが遅延する場合の誤検知防止）
+    //   1回目で不一致でも、500ms待ってもう1回確認。それでも不一致なら本物のエラー
+    let verified=false;
+    let lastSavedData=null;
+    for(let attempt=1;attempt<=3;attempt++){
+      const wait=attempt===1?300:attempt===2?700:1500;
+      await new Promise(r=>setTimeout(r,wait));
+      try{
+        const url=`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+'renzemiAssign__item__'+name)}`;
+        const r=await fetch(url,{cache:'no-store'});
+        const d=await r.json();
+        if(d&&d.value){
+          const saved=JSON.parse(d.value);
+          lastSavedData=saved;
+          const subjData=saved[subj];
+          const targetGrade=subjConfig?.grade||'';
+          const targetEnd=subjConfig?.rangeEnd||0;
+          if(subjData&&subjData.grade==targetGrade&&subjData.rangeEnd==targetEnd){
+            verified=true;
+            break;
+          }
         }
-      }else{
-        flash(`✅ ${name}の練ゼミ設定を保存しました（検証スキップ）`);
+      }catch(e){
+        console.warn(`保存検証 試行${attempt}/3 失敗:`,e);
       }
-    }catch(e){
-      console.warn('保存検証失敗:',e);
+    }
+    if(verified){
+      flash(`✅ ${name}の練ゼミ（${subj==='math'?'数学':'英語'}）設定を保存しました（検証済）`);
+    }else if(lastSavedData){
+      // 不一致が確定（3回試しても一致しなかった）
+      console.warn('[練ゼミ保存検証] 不一致検出:',{name,subj,expected:subjConfig,actual:lastSavedData?.[subj]});
+      flash(`⚠️ ${name}の練ゼミ設定の保存に不一致あり。再度ご確認ください`,'error');
+    }else{
+      // 取得自体できなかった（通信問題）
       flash(`✅ ${name}の練ゼミ設定を保存しました（検証スキップ）`);
     }
   };
@@ -5058,17 +5075,19 @@ function App(){
     }
   };
 
+  // v46: 学校情報も個別キー保存方式に変更
+  //   旧バグ: 130名 × 学校名 = 8000文字超でURL長制限超過していた
+  //   新: shochugaku:schoolOverrides__item__生徒名 で個別保存
   const jhSaveSchool=async(name,school)=>{
     flash('💾 学校情報を保存中...','saving');
-    // 競合防止：functional updateで確実に最新stateベースで更新
     let updated;
     setJhSchoolOverrides(prev=>{
       updated={...prev,[name]:school};
       return updated;
     });
-    // 少し待ってstateが反映されてから保存（state更新後の値を使う）
     await new Promise(r=>setTimeout(r,0));
-    const result=await jhSet('schoolOverrides',updated);
+    // v46: 個別キー保存に変更（URL長制限を根治）
+    const result=await jhSetMap('schoolOverrides',name,school,updated);
     if(result&&result.ok===false){
       flash(`❌ ${name}の学校保存失敗：${result.reason||''}`,'error');
     }else{
@@ -5348,7 +5367,8 @@ function App(){
             return newSch;
           });
           await new Promise(r=>setTimeout(r,0));
-          await jhSet('schoolOverrides',newSch);
+          // v46: 個別キー保存
+          await jhSetMap('schoolOverrides',name,school,newSch);
         }
         flash(`✅ ${fullName} を追加しました`);
       }}
