@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v46"/>
+  <meta name="app-version" content="v47"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v46</title>
+  <title>明光義塾 チェックアプリ v47</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v46-20260513";  // 🚨 v45→v46 学校情報（schoolOverrides）もURL長制限の犠牲に。個別キー保存方式に変更して根治。これで全データの保存方式統一が本当に完了
-      const APP_DISPLAY_VERSION = "v46";  // バージョンバッジ表示用
+      const APP_VERSION = "v47-20260513";  // 🚨 v46→v47 進捗ダッシュボードのバグ修正：v42でrecordsが入れ子構造になったのに、ダッシュボードが旧フラットキーで探していたため進捗0%表示。講師画面と同じキー形式に統一
+      const APP_DISPLAY_VERSION = "v47";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/13"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -2598,6 +2598,11 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
     let total=0,done=0;
     let lastUpdate=null;
     const subjectStats=[];
+    // v47: jhRecords は v42 で入れ子構造 jhRecords[si][key] に変わった
+    //   講師画面のキー形式は `${教科}_${項目id}`（例: 数学_式の計算1）
+    //   旧バグ: ダッシュボードは `${si}_${rawKey}_${it.id}` というフラットキーで探していた
+    //   → 田村くんの進捗が0%表示されていた
+    const studentRecords=jhRecords[si]||{};
     subjects.forEach(subj=>{
       const override=jhTextbookOverrides[si]?.[subj];
       const defaultKey=(grade.startsWith('中')||grade.startsWith('小'))?`${grade}Y_${subj}`:`${grade}_${subj}`;
@@ -2607,7 +2612,12 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
       let st=0,sd=0;
       chs.forEach(ch=>ch.items.forEach(it=>{
         st++;
-        const r=jhRecords[`${si}_${rawKey}_${it.id}`]||jhRecords[`${grade}_${subj}_${it.id}`]||{};
+        // v47: 講師画面と同じキー形式 `${教科}_${項目id}` で入れ子構造から取得
+        //   旧形式（フラットキー）も後方互換でフォールバック
+        const r=studentRecords[`${subj}_${it.id}`]
+              ||jhRecords[`${si}_${rawKey}_${it.id}`]
+              ||jhRecords[`${grade}_${subj}_${it.id}`]
+              ||{};
         if(r.status==='◯') sd++;
         if(r.updatedAt){
           const d=new Date(r.updatedAt);
