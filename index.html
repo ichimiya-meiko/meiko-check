@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v49"/>
+  <meta name="app-version" content="v51"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v49</title>
+  <title>明光義塾 チェックアプリ v51</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v49-20260514";  // ✨ v48→v49 紗耶佳先生のご要望：生徒選択画面に一括選択ボタン（中学生全員・小学生全員・高校生全員・教室全員）を追加。教室長の「全員を俯瞰する」業務のクリック地獄を解消
-      const APP_DISPLAY_VERSION = "v49";  // バージョンバッジ表示用
+      const APP_VERSION = "v51-20260514";  // ✨ v50→v51 紗耶佳先生のご要望：ダッシュボードで最終チェック日を教科ごとに単元の横に表示（数学・英語それぞれの横に「最終チェック：○月○日」）
+      const APP_DISPLAY_VERSION = "v51";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/14"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -2671,17 +2671,37 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
       if(rawKey&&rawKey.startsWith('none_')) return;
       const chs=CHAPTERS[rawKey]||[];
       let st=0,sd=0;
-      chs.forEach(ch=>ch.items.forEach(it=>{
+      // v50: 紗耶佳先生のご要望「最新の単元」を計算
+      //   ◯△☓のどれかがついた中で、章の並び順で一番後ろの単元 = 今取り組んでいる単元
+      //   割合より「どの単元まで来たか」がテスト範囲照合に直結する
+      let latestUnit=null;       // {text,status} 最新の単元
+      // v51: 教科ごとの最終チェック日（その教科で最後に記録した日）
+      let subjLastDate=null;
+      const allItemsFlat=[];
+      chs.forEach(ch=>ch.items.forEach(it=>allItemsFlat.push(it)));
+      allItemsFlat.forEach((it,itemOrder)=>{
         st++;
         // v48: 講師画面と同じキー形式 `${教科}_${項目id}` で生徒名ベースのrecordsから取得
         const r=studentRecords[`${subj}_${it.id}`]||{};
         if(r.status==='◯') sd++;
+        // v50: ◯△☓のどれかがついていれば「着手済み」。並び順が後ろのものを最新とする
+        if(r.status==='◯'||r.status==='△'||r.status==='☓'){
+          // itemOrder が大きいほど後ろの単元 → 最新
+          latestUnit={text:it.text,status:r.status,order:itemOrder};
+        }
+        // v51: この教科の最終チェック日（updatedAt の最大）
         if(r.updatedAt){
           const d=new Date(r.updatedAt);
+          if(!subjLastDate||d>subjLastDate) subjLastDate=d;
           if(!lastUpdate||d>lastUpdate) lastUpdate=d;
         }
-      }));
-      subjectStats.push({subj,total:st,done:sd,pct:st>0?Math.round(sd/st*100):0});
+      });
+      subjectStats.push({
+        subj,total:st,done:sd,pct:st>0?Math.round(sd/st*100):0,
+        latestUnit,                // v50: {text,status,order} or null
+        textbookKey:rawKey,        // v50: レポート表示で全単元を引くのに使う
+        subjLastDate               // v51: その教科の最終チェック日 or null
+      });
       total+=st; done+=sd;
     });
     const pct=total>0?Math.round(done/total*100):0;
@@ -2693,7 +2713,7 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
       if(daysSinceUpdate>=14) danger='red';
       else if(daysSinceUpdate>=7) danger='yellow';
     }
-    return {name:n,fullName,type:'jh',grade,subjectStats,pct,total,done,lastUpdate,danger,school:jhSchoolOverrides[n]||STUDENT_SCHOOLS[n]||''};
+    return {name:n,fullName,type:'jh',grade,subjectStats,pct,total,done,lastUpdate,danger,school:jhSchoolOverrides[n]||STUDENT_SCHOOLS[n]||'',jhStudentRecords:studentRecords};
   };
 
   // 全データ計算
@@ -2731,12 +2751,15 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
 
   // CSV出力
   const exportCSV=()=>{
-    const rows=[['生徒名','種別','現在テキスト','進捗(%)','危険度','最終更新']];
+    const rows=[['生徒名','種別','最新の単元','危険度','最終チェック']];
     allData.forEach(d=>{
-      const curLabel=d.type==='hs'?(d.curStep?.label||'-'):(d.subjectStats?.map(s=>`${s.subj}:${s.pct}%`).join(' ')||'-');
+      // v50: 小中学生は「教科：状態 単元名」を出力
+      const curLabel=d.type==='hs'
+        ?(d.steps?.map(s=>`${s.label}:${s.pct}%`).join(' ')||'-')
+        :(d.subjectStats?.map(s=>s.latestUnit?`${s.subj}:${s.latestUnit.status}${s.latestUnit.text}`:`${s.subj}:未着手`).join(' / ')||'-');
       const dangerLabel={'red':'🔴危険','yellow':'🟡注意','none':'🟢良好'}[d.danger];
       const updStr=d.lastUpdate?d.lastUpdate.toLocaleDateString('ja-JP'):'未記録';
-      rows.push([d.name,d.type==='hs'?'高校生':d.grade||'小中',curLabel,d.pct,dangerLabel,updStr]);
+      rows.push([d.name,d.type==='hs'?'高校生':d.grade||'小中',curLabel,dangerLabel,updStr]);
     });
     const csv='\uFEFF'+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob=new Blob([csv],{type:'text/csv'});
@@ -2807,16 +2830,16 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
             <tr style={{background:'#f3f4f6'}}>
               <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #d1d5db'}}>生徒名</th>
               <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db'}}>種別</th>
-              <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #d1d5db'}}>現在の状況</th>
-              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'130px'}}>進捗</th>
+              {/* v50: 「現在の状況」を最新単元ベースに（紗耶佳先生のご要望） */}
+              <th style={{padding:'8px',textAlign:'left',borderBottom:'2px solid #d1d5db'}}>最新の単元（数学・英語 ／ 高校生は進捗）</th>
               <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'70px'}}>危険度</th>
-              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'90px'}}>最終更新</th>
+              <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'90px'}}>最終チェック</th>
               <th style={{padding:'8px',textAlign:'center',borderBottom:'2px solid #d1d5db',width:'80px'}}>レポート</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.length===0&&(
-              <tr><td colSpan="7" style={{padding:'40px',textAlign:'center',color:'#9ca3af'}}>該当する生徒がいません</td></tr>
+              <tr><td colSpan="6" style={{padding:'40px',textAlign:'center',color:'#9ca3af'}}>該当する生徒がいません</td></tr>
             )}
             {filteredData.map((d,i)=>{
               const dangerColor={'red':'#fef2f2','yellow':'#fffbeb','none':'white'}[d.danger];
@@ -2833,6 +2856,7 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
                   <td style={{padding:'8px',textAlign:'center',fontSize:'10px'}}>{d.type==='hs'?'高校生':d.grade}</td>
                   <td style={{padding:'8px'}}>
                     {d.type==='hs'?(
+                      // 高校生は従来通り進捗％タグ
                       d.steps&&d.steps.length>0?(
                         <div style={{display:'flex',gap:'3px',flexWrap:'wrap'}}>
                           {d.steps.map((s,si)=>(
@@ -2843,24 +2867,36 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
                         </div>
                       ):<span style={{color:'#9ca3af',fontSize:'11px'}}>未登録</span>
                     ):(
+                      // v50: 小中学生は「最新の単元」を教科ごとに表示（紗耶佳先生のご要望）
+                      // v51: 教科ごとに最終チェック日も単元の横に表示
                       d.subjectStats&&d.subjectStats.length>0?(
-                        <div style={{display:'flex',gap:'3px',flexWrap:'wrap'}}>
-                          {d.subjectStats.map((s,si)=>(
-                            <span key={si} style={{padding:'2px 6px',background:'#f0fdf4',color:'#065f46',borderRadius:'10px',fontSize:'10px'}}>
-                              {s.subj} {s.pct}%
-                            </span>
-                          ))}
+                        <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
+                          {d.subjectStats.map((s,si)=>{
+                            const statusColor={'◯':'#16a34a','△':'#d97706','☓':'#dc2626'}[s.latestUnit?.status]||'#9ca3af';
+                            const statusBg={'◯':'#f0fdf4','△':'#fffbeb','☓':'#fef2f2'}[s.latestUnit?.status]||'#f3f4f6';
+                            // v51: その教科の最終チェック日（○月○日 形式）
+                            const dateStr=s.subjLastDate
+                              ?`${s.subjLastDate.getMonth()+1}月${s.subjLastDate.getDate()}日`
+                              :null;
+                            return(
+                              <div key={si} style={{display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                                <span style={{fontSize:'10px',fontWeight:'bold',color:'#374151',width:'32px',flexShrink:0}}>{s.subj}</span>
+                                {s.latestUnit?(
+                                  <span style={{padding:'2px 8px',background:statusBg,color:statusColor,borderRadius:'6px',fontSize:'11px',fontWeight:'bold',border:`1px solid ${statusColor}`}}>
+                                    {s.latestUnit.status} {s.latestUnit.text}
+                                  </span>
+                                ):(
+                                  <span style={{color:'#9ca3af',fontSize:'10px'}}>未着手</span>
+                                )}
+                                {dateStr&&(
+                                  <span style={{fontSize:'10px',color:'#6b7280'}}>最終チェック：{dateStr}</span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ):<span style={{color:'#9ca3af',fontSize:'11px'}}>未登録</span>
                     )}
-                  </td>
-                  <td style={{padding:'8px'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
-                      <div style={{flex:1,height:'8px',background:'#e5e7eb',borderRadius:'4px',overflow:'hidden'}}>
-                        <div style={{width:`${d.pct}%`,height:'100%',background:d.pct>=70?'#10b981':d.pct>=40?'#f59e0b':'#ef4444',transition:'width 0.3s'}}/>
-                      </div>
-                      <span style={{fontSize:'10px',fontWeight:'bold',width:'30px',textAlign:'right'}}>{d.pct}%</span>
-                    </div>
                   </td>
                   <td style={{padding:'8px',textAlign:'center',fontSize:'14px'}}>{dangerIcon}</td>
                   <td style={{padding:'8px',textAlign:'center',fontSize:'10px',color:d.danger==='red'?'#dc2626':'#6b7280'}}>{updStr}</td>
@@ -2958,23 +2994,49 @@ function StudentReport({data,onClose}){
             </div>
           )}
 
-          {/* 小中学生：教科別 */}
+          {/* v50: 小中学生：教科別の全単元◯△☓リスト（紗耶佳先生のご要望・保護者向け） */}
           {data.type==='jh'&&data.subjectStats&&data.subjectStats.length>0&&(
             <div style={{marginBottom:'16px'}}>
-              <p style={{fontSize:'14px',fontWeight:'bold',color:'#065f46',marginBottom:'8px',borderLeft:'4px solid #065f46',paddingLeft:'8px'}}>📚 教科別進捗</p>
+              <p style={{fontSize:'14px',fontWeight:'bold',color:'#065f46',marginBottom:'8px',borderLeft:'4px solid #065f46',paddingLeft:'8px'}}>📚 教科別 単元一覧</p>
               {data.school&&<p style={{fontSize:'11px',color:'#6b7280',marginBottom:'6px'}}>🏫 {data.school}</p>}
-              {data.subjectStats.map((s,i)=>(
-                <div key={i} style={{background:'white',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'10px 14px',marginBottom:'6px'}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
-                    <p style={{fontWeight:'bold',fontSize:'13px',color:'#065f46'}}>{s.subj}</p>
-                    <p style={{fontSize:'14px',fontWeight:'bold'}}>{s.pct}%</p>
+              {data.subjectStats.map((s,i)=>{
+                // v50: テキストの全単元を取得し、それぞれの◯△☓状態を表示
+                const chs=CHAPTERS[s.textbookKey]||[];
+                const recs=data.jhStudentRecords||{};
+                return(
+                  <div key={i} style={{background:'white',border:'1px solid #e5e7eb',borderRadius:'8px',padding:'12px 14px',marginBottom:'10px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                      <p style={{fontWeight:'bold',fontSize:'13px',color:'#065f46'}}>
+                        {s.subj}
+                        {s.latestUnit&&<span style={{fontSize:'11px',color:'#6b7280',fontWeight:'normal',marginLeft:'8px'}}>最新：{s.latestUnit.status} {s.latestUnit.text}</span>}
+                      </p>
+                      <p style={{fontSize:'11px',color:'#6b7280'}}>◯ {s.done}/{s.total}</p>
+                    </div>
+                    {/* 全単元リスト */}
+                    <div style={{display:'flex',flexDirection:'column',gap:'2px'}}>
+                      {chs.map((ch,ci)=>(
+                        <div key={ci}>
+                          {ch.title&&<p style={{fontSize:'10px',color:'#9ca3af',fontWeight:'bold',marginTop:ci>0?'6px':'0',marginBottom:'2px'}}>{ch.title}</p>}
+                          {ch.items.map((it,ii)=>{
+                            const r=recs[`${s.subj}_${it.id}`]||{};
+                            const st=r.status||'未';
+                            const stColor={'◯':'#16a34a','△':'#d97706','☓':'#dc2626','未':'#d1d5db'}[st];
+                            const stBg={'◯':'#f0fdf4','△':'#fffbeb','☓':'#fef2f2','未':'#f9fafb'}[st];
+                            return(
+                              <div key={ii} style={{display:'flex',alignItems:'center',gap:'8px',padding:'3px 6px',background:stBg,borderRadius:'4px'}}>
+                                <span style={{fontSize:'13px',fontWeight:'bold',color:stColor,width:'18px',textAlign:'center',flexShrink:0}}>{st}</span>
+                                <span style={{fontSize:'11px',color:'#374151'}}>{it.text}</span>
+                                {r.checkedAt&&<span style={{fontSize:'9px',color:'#9ca3af',marginLeft:'auto'}}>{r.checkedAt}</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                      {chs.length===0&&<p style={{fontSize:'10px',color:'#9ca3af'}}>※ 単元データがありません</p>}
+                    </div>
                   </div>
-                  <div style={{height:'6px',background:'#e5e7eb',borderRadius:'3px',overflow:'hidden'}}>
-                    <div style={{width:`${s.pct}%`,height:'100%',background:s.pct>=70?'#10b981':s.pct>=40?'#f59e0b':'#ef4444'}}/>
-                  </div>
-                  <p style={{fontSize:'10px',color:'#6b7280',marginTop:'4px'}}>完了 {s.done}/{s.total} 項目</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
