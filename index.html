@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v47"/>
+  <meta name="app-version" content="v48"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v47</title>
+  <title>明光義塾 チェックアプリ v48</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,9 +47,9 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v47-20260513";  // 🚨 v46→v47 進捗ダッシュボードのバグ修正：v42でrecordsが入れ子構造になったのに、ダッシュボードが旧フラットキーで探していたため進捗0%表示。講師画面と同じキー形式に統一
-      const APP_DISPLAY_VERSION = "v47";  // バージョンバッジ表示用
-      const APP_BUILD_DATE = "2026/05/13"; // ビルド日（バッジ表示用）
+      const APP_VERSION = "v48-20260514";  // 🚨 v47→v48 進捗ダッシュボード0%の真因：Reactのstate配列とGASのstudents配列のindexズレ。textbookOverrides/recordsを「生徒名キー」に変換してindex非依存に。さらにhandleLoginでrecords未ロードだったのを修正
+      const APP_DISPLAY_VERSION = "v48";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/14"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
       // グローバルから参照可能に（バージョンバッジで使用）
@@ -2513,7 +2513,7 @@ function AddTeacherForm({onAdd,onCancel}){
 }
 
 // 進捗ダッシュボードタブ
-function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhTextbookOverrides,jhSchoolOverrides}){
+function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhRecordsByName,jhTextbookOverrides,jhTextbookOverridesByName,jhSchoolOverrides}){
   const [filter,setFilter]=useState('all'); // 'all','hs','jh','danger'
   const [sortBy,setSortBy]=useState('progress'); // 'name','progress','update'
   const [searchText,setSearchText]=useState('');
@@ -2594,17 +2594,18 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
     const n=stripGrade(fullName);
     const grade=extractGrade(fullName);
     const subjects=GRADE_SUBJECTS[grade]||[];
-    const si=jhAllStudents.indexOf(fullName);
     let total=0,done=0;
     let lastUpdate=null;
     const subjectStats=[];
-    // v47: jhRecords は v42 で入れ子構造 jhRecords[si][key] に変わった
-    //   講師画面のキー形式は `${教科}_${項目id}`（例: 数学_式の計算1）
-    //   旧バグ: ダッシュボードは `${si}_${rawKey}_${it.id}` というフラットキーで探していた
-    //   → 田村くんの進捗が0%表示されていた
-    const studentRecords=jhRecords[si]||{};
+    // v48: index非依存。すべて「生徒名（n）」で引く
+    //   旧バグ: jhTextbookOverrides[si] / jhRecords[si] と index で引いていたが、
+    //          Reactのstate配列とGASのstudents配列のindexがズレると別人の設定を見てしまい
+    //          田村くんの進捗が0%表示されていた
+    //   修正: jhTextbookOverridesByName[n] / jhRecordsByName[n] で生徒名ベースに統一
+    const ovByName=(jhTextbookOverridesByName||{})[n]||{};
+    const studentRecords=(jhRecordsByName||{})[n]||{};
     subjects.forEach(subj=>{
-      const override=jhTextbookOverrides[si]?.[subj];
+      const override=ovByName[subj];
       const defaultKey=(grade.startsWith('中')||grade.startsWith('小'))?`${grade}Y_${subj}`:`${grade}_${subj}`;
       const rawKey=override||defaultKey;
       if(rawKey&&rawKey.startsWith('none_')) return;
@@ -2612,12 +2613,8 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
       let st=0,sd=0;
       chs.forEach(ch=>ch.items.forEach(it=>{
         st++;
-        // v47: 講師画面と同じキー形式 `${教科}_${項目id}` で入れ子構造から取得
-        //   旧形式（フラットキー）も後方互換でフォールバック
-        const r=studentRecords[`${subj}_${it.id}`]
-              ||jhRecords[`${si}_${rawKey}_${it.id}`]
-              ||jhRecords[`${grade}_${subj}_${it.id}`]
-              ||{};
+        // v48: 講師画面と同じキー形式 `${教科}_${項目id}` で生徒名ベースのrecordsから取得
+        const r=studentRecords[`${subj}_${it.id}`]||{};
         if(r.status==='◯') sd++;
         if(r.updatedAt){
           const d=new Date(r.updatedAt);
@@ -2951,7 +2948,7 @@ function StudentReport({data,onClose}){
   );
 }
 
-function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhSchoolGradeMaster,jhStudentDirectives,jhSaveStudentDirective,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack,saveMsg,saveMsgType}){
+function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhRecordsByName,jhSchoolGradeMaster,jhStudentDirectives,jhSaveStudentDirective,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack,saveMsg,saveMsgType}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
   const [msg,setMsg]=useState('');
@@ -2991,6 +2988,20 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   const [jhShowDirectiveModal,setJhShowDirectiveModal]=useState(false);
 
   const students=studentIdxs.map(i=>allStudents[i]).filter(Boolean);
+  // v48: textbookOverrides を「生徒名キー」に変換（進捗ダッシュボードのindexズレ対策）
+  //   jhTextbookOverrides のキーは index だが、index は state とGASでズレうる
+  //   生徒名キーに変換すれば index に一切依存せず確実に引ける
+  const jhTextbookOverridesByName=React.useMemo(()=>{
+    const byName={};
+    Object.entries(jhTextbookOverrides||{}).forEach(([k,v])=>{
+      const idx=parseInt(k);
+      const fullName=(jhAllStudents||[])[idx];
+      if(fullName){
+        byName[stripGrade(fullName)]=v;
+      }
+    });
+    return byName;
+  },[jhTextbookOverrides,jhAllStudents]);
   const curName=stripGrade(students[curIdx]||'');
   // 旧形式とロードマップ両対応：curPlanFull がplan全体、curPlan は現在編集中ステップ（互換のため）
   const curPlanFull=migratePlan(plans[curName]||{});
@@ -4408,7 +4419,9 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
             hsEngAssign={hsEngAssign||{}}
             hsEngRecords={hsEngRecords||{}}
             jhRecords={jhRecords||{}}
+            jhRecordsByName={jhRecordsByName||{}}
             jhTextbookOverrides={jhTextbookOverrides}
+            jhTextbookOverridesByName={jhTextbookOverridesByName||{}}
             jhSchoolOverrides={jhSchoolOverrides}
           />
         )}
@@ -4670,6 +4683,10 @@ function App(){
 
   // 小中学生データ
   const [jhRecords,setJhRecords]=useState({});
+  // v48: 進捗ダッシュボード用に「生徒名キー」のrecordsも保持
+  //   jhRecords は si（index）キーだが、index が state とGASでズレると参照できない
+  //   jhRecordsByName は生徒名キーなので、index に一切依存せず確実に読める
+  const [jhRecordsByName,setJhRecordsByName]=useState({});
   const [jhTextbookOverrides,setJhTextbookOverrides]=useState({});
   const [jhTestRanges,setJhTestRanges]=useState({});
   const [jhDirectives,setJhDirectives]=useState({});
@@ -4796,6 +4813,34 @@ function App(){
         return {...(oldMap||{}),...(newMap||{})};
       },setJhRenzemiProgress],
       ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
+      // v48: records も起動時に読み込む（教室長の進捗ダッシュボード用）
+      //   旧バグ: handleLogin で records をロードしておらず、ダッシュボードが空だった
+      //   旧マップ（si キー）＋個別キー（生徒名キー）を統合し、生徒名キー版も同時に作る
+      ['records',async()=>{
+        const jrOld=await jhGet('records',{});
+        const jrNew=await jhGetMap('records');
+        return {jrOld:jrOld||{},jrNew:jrNew||{}};
+      },(d)=>{
+        const {jrOld,jrNew}=d;
+        const merged={...jrOld};
+        const byName={};
+        // 個別キー（生徒名）→ byName と merged の両方へ
+        for(const [sName,recs] of Object.entries(jrNew)){
+          byName[sName]={...recs};
+          const si=cJh.findIndex(s=>stripGrade(s)===sName);
+          if(si>=0) merged[si]={...(merged[si]||{}),...recs};
+        }
+        // 旧マップ（si キー）→ byName に補完（個別キー優先）
+        for(const [siStr,recs] of Object.entries(jrOld)){
+          const fullName=cJh[parseInt(siStr)];
+          if(fullName){
+            const sName=stripGrade(fullName);
+            byName[sName]={...(recs||{}),...(byName[sName]||{})};
+          }
+        }
+        setJhRecords(merged);
+        setJhRecordsByName(byName);
+      }],
       ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster], // v36
       ['studentDirectives',()=>jhGet('studentDirectives',cSDir),setJhStudentDirectives], // v38
       ['currentTerm',()=>jhGet('currentTerm',cCurTerm),(d)=>setCurrentTerm(d||'R')],
@@ -4861,17 +4906,31 @@ function App(){
         const jrOld=await jhGet('records',{});
         const jrNew=await jhGetMap('records');
         const merged={...jrOld};
+        // v48: 生徒名キーのrecordsも構築（進捗ダッシュボード用・index非依存）
+        const byName={};
         if(jrNew){
           // sName を si にマッピング
           for(const [sName, recs] of Object.entries(jrNew)){
-            // sName → 該当する si を見つける
+            // v48: 生徒名キーでそのまま保持（indexに依存しない）
+            byName[sName]={...recs};
+            // sName → 該当する si を見つける（旧来のjhRecordsも維持）
             const si=jhStudents.findIndex(s=>stripGrade(s)===sName);
             if(si>=0){
               merged[si]={...(merged[si]||{}), ...recs};
             }
           }
         }
+        // 旧形式（si キー）も、生徒名キーに変換して byName に補完
+        for(const [siStr, recs] of Object.entries(jrOld||{})){
+          const si=parseInt(siStr);
+          const fullName=jhStudents[si];
+          if(fullName){
+            const sName=stripGrade(fullName);
+            byName[sName]={...(recs||{}), ...(byName[sName]||{})}; // 個別キー優先
+          }
+        }
         setJhRecords(merged);
+        setJhRecordsByName(byName);
       }
       setHsRecords(nr);setHsPlans(np);
       setBgLoading(false);
@@ -4924,12 +4983,14 @@ function App(){
       nr={...prev,[si]:studentRecords};
       return nr;
     });
+    // v48: 生徒名キーのrecordsも同時更新（進捗ダッシュボードがindex非依存で読めるように）
+    const fullName=jhStudents[si]||'';
+    const sName=stripGrade(fullName);
+    setJhRecordsByName(prev=>({...prev,[sName]:studentRecords}));
     flash('💾 保存中...','saving');
     await new Promise(r=>setTimeout(r,0));
     // v42: 個別キー保存（その生徒のデータだけ保存）
     //   生徒名でキーを作る（si=index は端末ごとに変わる可能性があるので、生徒名で永続化）
-    const fullName=jhStudents[si]||'';
-    const sName=stripGrade(fullName);
     const result=await jhSetMap('records',sName,studentRecords,nr);
     if(!result.ok){
       flash(`❌ 保存失敗：${result.reason||''}`,'error');
@@ -5360,6 +5421,7 @@ function App(){
       hsEngAssign={hsEngAssign}
       hsEngRecords={hsEngRecords}
       jhRecords={jhRecords}
+      jhRecordsByName={jhRecordsByName}
       onAddJhStudent={async(name,grade,school)=>{
         const fullName=`${name}（${grade}）`;
         let newStudents;
