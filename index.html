@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v48"/>
+  <meta name="app-version" content="v49"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v48</title>
+  <title>明光義塾 チェックアプリ v49</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v48-20260514";  // 🚨 v47→v48 進捗ダッシュボード0%の真因：Reactのstate配列とGASのstudents配列のindexズレ。textbookOverrides/recordsを「生徒名キー」に変換してindex非依存に。さらにhandleLoginでrecords未ロードだったのを修正
-      const APP_DISPLAY_VERSION = "v48";  // バージョンバッジ表示用
+      const APP_VERSION = "v49-20260514";  // ✨ v48→v49 紗耶佳先生のご要望：生徒選択画面に一括選択ボタン（中学生全員・小学生全員・高校生全員・教室全員）を追加。教室長の「全員を俯瞰する」業務のクリック地獄を解消
+      const APP_DISPLAY_VERSION = "v49";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/14"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -2270,6 +2270,30 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
   const isSel=name=>sel.some(x=>x.name===name);
   const gradeOf=name=>(name.match(/（(.+?)）/)||[])[1]||'';
 
+  // v49: 紗耶佳先生のご要望「全員を一度に呼び出したい」
+  //   教室長は「全員の進捗を俯瞰する」業務が圧倒的に多いため、
+  //   1人ずつ選ぶのではなく、グループ単位で一括選択できるようにする
+  const selectGroup=(groupType)=>{
+    let picked=[];
+    if(groupType==='hs'){
+      picked=hsStudents.map(name=>({name,type:'hs'}));
+    }else if(groupType==='chu'){
+      // 中学生（中1・中2・中3、ただし中3・一貫は除く）
+      picked=jhStudents.filter(s=>{const g=gradeOf(s);return g.startsWith('中')&&g!=='中3・一貫';})
+        .map(name=>({name,type:'jh'}));
+    }else if(groupType==='sho'){
+      picked=jhStudents.filter(s=>gradeOf(s).startsWith('小'))
+        .map(name=>({name,type:'jh'}));
+    }else if(groupType==='all'){
+      picked=[
+        ...hsStudents.map(name=>({name,type:'hs'})),
+        ...jhStudents.map(name=>({name,type:'jh'})),
+      ];
+    }
+    setSel(picked);
+  };
+  const clearSel=()=>setSel([]);
+
   // 学年順（上の学年から）
   // v25: 「中3・一貫」を高校生グループの末尾に追加
   //   中高一貫生は中3だが高校カリキュラム（数学チャート式・英語ルート）を履修するため、
@@ -2384,6 +2408,42 @@ function StudentSelectScreen({hsStudents,jhStudents,teacherName,role,onStart,onB
               {sel.length}人選択中
             </span>
           )}
+        </div>
+
+        {/* v49: 一括選択ボタン（紗耶佳先生のご要望：全員を一度に呼び出す） */}
+        <div style={{background:'#fffbeb',border:'1px solid #fcd34d',borderRadius:'10px',padding:'10px 12px',marginBottom:'14px'}}>
+          <p style={{fontSize:'11px',color:'#92400e',fontWeight:'bold',marginBottom:'7px'}}>
+            ⚡ まとめて選択（全員の登録・進捗確認はこちら）
+          </p>
+          <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+            <button onClick={()=>selectGroup('chu')}
+              style={{flex:'1 1 auto',minWidth:'110px',padding:'9px 10px',borderRadius:'8px',border:'2px solid #065f46',
+                background:'white',color:'#065f46',cursor:'pointer',fontSize:'12px',fontWeight:'bold'}}>
+              📗 中学生 全員
+            </button>
+            <button onClick={()=>selectGroup('sho')}
+              style={{flex:'1 1 auto',minWidth:'110px',padding:'9px 10px',borderRadius:'8px',border:'2px solid #0891b2',
+                background:'white',color:'#0891b2',cursor:'pointer',fontSize:'12px',fontWeight:'bold'}}>
+              🔵 小学生 全員
+            </button>
+            <button onClick={()=>selectGroup('hs')}
+              style={{flex:'1 1 auto',minWidth:'110px',padding:'9px 10px',borderRadius:'8px',border:'2px solid #1e3a8a',
+                background:'white',color:'#1e3a8a',cursor:'pointer',fontSize:'12px',fontWeight:'bold'}}>
+              📘 高校生 全員
+            </button>
+            <button onClick={()=>selectGroup('all')}
+              style={{flex:'1 1 auto',minWidth:'110px',padding:'9px 10px',borderRadius:'8px',border:'2px solid #b45309',
+                background:'#b45309',color:'white',cursor:'pointer',fontSize:'12px',fontWeight:'bold'}}>
+              🏫 教室 全員
+            </button>
+            {sel.length>0&&(
+              <button onClick={clearSel}
+                style={{flex:'0 0 auto',padding:'9px 12px',borderRadius:'8px',border:'1px solid #d1d5db',
+                  background:'#f3f4f6',color:'#6b7280',cursor:'pointer',fontSize:'12px'}}>
+                選択をクリア
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 高校生グループ */}
