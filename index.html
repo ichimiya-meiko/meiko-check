@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v51"/>
+  <meta name="app-version" content="v52"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v51</title>
+  <title>明光義塾 チェックアプリ v52</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v51-20260514";  // ✨ v50→v51 紗耶佳先生のご要望：ダッシュボードで最終チェック日を教科ごとに単元の横に表示（数学・英語それぞれの横に「最終チェック：○月○日」）
-      const APP_DISPLAY_VERSION = "v51";  // バージョンバッジ表示用
+      const APP_VERSION = "v52-20260514";  // ✨ v51→v52 ①日付が出ないバグ修正（updatedAt→dateフィールドの見間違い）②ソートに「学年順」を追加（名前順を置き換え）
+      const APP_DISPLAY_VERSION = "v52";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/14"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -2689,11 +2689,15 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
           // itemOrder が大きいほど後ろの単元 → 最新
           latestUnit={text:it.text,status:r.status,order:itemOrder};
         }
-        // v51: この教科の最終チェック日（updatedAt の最大）
-        if(r.updatedAt){
-          const d=new Date(r.updatedAt);
-          if(!subjLastDate||d>subjLastDate) subjLastDate=d;
-          if(!lastUpdate||d>lastUpdate) lastUpdate=d;
+        // v52: 日付フィールドは "date"（jhCycleStatusが {status,teacher,date} で保存）
+        //   旧バグ: updatedAt を見ていたが、実データは date フィールド → 日付が出なかった
+        const dateStr=r.date||r.updatedAt; // 後方互換で updatedAt もフォールバック
+        if(dateStr){
+          const d=new Date(dateStr);
+          if(!isNaN(d.getTime())){
+            if(!subjLastDate||d>subjLastDate) subjLastDate=d;
+            if(!lastUpdate||d>lastUpdate) lastUpdate=d;
+          }
         }
       });
       subjectStats.push({
@@ -2730,8 +2734,20 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
     if(searchText&&!d.name.includes(searchText)) return false;
     return true;
   });
+  // v52: 学年順ソート用の順序定義（上の学年から）
+  //   紗耶佳先生のご要望：名前順より学年順の方が業務で使う
+  const GRADE_SORT_ORDER=['高3','高2','高1','中3・一貫','中3','中2','中1','小6','小5','小4','小3','小2','小1'];
+  const gradeRank=d=>{
+    const g=d.type==='hs'?(d.grade||'高1'):(d.grade||'');
+    const idx=GRADE_SORT_ORDER.indexOf(g);
+    return idx<0?999:idx;
+  };
   filteredData.sort((a,b)=>{
-    if(sortBy==='name') return a.name.localeCompare(b.name);
+    if(sortBy==='grade'){
+      // 学年順（上の学年から）→ 同学年なら名前順
+      const r=gradeRank(a)-gradeRank(b);
+      return r!==0?r:a.name.localeCompare(b.name);
+    }
     if(sortBy==='progress') return a.pct-b.pct; // 進捗低い順（危険な順）
     if(sortBy==='update'){
       const aT=a.lastUpdate?a.lastUpdate.getTime():0;
@@ -2819,7 +2835,7 @@ function DashboardTab({students,allStudents,jhAllStudents,jhStudentIdxs,plans,hs
           style={{border:'1px solid #d1d5db',borderRadius:'6px',padding:'6px 10px',fontSize:'12px'}}>
           <option value="progress">進捗が低い順</option>
           <option value="update">更新が古い順</option>
-          <option value="name">名前順</option>
+          <option value="grade">学年順（高3→小1）</option>
         </select>
       </div>
 
@@ -3026,7 +3042,8 @@ function StudentReport({data,onClose}){
                               <div key={ii} style={{display:'flex',alignItems:'center',gap:'8px',padding:'3px 6px',background:stBg,borderRadius:'4px'}}>
                                 <span style={{fontSize:'13px',fontWeight:'bold',color:stColor,width:'18px',textAlign:'center',flexShrink:0}}>{st}</span>
                                 <span style={{fontSize:'11px',color:'#374151'}}>{it.text}</span>
-                                {r.checkedAt&&<span style={{fontSize:'9px',color:'#9ca3af',marginLeft:'auto'}}>{r.checkedAt}</span>}
+                                {/* v52: 日付フィールドは date（checkedAtではない） */}
+                                {(r.date||r.checkedAt)&&<span style={{fontSize:'9px',color:'#9ca3af',marginLeft:'auto'}}>{r.date||r.checkedAt}</span>}
                               </div>
                             );
                           })}
