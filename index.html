@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v52"/>
+  <meta name="app-version" content="v53"/>
   <meta name="app-build-date" content="2026-05-09"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v52</title>
+  <title>明光義塾 チェックアプリ v53</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v52-20260514";  // ✨ v51→v52 ①日付が出ないバグ修正（updatedAt→dateフィールドの見間違い）②ソートに「学年順」を追加（名前順を置き換え）
-      const APP_DISPLAY_VERSION = "v52";  // バージョンバッジ表示用
+      const APP_VERSION = "v53-20260515";  // ✨ v52→v53 高速化大改修：handleLoginで小中学生用GASを?action=getallで1回まとめ取得（数百回→1回の通信）。jhGetAll失敗時は従来の個別取得にフォールバック
+      const APP_DISPLAY_VERSION = "v53";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/14"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -452,6 +452,61 @@ async function jhGetMap(mapKey){
     }catch{}
   }
   return result;
+}
+
+// v53: まとめ取得（高速化）
+//   GAS①の getAllData() を1回叩いて、全 shochugaku:* データを取得
+//   失敗時は null を返す → 呼び出し側で従来の個別 jhGet にフォールバック
+async function jhGetAll(){
+  try{
+    const url=`${GAS_JH}?action=getall`;
+    const r=await fetch(url,{method:'GET',cache:'no-store'});
+    if(!r.ok) return null;
+    const all=await r.json();
+    if(!all||typeof all!=='object') return null;
+    return all;
+  }catch(e){
+    console.warn('[jhGetAll] エラー、個別取得にフォールバック:',e);
+    return null;
+  }
+}
+
+// v53: jhGetAll の結果から、特定のキーの値を取り出す（fb=fallback）
+//   value は JSON 文字列で入っているのでパースする
+function jhPickFromAll(all,key,fb){
+  if(!all) return fb;
+  const fullKey=JH_PREFIX+key;
+  const raw=all[fullKey];
+  if(raw===undefined||raw===null||raw==='') return fb;
+  try{
+    const v=typeof raw==='string'?JSON.parse(raw):raw;
+    // localStorageキャッシュも更新（既存の挙動と整合）
+    try{localStorage.setItem('cache:jh:'+key,JSON.stringify({v,t:Date.now()}));}catch{}
+    return v;
+  }catch{
+    return fb;
+  }
+}
+
+// v53: jhGetAll の結果から、mapKey__item__* を集めてマップを構築
+//   従来の jhGetMap('records') 等と同じ形式 {subKey: parsedValue} を返す
+function jhBuildMapFromAll(all,mapKey){
+  if(!all) return null;
+  const prefix=JH_PREFIX+mapKey+'__item__';
+  const result={};
+  let found=false;
+  for(const fullKey in all){
+    if(fullKey.startsWith(prefix)){
+      const subKey=fullKey.slice(prefix.length);
+      const raw=all[fullKey];
+      if(raw===undefined||raw===null||raw==='') continue;
+      try{
+        result[subKey]=typeof raw==='string'?JSON.parse(raw):raw;
+        found=true;
+      }catch{}
+    }
+  }
+  return found?result:null;
 }
 
 
@@ -4914,93 +4969,171 @@ function App(){
     setJhRenzemiDeadlines(cRzD);setJhSchoolGradeMaster(cSGM);setJhStudentDirectives(cSDir);setCurrentTerm(cCurTerm||'R'); // v36, v38
     setHsEngAssign(cEngA);setHsEngRecords(cEngR);
     setPhase('teacher');  // すぐ遷移
-    // ② バックグラウンドで最新データを取得してUIを更新（全データ並列で1ラウンド）
-    const tasks=[
-      ['teachers',()=>hsGet('koukou:teachers',cT),setTeachers],
-      ['hsStudents',()=>hsGet('koukou:students',cHs),setHsStudents],
-      ['jhStudents',()=>jhGet('students',cJh),setJhStudents],
-      ['textbookOverrides',()=>jhGet('textbookOverrides',cTb),setJhTextbookOverrides],
-      // v34: testRanges → 旧マップ + 個別キーを統合（個別が優先）
-      ['testRanges',async()=>{
-        const oldMap=await jhGet('testRanges',cTr);
-        const newMap=await jhGetMap('testRanges');
-        // 統合：旧マップをベースに、新マップで上書き（新の方が個別保存で信頼性高い）
-        return {...(oldMap||{}),...(newMap||{})};
-      },setJhTestRanges],
-      ['directives',async()=>{
-        const oldMap=await jhGet('directives',cDv);
-        const newMap=await jhGetMap('directives');
-        return {...(oldMap||{}),...(newMap||{})};
-      },setJhDirectives],
-      ['skipItems',()=>jhGet('skipItems',cSk),setJhSkipItems],
-      // v46: schoolOverrides → 旧マップ + 個別キーを統合
-      ['schoolOverrides',async()=>{
-        const oldMap=await jhGet('schoolOverrides',cSov);
-        const newMap=await jhGetMap('schoolOverrides');
-        return {...(oldMap||{}),...(newMap||{})};
-      },setJhSchoolOverrides],
-      // v39: renzemiAssign → 旧マップ + 個別キーを統合（個別が優先）
-      ['renzemiAssign',async()=>{
-        const oldMap=await jhGet('renzemiAssign',cRzA);
-        const newMap=await jhGetMap('renzemiAssign');
-        return {...(oldMap||{}),...(newMap||{})};
-      },(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
-      // v41: renzemiProgress → 旧マップ + 個別キーを統合（個別が優先）
-      ['renzemiProgress',async()=>{
-        const oldMap=await jhGet('renzemiProgress',cRzP);
-        const newMap=await jhGetMap('renzemiProgress');
-        return {...(oldMap||{}),...(newMap||{})};
-      },setJhRenzemiProgress],
-      ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
-      // v48: records も起動時に読み込む（教室長の進捗ダッシュボード用）
-      //   旧バグ: handleLogin で records をロードしておらず、ダッシュボードが空だった
-      //   旧マップ（si キー）＋個別キー（生徒名キー）を統合し、生徒名キー版も同時に作る
-      ['records',async()=>{
-        const jrOld=await jhGet('records',{});
-        const jrNew=await jhGetMap('records');
-        return {jrOld:jrOld||{},jrNew:jrNew||{}};
-      },(d)=>{
-        const {jrOld,jrNew}=d;
-        const merged={...jrOld};
-        const byName={};
-        // 個別キー（生徒名）→ byName と merged の両方へ
-        for(const [sName,recs] of Object.entries(jrNew)){
-          byName[sName]={...recs};
-          const si=cJh.findIndex(s=>stripGrade(s)===sName);
-          if(si>=0) merged[si]={...(merged[si]||{}),...recs};
-        }
-        // 旧マップ（si キー）→ byName に補完（個別キー優先）
-        for(const [siStr,recs] of Object.entries(jrOld)){
-          const fullName=cJh[parseInt(siStr)];
-          if(fullName){
-            const sName=stripGrade(fullName);
-            byName[sName]={...(recs||{}),...(byName[sName]||{})};
-          }
-        }
-        setJhRecords(merged);
-        setJhRecordsByName(byName);
-      }],
-      ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster], // v36
-      ['studentDirectives',()=>jhGet('studentDirectives',cSDir),setJhStudentDirectives], // v38
-      ['currentTerm',()=>jhGet('currentTerm',cCurTerm),(d)=>setCurrentTerm(d||'R')],
-      ['engAssign',()=>hsGet('koukou:engAssign',cEngA),setHsEngAssign],
-      ['engRecords',()=>hsGet('koukou:engRecords',cEngR),setHsEngRecords],
-    ];
+    // ② バックグラウンドで最新データを取得してUIを更新
+    // v53: jhGetAll で小中学生用GASを1回でまとめ取得（高速化）
+    //   従来は17個のtasksで数十〜数百回通信していたのを、1回の?action=getall に集約
+    //   失敗時は従来方式（個別 jhGet/jhGetMap）にフォールバック
     setBgLoading(true);
-    setBgProgress({done:0,total:tasks.length});
-    let doneCount=0;
-    // すべて並列で取得し、完了するごとにプログレス更新
-    await Promise.all(tasks.map(([name,fn,setter])=>
-      fn().then(data=>{
-        setter(data);
-        doneCount++;
-        setBgProgress({done:doneCount,total:tasks.length});
-      }).catch(err=>{
-        console.error(`[${name}] エラー:`,err);
-        doneCount++;
-        setBgProgress({done:doneCount,total:tasks.length});
-      })
-    ));
+    try{
+      // 高校生用GAS(別プロジェクト)は従来通り個別取得（並列）
+      const hsTasks=[
+        ['teachers',()=>hsGet('koukou:teachers',cT),setTeachers],
+        ['hsStudents',()=>hsGet('koukou:students',cHs),setHsStudents],
+        ['engAssign',()=>hsGet('koukou:engAssign',cEngA),setHsEngAssign],
+        ['engRecords',()=>hsGet('koukou:engRecords',cEngR),setHsEngRecords],
+      ];
+      // 小中学生用GAS：まとめ取得を1発
+      const jhAllPromise=jhGetAll();
+      // 高校生 + 小中学生まとめ取得を並列実行
+      setBgProgress({done:0,total:hsTasks.length+1});
+      let doneCount=0;
+      const hsPromises=hsTasks.map(([name,fn,setter])=>
+        fn().then(data=>{
+          setter(data);
+          doneCount++;
+          setBgProgress({done:doneCount,total:hsTasks.length+1});
+        }).catch(err=>{
+          console.error(`[${name}] エラー:`,err);
+          doneCount++;
+          setBgProgress({done:doneCount,total:hsTasks.length+1});
+        })
+      );
+      const jhAll=await jhAllPromise;
+      doneCount++;
+      setBgProgress({done:doneCount,total:hsTasks.length+1});
+      // jhAll が取得できた場合：メモリ上で各 set を組み立て（追加通信ゼロ）
+      if(jhAll){
+        // 単純な値の取り出し（旧 jhGet 相当）
+        setJhStudents(jhPickFromAll(jhAll,'students',cJh));
+        setJhTextbookOverrides(jhPickFromAll(jhAll,'textbookOverrides',cTb));
+        setJhSkipItems(jhPickFromAll(jhAll,'skipItems',cSk));
+        setJhRenzemiDeadlines(jhPickFromAll(jhAll,'renzemiDeadlines',cRzD));
+        setJhSchoolGradeMaster(jhPickFromAll(jhAll,'schoolGradeMaster',cSGM));
+        setJhStudentDirectives(jhPickFromAll(jhAll,'studentDirectives',cSDir));
+        setCurrentTerm(jhPickFromAll(jhAll,'currentTerm',cCurTerm)||'R');
+        // 旧マップ + 個別キー統合 (v34/v46/v39/v41/v48 互換)
+        // testRanges
+        {
+          const oldMap=jhPickFromAll(jhAll,'testRanges',cTr);
+          const newMap=jhBuildMapFromAll(jhAll,'testRanges');
+          setJhTestRanges({...(oldMap||{}),...(newMap||{})});
+        }
+        // directives
+        {
+          const oldMap=jhPickFromAll(jhAll,'directives',cDv);
+          const newMap=jhBuildMapFromAll(jhAll,'directives');
+          setJhDirectives({...(oldMap||{}),...(newMap||{})});
+        }
+        // schoolOverrides
+        {
+          const oldMap=jhPickFromAll(jhAll,'schoolOverrides',cSov);
+          const newMap=jhBuildMapFromAll(jhAll,'schoolOverrides');
+          setJhSchoolOverrides({...(oldMap||{}),...(newMap||{})});
+        }
+        // renzemiAssign
+        {
+          const oldMap=jhPickFromAll(jhAll,'renzemiAssign',cRzA);
+          const newMap=jhBuildMapFromAll(jhAll,'renzemiAssign');
+          setJhRenzemiAssign(migrateRenzemiAssign({...(oldMap||{}),...(newMap||{})}));
+        }
+        // renzemiProgress
+        {
+          const oldMap=jhPickFromAll(jhAll,'renzemiProgress',cRzP);
+          const newMap=jhBuildMapFromAll(jhAll,'renzemiProgress');
+          setJhRenzemiProgress({...(oldMap||{}),...(newMap||{})});
+        }
+        // records (v48: byName と merged の両方を構築)
+        {
+          const jrOld=jhPickFromAll(jhAll,'records',{})||{};
+          const jrNew=jhBuildMapFromAll(jhAll,'records')||{};
+          const merged={...jrOld};
+          const byName={};
+          // 個別キー（生徒名）→ byName と merged の両方へ
+          for(const [sName,recs] of Object.entries(jrNew)){
+            byName[sName]={...recs};
+            const si=cJh.findIndex(s=>stripGrade(s)===sName);
+            if(si>=0) merged[si]={...(merged[si]||{}),...recs};
+          }
+          // 旧マップ（si キー）→ byName に補完（個別キー優先）
+          for(const [siStr,recs] of Object.entries(jrOld)){
+            const fullName=cJh[parseInt(siStr)];
+            if(fullName){
+              const sName=stripGrade(fullName);
+              byName[sName]={...(recs||{}),...(byName[sName]||{})};
+            }
+          }
+          setJhRecords(merged);
+          setJhRecordsByName(byName);
+        }
+      }else{
+        // ★ フォールバック：jhGetAll 失敗時は従来の個別取得方式
+        console.warn('[v53] jhGetAll が失敗。従来の個別取得方式にフォールバック');
+        const fallbackTasks=[
+          ['jhStudents',()=>jhGet('students',cJh),setJhStudents],
+          ['textbookOverrides',()=>jhGet('textbookOverrides',cTb),setJhTextbookOverrides],
+          ['testRanges',async()=>{
+            const oldMap=await jhGet('testRanges',cTr);
+            const newMap=await jhGetMap('testRanges');
+            return {...(oldMap||{}),...(newMap||{})};
+          },setJhTestRanges],
+          ['directives',async()=>{
+            const oldMap=await jhGet('directives',cDv);
+            const newMap=await jhGetMap('directives');
+            return {...(oldMap||{}),...(newMap||{})};
+          },setJhDirectives],
+          ['skipItems',()=>jhGet('skipItems',cSk),setJhSkipItems],
+          ['schoolOverrides',async()=>{
+            const oldMap=await jhGet('schoolOverrides',cSov);
+            const newMap=await jhGetMap('schoolOverrides');
+            return {...(oldMap||{}),...(newMap||{})};
+          },setJhSchoolOverrides],
+          ['renzemiAssign',async()=>{
+            const oldMap=await jhGet('renzemiAssign',cRzA);
+            const newMap=await jhGetMap('renzemiAssign');
+            return {...(oldMap||{}),...(newMap||{})};
+          },(d)=>setJhRenzemiAssign(migrateRenzemiAssign(d))],
+          ['renzemiProgress',async()=>{
+            const oldMap=await jhGet('renzemiProgress',cRzP);
+            const newMap=await jhGetMap('renzemiProgress');
+            return {...(oldMap||{}),...(newMap||{})};
+          },setJhRenzemiProgress],
+          ['renzemiDeadlines',()=>jhGet('renzemiDeadlines',cRzD),setJhRenzemiDeadlines],
+          ['records',async()=>{
+            const jrOld=await jhGet('records',{});
+            const jrNew=await jhGetMap('records');
+            return {jrOld:jrOld||{},jrNew:jrNew||{}};
+          },(d)=>{
+            const {jrOld,jrNew}=d;
+            const merged={...jrOld};
+            const byName={};
+            for(const [sName,recs] of Object.entries(jrNew)){
+              byName[sName]={...recs};
+              const si=cJh.findIndex(s=>stripGrade(s)===sName);
+              if(si>=0) merged[si]={...(merged[si]||{}),...recs};
+            }
+            for(const [siStr,recs] of Object.entries(jrOld)){
+              const fullName=cJh[parseInt(siStr)];
+              if(fullName){
+                const sName=stripGrade(fullName);
+                byName[sName]={...(recs||{}),...(byName[sName]||{})};
+              }
+            }
+            setJhRecords(merged);
+            setJhRecordsByName(byName);
+          }],
+          ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster],
+          ['studentDirectives',()=>jhGet('studentDirectives',cSDir),setJhStudentDirectives],
+          ['currentTerm',()=>jhGet('currentTerm',cCurTerm),(d)=>setCurrentTerm(d||'R')],
+        ];
+        await Promise.all(fallbackTasks.map(([name,fn,setter])=>
+          fn().then(data=>setter(data)).catch(err=>console.error(`[${name}] fallback error:`,err))
+        ));
+      }
+      // 高校生タスクの完了待ち
+      await Promise.all(hsPromises);
+    }catch(e){
+      console.error('[handleLogin] 致命的エラー:',e);
+    }
     setBgLoading(false);
   };
 
