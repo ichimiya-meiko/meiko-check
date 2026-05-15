@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v53"/>
-  <meta name="app-build-date" content="2026-05-09"/>
+  <meta name="app-version" content="v54"/>
+  <meta name="app-build-date" content="2026-05-15"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v53</title>
+  <title>明光義塾 チェックアプリ v54</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,9 +47,9 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v53-20260515";  // ✨ v52→v53 高速化大改修：handleLoginで小中学生用GASを?action=getallで1回まとめ取得（数百回→1回の通信）。jhGetAll失敗時は従来の個別取得にフォールバック
-      const APP_DISPLAY_VERSION = "v53";  // バージョンバッジ表示用
-      const APP_BUILD_DATE = "2026/05/14"; // ビルド日（バッジ表示用）
+      const APP_VERSION = "v54-20260515";  // ✨ v53→v54 jhGetRecord修正：jhRecordsByName優先・jhRecordsフォールバックに変更。旧マップに記録がない生徒（v48以降に追加された約80名）のチェックが「未」と誤表示されていたバグを根治。
+      const APP_DISPLAY_VERSION = "v54";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/15"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
       // グローバルから参照可能に（バージョンバッジで使用）
@@ -5241,7 +5241,16 @@ function App(){
     const full=jhStudents.find(s=>s.startsWith(name+'（')||s===name);
     return jhStudents.indexOf(full);
   };
-  const jhGetRecord=(si,key)=>jhRecords[si]?.[key]||{status:'未',teacher:'',date:''};
+  // v54: jhGetRecord を「生徒名キー優先・index キーフォールバック」に変更
+  //   旧バグ: jhGetRecord は jhRecords[si] のみ参照 → 旧マップ(8人分)に無い生徒は「未」と表示
+  //   修正: jhRecordsByName[sName] を最優先で参照 → v48以降の個別キー保存(全員分)が確実に読める
+  //   旧マップにも記録がある古参生徒(田村くん等)はフォールバックで引き続き読める
+  const jhGetRecord=(si,key)=>{
+    const sName=stripGrade(jhStudents[si]||'');
+    const byName=jhRecordsByName[sName]?.[key];
+    if(byName) return byName;
+    return jhRecords[si]?.[key]||{status:'未',teacher:'',date:''};
+  };
   // v42: 通常チェック記録も個別キー保存方式に変更
   //   旧: shochugaku:records 全体を1キーで保存 → 130名運用で確実にURL長制限突破
   //   新: shochugaku:records__item__生徒index のように生徒ごとに分割保存
