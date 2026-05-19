@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v62"/>
+  <meta name="app-version" content="v68"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v62</title>
+  <title>明光義塾 チェックアプリ v68</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v67-20260520";  // ✨ v67 保存方式を刷新しデータ消失を根治。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v68-20260520";  // ✨ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -5022,6 +5022,12 @@ function App(){
   //   jhRecords は si（index）キーだが、index が state とGASでズレると参照できない
   //   jhRecordsByName は生徒名キーなので、index に一切依存せず確実に読める
   const [jhRecordsByName,setJhRecordsByName]=useState({});
+  // v68: 保存時に「最新の入力」を確実に読むための同期ミラー(Ref)。
+  //   setStateは非同期。連打直後の保存で setState反映前の古い値/空を保存していた(v63〜v67のデータ消失原因)。
+  //   Refはクリック処理内で即時更新するので、保存はここから同期で最新を読めば絶対にズレない。
+  const jhRecByNameRef=React.useRef({}); // 生徒名キー：保存する値の正本
+  const jhRecByIdxRef=React.useRef({});  // index キー：jhSetMapのlocalStorageキャッシュ用
+  const hsRecRef=React.useRef({});       // 高校生 records の同期ミラー
   const [jhTextbookOverrides,setJhTextbookOverrides]=useState({});
   const [jhTestRanges,setJhTestRanges]=useState({});
   const [jhDirectives,setJhDirectives]=useState({});
@@ -5226,6 +5232,7 @@ function App(){
           }
           setJhRecords(merged);
           setJhRecordsByName(byName);
+          jhRecByIdxRef.current=merged; jhRecByNameRef.current=byName; // v68: Ref同期シード
         }
       }else{
         // ★ フォールバック：jhGetAll 失敗時は従来の個別取得方式
@@ -5294,6 +5301,7 @@ function App(){
             }
             setJhRecords(merged);
             setJhRecordsByName(byName);
+            jhRecByIdxRef.current=merged; jhRecByNameRef.current=byName; // v68: Ref同期シード
           }],
           ['schoolGradeMaster',()=>jhGet('schoolGradeMaster',cSGM),setJhSchoolGradeMaster],
           ['studentDirectives',()=>jhGet('studentDirectives',cSDir),setJhStudentDirectives],
@@ -5329,8 +5337,10 @@ function App(){
     if(jhNeeded){
       const cJr=jhGetCached('records',{});
       setJhRecords(cJr);
+      jhRecByIdxRef.current=cJr; // v68: Ref同期シード(キャッシュ)
     }
     setHsRecords(cNr);setHsPlans(cNp);
+    hsRecRef.current=cNr; // v68: 高校生Ref同期シード(キャッシュ)
     setActiveStudentIdx(0);setPhase('main');
 
     // ② バックグラウンドで最新データを取得して上書き
@@ -5398,8 +5408,10 @@ function App(){
         }
         setJhRecords(merged);
         setJhRecordsByName(byName);
+        jhRecByIdxRef.current=merged; jhRecByNameRef.current=byName; // v68: Ref同期シード
       }
       setHsRecords(nr);setHsPlans(np);
+      hsRecRef.current=nr; // v68: 高校生Ref同期シード
       setBgLoading(false);
     })();
   };
@@ -5411,15 +5423,15 @@ function App(){
 
   // 高校生の記録操作
   const hsCycleStatus=key=>{
-    // v67: jhと同じ。画面stateの更新のみ。GAS保存は切替/離脱/手動ボタン時に1回だけ。
+    // v68: prevはRefミラーから同期取得→次状態を計算→Refを即時更新→画面state更新。
+    //   連打しても各クリックがRefを介して確実に積み上がる(setState反映待ちのズレが起きない)。
     const name=curName;
-    setHsRecords(r=>{
-      const prevRec=r[name]||{};
-      const curStatus=(prevRec[key]||{status:'未'}).status;
-      const next=CYCLE[curStatus];
-      const nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
-      return {...r,[name]:nr};
-    });
+    const prevRec=hsRecRef.current[name]||{};
+    const curStatus=(prevRec[key]||{status:'未'}).status;
+    const next=CYCLE[curStatus];
+    const nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
+    hsRecRef.current={...hsRecRef.current,[name]:nr}; // 同期で最新を保持
+    setHsRecords(r=>({...r,[name]:nr}));              // 画面更新
     setUnsavedNames(prev=>{ const n=new Set(prev); n.add(name); return n; });
   };
 
@@ -5455,18 +5467,17 @@ function App(){
   //   ※テンポを邪魔しないため、バッジは「保存中」「保存しました」だけシンプルに
   const jhCycleStatus=(si,key)=>{
     // v67: ○クリックは画面stateの更新のみ。GAS保存は一切しない（連打で通信ゼロ＝絶対に壊れない）。
-    //   保存は「生徒/科目切替・離脱・手動保存ボタン」時にその生徒の完全stateを1回だけ行う
-    //   （jhSaveStudentRecords）。連打で壊れた中間値がGASに保存される経路が存在しない。
+    //   保存は「生徒/科目切替・離脱・手動保存ボタン」時にその生徒の完全stateを1回だけ行う。
+    // v68: prevはRefミラーから同期取得→Refを即時更新。連打しても確実に積み上がる。
     const fullName=jhStudents[si]||'';
     const sName=stripGrade(fullName);
-    let studentRecords;
-    setJhRecordsByName(prev=>{
-      const prevRec=prev[sName]||jhRecords[si]||{};
-      const curStatus=(prevRec[key]||{status:'未'}).status;
-      const next=STATUS_CYCLE[curStatus];
-      studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
-      return {...prev,[sName]:studentRecords};
-    });
+    const prevRec=jhRecByNameRef.current[sName]||jhRecByIdxRef.current[si]||jhRecords[si]||{};
+    const curStatus=(prevRec[key]||{status:'未'}).status;
+    const next=STATUS_CYCLE[curStatus];
+    const studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
+    jhRecByNameRef.current={...jhRecByNameRef.current,[sName]:studentRecords}; // 同期で最新を保持
+    jhRecByIdxRef.current={...jhRecByIdxRef.current,[si]:studentRecords};
+    setJhRecordsByName(prev=>({...prev,[sName]:studentRecords}));
     setJhRecords(prev=>({...prev,[si]:studentRecords}));
     setUnsavedNames(prev=>{ const n=new Set(prev); n.add(sName); return n; });
   };
@@ -5475,21 +5486,20 @@ function App(){
   //   連打で壊れた中間値ではなく、最新stateのその生徒ぶん全体(全科目)を丸ごと保存。
   //   返り値: true=保存成功 / false=失敗（呼び出し側で離脱を止める）
   const jhSaveStudentRecords=async(sName)=>{
-    // 最新stateを関数形式で確実に読む
-    let latest;
-    setJhRecordsByName(prev=>{ latest=prev[sName]; return prev; });
-    await new Promise(r=>setTimeout(r,0)); // setStateのupdater実行を確実化
-    if(latest===undefined){
-      // 念のためのフォールバック（通常はここに来ない）
-      latest={};
+    // v68: 最新値はRefミラーから「同期」取得（setTimeout頼みの裏技を完全撤廃）。
+    const latest=jhRecByNameRef.current[sName];
+    // v68: 空・undefinedは絶対に保存しない。
+    //   これがv63〜v67のデータ消失の根本原因（取得失敗→{}をGASに保存→既存記録を空で上書き）。
+    //   保存対象が無いだけなのでエラーにはせず、その生徒の未保存フラグだけ解除して離脱は許可。
+    if(latest===undefined||latest===null||(typeof latest==='object'&&Object.keys(latest).length===0)){
+      setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(sName); return n; });
+      console.warn('[jhSaveStudentRecords] 保存対象が空のため書き込みをスキップ（データ保護）',{sName});
+      return true;
     }
     flash('💾 保存中...','saving');
     try{
-      // 保存に渡す fullMap（localStorageキャッシュ用）も最新を構築
-      let fullMap;
-      setJhRecords(prev=>{ fullMap=prev; return prev; });
-      await new Promise(r=>setTimeout(r,0));
-      const result=await jhSetMap('records',sName,latest,fullMap||{});
+      // fullMap(localStorageキャッシュ用)もRefから同期取得（by-index）
+      const result=await jhSetMap('records',sName,latest,jhRecByIdxRef.current||{});
       if(!result.ok){
         flash(`❌ ${sName}の保存失敗：${result.reason||''}`,'error');
         console.error('[jhSaveStudentRecords] 失敗',{sName,result});
@@ -5507,10 +5517,13 @@ function App(){
 
   // v67: 高校生の完全state保存
   const hsSaveStudentRecords=async(name)=>{
-    let latest;
-    setHsRecords(prev=>{ latest=prev[name]; return prev; });
-    await new Promise(r=>setTimeout(r,0));
-    if(latest===undefined) latest={};
+    // v68: 最新値はRefから同期取得。空・undefinedは絶対に保存しない（空上書き防止）。
+    const latest=hsRecRef.current[name];
+    if(latest===undefined||latest===null||(typeof latest==='object'&&Object.keys(latest).length===0)){
+      setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(name); return n; });
+      console.warn('[hsSaveStudentRecords] 保存対象が空のため書き込みをスキップ（データ保護）',{name});
+      return true;
+    }
     flash('💾 保存中...','saving');
     try{
       await hsSet(`koukou:records:${name}`,latest);
