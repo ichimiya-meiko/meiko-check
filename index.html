@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v56"/>
+  <meta name="app-version" content="v57"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v56</title>
+  <title>明光義塾 チェックアプリ v57</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v56-20260519b";  // ✨ v55→v56 高校生並列化（体感速度の本命）：①hsGetAllが{error:..}を正しく非対応判定しフォールバック ②並列取得hsGetMany追加 ③ロードマップ画面のplan読込を直列→並列8並行 ④講師の生徒呼び出しの個別取得も並列化。GASは無変更（getは正常稼働中のため）。
-      const APP_DISPLAY_VERSION = "v56";  // バージョンバッジ表示用
+      const APP_VERSION = "v57-20260519c";  // ✨ v56→v57 ロードマップ設定画面もgetall化：DirectorSettingのplan/teachers/students読込を、まずgetall1回（約8.5秒）で取得し、失敗時のみv56同様の並列個別にフォールバック。講師呼び出し画面と同じ安全設計に統一。
+      const APP_DISPLAY_VERSION = "v57";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/19"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -3272,21 +3272,37 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
 
   useEffect(()=>{
     (async()=>{
-      // v56: 直列だと生徒数×約4秒で激遅 → 並列8並行でまとめて取得
-      const planKeys=students.map(s=>`koukou:plan:${stripGrade(s)}`);
-      const got=await hsGetMany(planKeys,()=>null,8);
-      const p={};
-      for(const s of students){
-        const n=stripGrade(s);
-        const d=got[`koukou:plan:${n}`];
-        if(d) p[n]=d;
+      // v57: ロードマップ設定画面も getall で1回まとめ取得（約8.5秒1回）。
+      //   成功 → plan/teachers/students を1回の結果から取り出す（追加通信ゼロ）
+      //   失敗(null) → v56同様の並列8並行・個別取得にフォールバック（安全）
+      const hsAll=await hsGetAll();
+      if(hsAll){
+        const p={};
+        for(const s of students){
+          const n=stripGrade(s);
+          const d=hsPickFromAll(hsAll,`koukou:plan:${n}`,null);
+          if(d) p[n]=d;
+        }
+        setPlans(p);
+        setTcList(hsPickFromAll(hsAll,'koukou:teachers',ALL_TEACHERS_DEFAULT));
+        setStList(hsPickFromAll(hsAll,'koukou:students',HS_STUDENTS_DEFAULT));
+      }else{
+        // フォールバック：v56と同じ並列8並行の個別取得
+        const planKeys=students.map(s=>`koukou:plan:${stripGrade(s)}`);
+        const got=await hsGetMany(planKeys,()=>null,8);
+        const p={};
+        for(const s of students){
+          const n=stripGrade(s);
+          const d=got[`koukou:plan:${n}`];
+          if(d) p[n]=d;
+        }
+        setPlans(p);
+        const [t,st]=await Promise.all([
+          hsGet('koukou:teachers',ALL_TEACHERS_DEFAULT),
+          hsGet('koukou:students',HS_STUDENTS_DEFAULT),
+        ]);
+        setTcList(t);setStList(st);
       }
-      setPlans(p);
-      const [t,st]=await Promise.all([
-        hsGet('koukou:teachers',ALL_TEACHERS_DEFAULT),
-        hsGet('koukou:students',HS_STUDENTS_DEFAULT),
-      ]);
-      setTcList(t);setStList(st);
     })();
   },[]);
 
