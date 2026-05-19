@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v61"/>
+  <meta name="app-version" content="v62"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v61</title>
+  <title>明光義塾 チェックアプリ v62</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v61-20260519g";  // ✨ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
-      const APP_DISPLAY_VERSION = "v61";  // バージョンバッジ表示用
+      const APP_VERSION = "v62-20260519h";  // ✨ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_DISPLAY_VERSION = "v62";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/19"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -5136,7 +5136,17 @@ function App(){
       if(jhAll){
         // 単純な値の取り出し（旧 jhGet 相当）
         setJhStudents(jhPickFromAll(jhAll,'students',cJh));
-        setJhTextbookOverrides(jhPickFromAll(jhAll,'textbookOverrides',cTb));
+        // v62: textbookOverrides も records と同じく「旧単一キー＋生徒ごと分割キー」を統合
+        {
+          const tbOld=jhPickFromAll(jhAll,'textbookOverrides',cTb)||{};
+          const tbNew=jhBuildMapFromAll(jhAll,'textbookOverrides')||{};
+          const merged={...tbOld};
+          for(const [sName,ov] of Object.entries(tbNew)){
+            const si=cJh.findIndex(s=>stripGrade(s)===sName);
+            if(si>=0) merged[si]={...(merged[si]||{}),...ov};
+          }
+          setJhTextbookOverrides(merged);
+        }
         setJhSkipItems(jhPickFromAll(jhAll,'skipItems',cSk));
         setJhRenzemiDeadlines(jhPickFromAll(jhAll,'renzemiDeadlines',cRzD));
         setJhSchoolGradeMaster(jhPickFromAll(jhAll,'schoolGradeMaster',cSGM));
@@ -5201,7 +5211,19 @@ function App(){
         console.warn('[v53] jhGetAll が失敗。従来の個別取得方式にフォールバック');
         const fallbackTasks=[
           ['jhStudents',()=>jhGet('students',cJh),setJhStudents],
-          ['textbookOverrides',()=>jhGet('textbookOverrides',cTb),setJhTextbookOverrides],
+          ['textbookOverrides',async()=>{
+            const tbOld=await jhGet('textbookOverrides',cTb);
+            const tbNew=await jhGetMap('textbookOverrides');
+            return {tbOld:tbOld||{},tbNew:tbNew||{}};
+          },(d)=>{
+            const {tbOld,tbNew}=d;
+            const merged={...tbOld};
+            for(const [sName,ov] of Object.entries(tbNew)){
+              const si=cJh.findIndex(s=>stripGrade(s)===sName);
+              if(si>=0) merged[si]={...(merged[si]||{}),...ov};
+            }
+            setJhTextbookOverrides(merged);
+          }],
           ['testRanges',async()=>{
             const oldMap=await jhGet('testRanges',cTr);
             const newMap=await jhGetMap('testRanges');
@@ -5436,8 +5458,24 @@ function App(){
   const jhSaveTextbook=async(si,vals)=>{
     const newOv={...jhTextbookOverrides,[si]:vals};
     setJhTextbookOverrides(newOv);
-    await jhSet('textbookOverrides',newOv);
-    setShowTextbookModal(false);flash('📚 テキスト設定を変更しました');
+    // v62: 旧方式 jhSet('textbookOverrides',全生徒分) は生徒増でURL長制限を超え保存失敗するため、
+    //   records と同じく「生徒名キーで生徒ごとに分割保存(jhSetMap)」に統一。
+    //   newOv(by-index全体) は jhSetMap 内の localStorage キャッシュ用にのみ渡す（recordsのnrと同じ役割）。
+    const sName=stripGrade(jhStudents[si]||'');
+    let result;
+    if(sName){
+      result=await jhSetMap('textbookOverrides',sName,vals,newOv);
+    }else{
+      // 生徒名が取れない異常時のみ従来方式にフォールバック
+      result=await jhSet('textbookOverrides',newOv);
+    }
+    setShowTextbookModal(false);
+    if(result&&result.ok===false){
+      flash(`❌ テキスト設定の保存失敗：${result.reason||''}`,'error');
+      console.error('[textbookOverrides保存失敗]',{si,sName,result});
+    }else{
+      flash('📚 テキスト設定を変更しました');
+    }
   };
   // 学校情報取得（カスタム > デフォルト）
   const getSchool=name=>jhSchoolOverrides[name]||STUDENT_SCHOOLS[name]||'';
