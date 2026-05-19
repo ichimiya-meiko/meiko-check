@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v65-20260520";  // ✨ v65 ○消えバグ真の根治。v63/v64の修正は誤り（setStateのupdater関数内で外側変数に代入し保存に使用→React仕様上updaterは行通過時未実行かつ複数回呼ばれうるため保存値が不整合になり○が消えていた）。v65: updater内副作用を完全排除し、連打時の「次状態計算→state反映→保存」を直列キュー(__recordCycleQueue, jhSetMapと同じ実績パターン)で厳密に順序実行。保存表示も実結果に同期（成功時のみ「保存しました」、失敗時は明示）。jhCycleStatus/hsCycleStatus両方修正。保存方式・GAS・データ構造は無変更。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書きし表示ズレを構造的に根絶。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v66-20260520";  // ✨ v66 連打テンポ復活＋○消え根治の両立。v65の誤り（画面反映setStateまで直列キューに入れたため各クリックが前のGAS通信完了を待ち、連打が固まり「遅れて反映」になった）を修正。v66: 画面反映(setJhRecordsByName/setJhRecords)はキュー外で即時・同期実行（連打サクサク、関数形式updaterのprev基準で次状態確定するため○は消えない）、GAS保存(jhSetMap/hsSet)だけを裏の直列キュー__recordCycleQueueで順序実行（遅れても画面は既に正しい）。jhCycleStatus/hsCycleStatus両方。保存方式・GAS・データ構造は無変更。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -5405,30 +5405,27 @@ function App(){
 
   // 高校生の記録操作
   const hsCycleStatus=key=>{
-    // v65: jhCycleStatusと同じ○消え根治。updater内副作用を排し直列キューで処理。
+    // v66: jhCycleStatusと同じ。画面反映は即時・同期、GAS保存だけ裏で直列化。
     const name=curName;
+    let nr;
+    setHsRecords(r=>{
+      const prevRec=r[name]||{};
+      const curStatus=(prevRec[key]||{status:'未'}).status;
+      const next=CYCLE[curStatus];
+      nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
+      return {...r,[name]:nr};
+    });
     flash('💾 保存中...');
-    __recordCycleQueue = __recordCycleQueue.then(()=>new Promise(resolve=>{
-      let nr;
-      setHsRecords(r=>{
-        const prevRec=r[name]||{};
-        const curStatus=(prevRec[key]||{status:'未'}).status;
-        const next=CYCLE[curStatus];
-        nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
-        return {...r,[name]:nr};
-      });
-      setTimeout(async()=>{
-        try{
-          await hsSet(`koukou:records:${name}`,nr);
-          flash('💾 保存しました');
-        }catch(e){
-          flash('❌ 保存失敗（通信エラー）','error');
-          console.error('[hs records保存例外]',{name,key,e});
-        }finally{
-          resolve();
-        }
-      },0);
-    })).catch(err=>{console.error('[hsCycleStatus キューエラー]',err);});
+    const toSave=nr;
+    __recordCycleQueue = __recordCycleQueue.then(async()=>{
+      try{
+        await hsSet(`koukou:records:${name}`,toSave);
+        flash('💾 保存しました');
+      }catch(e){
+        flash('❌ 保存失敗（通信エラー）','error');
+        console.error('[hs records保存例外]',{name,key,e});
+      }
+    }).catch(err=>{console.error('[hsCycleStatus キューエラー]',err);});
   };
 
   const hsSkipToggle=async(key)=>{
@@ -5462,46 +5459,44 @@ function App(){
   //   新: shochugaku:records__item__生徒index のように生徒ごとに分割保存
   //   ※テンポを邪魔しないため、バッジは「保存中」「保存しました」だけシンプルに
   const jhCycleStatus=(si,key)=>{
-    // v65: ○消えバグ完全根治。
-    //   v63の誤り: setStateのupdater関数の中で外側の変数(studentRecords/nr)に代入し、
-    //     その変数を直後の別setStateやawait後の保存に使っていた。Reactのupdaterは
-    //     その行通過時には未実行で複数回呼ばれうるため、保存値が未定義/不整合になり○が消えた。
-    //   修正: updaterの中では純粋にstateを更新するだけ。次状態の計算・保存は直列キューに載せ、
-    //     各クリックが「自分の番で読んだ最新state」を基に確定する（jhSetMapと同じ実績パターン）。
+    // v66: テンポ復活＋○消え根治の両立。
+    //   v65の誤り: 画面反映(setState)まで直列キューに入れたため、各クリックが前のGAS通信
+    //     完了を待ってから反映され、連打が固まり「遅れて反映」になった。
+    //   v63の誤り: updaterの戻り値を別setStateやawaitをまたいで使い、保存値が不整合→○消え。
+    //   v66の正解: 画面反映は即時・同期(キュー外)。関数形式setStateのupdaterは呼び出し時に
+    //     同期実行される（このアプリはproduction React・StrictModeなし）ので、updater直後に
+    //     確定値studentRecordsを読み、それを「GAS保存だけ」の直列キューに渡す。
+    //     画面はクリック即反映＝連打サクサク、○はprev基準で確定＝消えない、保存は裏で順番に。
     const fullName=jhStudents[si]||'';
     const sName=stripGrade(fullName);
+    // --- ① 画面反映：即時・同期（通信待ち一切なし。連打しても瞬時に○がつく）---
+    let studentRecords;
+    setJhRecordsByName(prev=>{
+      const prevRec=prev[sName]||jhRecords[si]||{};
+      const curStatus=(prevRec[key]||{status:'未'}).status;
+      const next=STATUS_CYCLE[curStatus];
+      studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
+      return {...prev,[sName]:studentRecords};
+    });
+    let nr;
+    setJhRecords(prev=>{ nr={...prev,[si]:studentRecords}; return nr; });
     flash('💾 保存中...','saving');
-    __recordCycleQueue = __recordCycleQueue.then(()=>new Promise(resolve=>{
-      // ① 関数形式setStateで「今この瞬間の最新 jhRecordsByName」を読み、次状態を確定
-      let studentRecords;
-      setJhRecordsByName(prev=>{
-        const prevRec=prev[sName]||jhRecords[si]||{};
-        const curStatus=(prevRec[key]||{status:'未'}).status;
-        const next=STATUS_CYCLE[curStatus];
-        studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
-        return {...prev,[sName]:studentRecords};
-      });
-      // ② index側stateも同じ確定値で同期（updaterは純粋・副作用なし）
-      let nr;
-      setJhRecords(prev=>{ nr={...prev,[si]:studentRecords}; return nr; });
-      // ③ Reactのstate更新がコミットされてから保存（studentRecordsが確定済みになる）
-      setTimeout(async()=>{
-        try{
-          const result=await jhSetMap('records',sName,studentRecords,nr);
-          if(!result.ok){
-            flash(`❌ 保存失敗：${result.reason||''}`,'error');
-            console.error('[records保存失敗]',{si,sName,key,result});
-          }else{
-            flash('💾 保存しました');
-          }
-        }catch(e){
-          flash('❌ 保存失敗（通信エラー）','error');
-          console.error('[records保存例外]',{si,sName,key,e});
-        }finally{
-          resolve();
+    // --- ② GAS保存：確定値を持って裏の直列キューへ（遅れてもOK・画面は既に正しい）---
+    const toSave=studentRecords, fullMap=nr;
+    __recordCycleQueue = __recordCycleQueue.then(async()=>{
+      try{
+        const result=await jhSetMap('records',sName,toSave,fullMap);
+        if(!result.ok){
+          flash(`❌ 保存失敗：${result.reason||''}`,'error');
+          console.error('[records保存失敗]',{si,sName,key,result});
+        }else{
+          flash('💾 保存しました');
         }
-      },0);
-    })).catch(err=>{console.error('[jhCycleStatus キューエラー]',err);});
+      }catch(e){
+        flash('❌ 保存失敗（通信エラー）','error');
+        console.error('[records保存例外]',{si,sName,key,e});
+      }
+    }).catch(err=>{console.error('[jhCycleStatus キューエラー]',err);});
   };
 
   const jhSaveTextbook=async(si,vals)=>{
