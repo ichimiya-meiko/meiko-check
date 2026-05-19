@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v58"/>
+  <meta name="app-version" content="v60"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v58</title>
+  <title>明光義塾 チェックアプリ v60</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v58-20260519d";  // ✨ v57→v58 高校生ロードマップの1日問題数を「週の問題数÷7」→「週の問題数÷4」に変更（4日演習・2日復習・1日塾の現実的配分。週の問題数自体は不変）。数学・英語ステップ両方に適用。
-      const APP_DISPLAY_VERSION = "v58";  // バージョンバッジ表示用
+      const APP_VERSION = "v60-20260519f";  // ✨ v59→v60 英語ステップ講師メイン画面の「1日のペース」を、残り日数割（旧÷7的）→ 数学と完全統一の「週の問題数÷4」静的計画ペースに変更。期限・残り日数は維持、プロセス説明文も追加。これで数学・英語の全表示が「4日演習・2日復習・1日塾」で完全一致。（v58の÷4・v59のプロセス説明も全て内包）
+      const APP_DISPLAY_VERSION = "v60";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/19"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -3626,6 +3626,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                             <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'4px',padding:'6px',textAlign:'center'}}>
                               <p style={{fontSize:'9px',opacity:0.8}}>合計 {stepHw.total}項目 ÷ {stepHw.weeks}週（{stepHw.days}日）</p>
                               <p style={{fontSize:'15px',fontWeight:'bold',marginTop:'2px'}}>週{stepHw.perWeek}項目 / 1日{stepHw.perDay}項目</p>
+                              <p style={{fontSize:'10px',opacity:0.85,marginTop:'4px',lineHeight:1.5}}>📅 4日間：1日{stepHw.perDay}項目ずつ演習 ／ 2日間：復習 ／ 1日：塾当日</p>
                             </div>
                           </div>
                         );
@@ -3743,6 +3744,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                           <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'4px',padding:'6px',textAlign:'center'}}>
                             <p style={{fontSize:'9px',opacity:0.8}}>合計 {stepHw.total}問 ÷ {stepHw.weeks}週（{stepHw.days}日）</p>
                             <p style={{fontSize:'15px',fontWeight:'bold',marginTop:'2px'}}>週{stepHw.perWeek}問 / 1日{stepHw.perDay}問</p>
+                            <p style={{fontSize:'10px',opacity:0.85,marginTop:'4px',lineHeight:1.5}}>📅 4日間：1日{stepHw.perDay}問ずつ演習 ／ 2日間：復習 ／ 1日：塾当日</p>
                           </div>
                         </div>
                       );
@@ -4931,6 +4933,7 @@ function HsAdjustModal({curName,curPlan,setF,setNR,setCR,selSet,hw,save,msg,onCl
             <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'6px',padding:'6px',textAlign:'center'}}>
               <p style={{fontSize:'10px',opacity:0.8}}>合計 {hw.total}問 ÷ {hw.weeks}週</p>
               <p style={{fontSize:'18px',fontWeight:'bold'}}>週{hw.perWeek}問 / 1日{hw.perDay}問</p>
+              <p style={{fontSize:'10px',opacity:0.85,marginTop:'4px',lineHeight:1.5}}>📅 4日間：1日{hw.perDay}問ずつ演習 ／ 2日間：復習 ／ 1日：塾当日</p>
             </div>
           </div>
         )}
@@ -6167,8 +6170,7 @@ function App(){
                     const today=new Date();
                     const ddl=new Date(curStep.deadline);
                     const remainingDays=Math.max(0,Math.ceil((ddl-today)/86400000));
-                    const remainingItems=Math.max(0,totalItems-doneCount);
-                    const perDayActual=remainingDays>0?Math.ceil(remainingItems/remainingDays):remainingItems;
+                    // v60: 数学と完全統一。1日のペースは「週の問題数÷4」の静的な計画ペース（4日演習・2日復習・1日塾）
                     return(
                       <div style={{background:'rgba(255,255,255,0.7)',borderRadius:'6px',padding:'8px 10px',marginBottom:'8px'}}>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'6px',fontSize:'10px'}}>
@@ -6182,9 +6184,10 @@ function App(){
                           </div>
                           <div style={{textAlign:'center'}}>
                             <p style={{color:'#6b7280'}}>📊 1日のペース</p>
-                            <p style={{fontWeight:'bold',color:es.color,fontSize:'14px'}}>{perDayActual}項目/日</p>
+                            <p style={{fontWeight:'bold',color:es.color,fontSize:'14px'}}>{hwEng.perDay}項目/日</p>
                           </div>
                         </div>
+                        <p style={{fontSize:'10px',color:'#6b7280',marginTop:'6px',lineHeight:1.5,textAlign:'center'}}>📅 4日間：1日{hwEng.perDay}項目ずつ演習 ／ 2日間：復習 ／ 1日：塾当日</p>
                       </div>
                     );
                   })()}
@@ -6510,6 +6513,7 @@ function App(){
                         <div style={{background:'rgba(255,255,255,0.2)',borderRadius:'6px',padding:'8px',textAlign:'center'}}>
                           <p style={{fontSize:'10px',opacity:0.8}}>合計 {hw.total}問 ÷ {hw.weeks}週</p>
                           <p style={{fontSize:'18px',fontWeight:'bold',marginTop:'2px'}}>週{hw.perWeek}問<br/>1日{hw.perDay}問</p>
+                          <p style={{fontSize:'10px',opacity:0.85,marginTop:'4px',lineHeight:1.5}}>📅 4日間：1日{hw.perDay}問ずつ演習<br/>2日間：復習 ／ 1日：塾当日</p>
                         </div>
                         </>
                       ):(
