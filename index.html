@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v57"/>
+  <meta name="app-version" content="v58"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v57</title>
+  <title>明光義塾 チェックアプリ v58</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v57-20260519c";  // ✨ v56→v57 ロードマップ設定画面もgetall化：DirectorSettingのplan/teachers/students読込を、まずgetall1回（約8.5秒）で取得し、失敗時のみv56同様の並列個別にフォールバック。講師呼び出し画面と同じ安全設計に統一。
-      const APP_DISPLAY_VERSION = "v57";  // バージョンバッジ表示用
+      const APP_VERSION = "v58-20260519d";  // ✨ v57→v58 高校生ロードマップの1日問題数を「週の問題数÷7」→「週の問題数÷4」に変更（4日演習・2日復習・1日塾の現実的配分。週の問題数自体は不変）。数学・英語ステップ両方に適用。
+      const APP_DISPLAY_VERSION = "v58";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/19"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -719,7 +719,9 @@ function calcHomework(plan){
     const s=new Date(startDate),e=new Date(deadline);
     const days=Math.max(1,Math.round((e-s)/86400000));
     const weeks=Math.max(1,Math.round(days/7));
-    return{total,nTotal:0,cTotal:0,eTotal:total,days,weeks,perWeek:Math.ceil(total/weeks),perDay:Math.ceil(total/days),isEng:true};
+    const perWeek=Math.ceil(total/weeks);
+    // v58: 1日の問題数は「週の問題数 ÷ 4」（4日演習・2日復習・1日塾の現実的配分）
+    return{total,nTotal:0,cTotal:0,eTotal:total,days,weeks,perWeek,perDay:Math.ceil(perWeek/4),isEng:true};
   }
   // 数学ステップ（既存）
   const {maxLevel,nyumonRange,chartRange,textbookSet}=plan;
@@ -747,7 +749,9 @@ function calcHomework(plan){
   const s=new Date(startDate),e=new Date(deadline);
   const days=Math.max(1,Math.round((e-s)/86400000));
   const weeks=Math.max(1,Math.round(days/7));
-  return{total,nTotal,cTotal,days,weeks,perWeek:Math.ceil(total/weeks),perDay:Math.ceil(total/days)};
+  const perWeek=Math.ceil(total/weeks);
+  // v58: 1日の問題数は「週の問題数 ÷ 4」（4日演習・2日復習・1日塾の現実的配分）
+  return{total,nTotal,cTotal,days,weeks,perWeek,perDay:Math.ceil(perWeek/4)};
 }
 
 // ─── 教科定義 ─────────────────────────────────────────────────
