@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v62-20260519h";  // ✨ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v63-20260520a";  // ✨ v63 ○消えバグ根治：jhCycleStatus/hsCycleStatusで連続クリック時に古いstateをコピーして前の○が消える構造バグを修正。setState更新関数内でprev(最新値)から次状態を組むよう統一。保存方式・GAS・データ構造は無変更。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       const APP_DISPLAY_VERSION = "v62";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/19"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
@@ -5390,10 +5390,15 @@ function App(){
 
   // 高校生の記録操作
   const hsCycleStatus=async key=>{
-    const cur=(hsRecords[curName]?.[key]||{status:'未'}).status;
-    const next=CYCLE[cur];
-    const nr={...(hsRecords[curName]||{}),[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
-    setHsRecords(r=>({...r,[curName]:nr}));
+    // v63: jhCycleStatusと同じ○消え根治。setState更新関数の最新値から次状態を組む。
+    let nr;
+    setHsRecords(r=>{
+      const prevRec=r[curName]||{};
+      const curStatus=(prevRec[key]||{status:'未'}).status;
+      const next=CYCLE[curStatus];
+      nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
+      return {...r,[curName]:nr};
+    });
     flash('💾 保存中...');
     await hsSet(`koukou:records:${curName}`,nr);
     flash('💾 保存しました');
@@ -5430,18 +5435,24 @@ function App(){
   //   新: shochugaku:records__item__生徒index のように生徒ごとに分割保存
   //   ※テンポを邪魔しないため、バッジは「保存中」「保存しました」だけシンプルに
   const jhCycleStatus=async(si,key)=>{
-    const cur=jhGetRecord(si,key).status;
-    const next=STATUS_CYCLE[cur];
-    const studentRecords={...(jhRecords[si]||{}),[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
-    let nr;
+    // v63: ○消えバグ根治。旧実装は jhRecords[si] を直接読んで次状態を組んでいたため、
+    //   連続クリック時に setState が非同期で未反映のまま古い値をコピー→前の○が消えた。
+    //   修正: jhGetRecord と同じ優先ソース(jhRecordsByName[sName])を、Reactが最新を保証する
+    //   setState更新関数の prev から読み、そこに今回キーだけを足して確定。保存値も確定値に統一。
+    const fullName=jhStudents[si]||'';
+    const sName=stripGrade(fullName);
+    let studentRecords,nr;
+    setJhRecordsByName(prev=>{
+      const prevRec=prev[sName]||jhRecords[si]||{};
+      const curStatus=(prevRec[key]||{status:'未'}).status;
+      const next=STATUS_CYCLE[curStatus];
+      studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
+      return {...prev,[sName]:studentRecords};
+    });
     setJhRecords(prev=>{
       nr={...prev,[si]:studentRecords};
       return nr;
     });
-    // v48: 生徒名キーのrecordsも同時更新（進捗ダッシュボードがindex非依存で読めるように）
-    const fullName=jhStudents[si]||'';
-    const sName=stripGrade(fullName);
-    setJhRecordsByName(prev=>({...prev,[sName]:studentRecords}));
     flash('💾 保存中...','saving');
     await new Promise(r=>setTimeout(r,0));
     // v42: 個別キー保存（その生徒のデータだけ保存）
