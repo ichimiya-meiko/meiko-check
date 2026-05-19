@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v54"/>
-  <meta name="app-build-date" content="2026-05-15"/>
+  <meta name="app-version" content="v55"/>
+  <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v54</title>
+  <title>明光義塾 チェックアプリ v55</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,9 +47,9 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v54-20260515";  // ✨ v53→v54 jhGetRecord修正：jhRecordsByName優先・jhRecordsフォールバックに変更。旧マップに記録がない生徒（v48以降に追加された約80名）のチェックが「未」と誤表示されていたバグを根治。
-      const APP_DISPLAY_VERSION = "v54";  // バージョンバッジ表示用
-      const APP_BUILD_DATE = "2026/05/15"; // ビルド日（バッジ表示用）
+      const APP_VERSION = "v55-20260519";  // ✨ v54→v55 高校生まとめ取得（高速化大改修）：hsGetAll()で高校生GASを?action=getallで1回まとめ取得（生徒数×2回→1回の通信）。hsGetAll失敗時は従来の個別hsGetにフォールバック。あわせて高校生GASを?action=get/set/getall対応のJSON APIに刷新。
+      const APP_DISPLAY_VERSION = "v55";  // バージョンバッジ表示用
+      const APP_BUILD_DATE = "2026/05/19"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
       // グローバルから参照可能に（バージョンバッジで使用）
@@ -286,6 +286,37 @@ async function hsSet(key,val){
     try{localStorage.setItem('cache:hs:'+key,JSON.stringify({v:val,t:Date.now()}));}catch{}
     await fetch(`${GAS_HS}?action=set&key=${encodeURIComponent(key)}&value=${encodeURIComponent(JSON.stringify(val))}`);
   }catch{}
+}
+// v55: 高校生まとめ取得（高速化）── 小中学生の jhGetAll と同じ思想
+//   高校生GASの ?action=getall を1回叩いて、全 koukou:* データを取得
+//   失敗時は null を返す → 呼び出し側で従来の個別 hsGet にフォールバック
+async function hsGetAll(){
+  try{
+    const url=`${GAS_HS}?action=getall`;
+    const r=await fetch(url,{method:'GET',cache:'no-store'});
+    if(!r.ok) return null;
+    const all=await r.json();
+    if(!all||typeof all!=='object') return null;
+    return all;
+  }catch(e){
+    console.warn('[hsGetAll] エラー、個別取得にフォールバック:',e);
+    return null;
+  }
+}
+// v55: hsGetAll の結果から、特定のキーの値を取り出す（fb=fallback）
+//   value は JSON 文字列で入っているのでパースする。キーが無ければ fb（=キャッシュ値）を返す
+function hsPickFromAll(all,key,fb){
+  if(!all) return fb;
+  const raw=all[key];
+  if(raw===undefined||raw===null||raw==='') return fb;
+  try{
+    const v=typeof raw==='string'?JSON.parse(raw):raw;
+    // localStorageキャッシュも更新（既存の挙動と整合）
+    try{localStorage.setItem('cache:hs:'+key,JSON.stringify({v,t:Date.now()}));}catch{}
+    return v;
+  }catch{
+    return fb;
+  }
 }
 async function jhGet(key,fb){
   try{const r=await fetch(`${GAS_JH}?action=get&key=${encodeURIComponent(JH_PREFIX+key)}`);const d=await r.json();const v=d.value?JSON.parse(d.value):fb;
@@ -5163,12 +5194,27 @@ function App(){
     setBgLoading(true);
     (async()=>{
       const nr={...cNr},np={...cNp};
-      for(const fullName of hsNames){
-        const n=stripGrade(fullName);
-        if(!n) continue;
-        nr[n]=await hsGet(`koukou:records:${n}`,cNr[n]||{});
-        const p=await hsGet(`koukou:plan:${n}`,null);
-        if(p) np[n]=p;
+      // v55: まず ?action=getall で1回まとめ取得（生徒数×2回→1回の通信に短縮）
+      //   成功 → そこから各生徒の records/plan を取り出す（キャッシュ値をfallback）
+      //   失敗(null) → 従来どおり生徒ごとに個別 hsGet（＝v54までと完全に同じ動作）
+      const hsAll=await hsGetAll();
+      if(hsAll){
+        for(const fullName of hsNames){
+          const n=stripGrade(fullName);
+          if(!n) continue;
+          nr[n]=hsPickFromAll(hsAll,`koukou:records:${n}`,cNr[n]||{});
+          const p=hsPickFromAll(hsAll,`koukou:plan:${n}`,np[n]||null);
+          if(p) np[n]=p;
+        }
+      }else{
+        // フォールバック：従来の個別取得（v54までと同一）
+        for(const fullName of hsNames){
+          const n=stripGrade(fullName);
+          if(!n) continue;
+          nr[n]=await hsGet(`koukou:records:${n}`,cNr[n]||{});
+          const p=await hsGet(`koukou:plan:${n}`,null);
+          if(p) np[n]=p;
+        }
       }
       if(jhNeeded){
         // v42: 旧マップ（si→records）と個別キー（sName→records）を統合
