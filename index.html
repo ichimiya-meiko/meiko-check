@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v66-20260520";  // ✨ v66 連打テンポ復活＋○消え根治の両立。v65の誤り（画面反映setStateまで直列キューに入れたため各クリックが前のGAS通信完了を待ち、連打が固まり「遅れて反映」になった）を修正。v66: 画面反映(setJhRecordsByName/setJhRecords)はキュー外で即時・同期実行（連打サクサク、関数形式updaterのprev基準で次状態確定するため○は消えない）、GAS保存(jhSetMap/hsSet)だけを裏の直列キュー__recordCycleQueueで順序実行（遅れても画面は既に正しい）。jhCycleStatus/hsCycleStatus両方。保存方式・GAS・データ構造は無変更。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v67-20260520";  // ✨ v67 保存方式を刷新しデータ消失を根治。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -435,11 +435,6 @@ async function jhSet(key,val){
 
 // v44: グローバルなインデックス更新用のpromise chain（直列化）
 let __indexUpdateQueue = Promise.resolve();
-
-// v65: ○消えバグ根治用。連打時に各クリックの「次状態の計算→state反映→保存」を
-//   厳密に順番に実行するための直列キュー（jhSetMapの__indexUpdateQueueと同じ実績パターン）。
-//   これにより、後のクリックが必ず前のクリックの結果を含んだ最新状態を基に処理される。
-let __recordCycleQueue = Promise.resolve();
 
 async function jhSetMap(mapKey,changedSubKey,val,fullMap){
   // 1. ローカルにフルマップを保存（読み込み高速化）
@@ -5034,6 +5029,10 @@ function App(){
 
   // 共通UI
   const [activeStudentIdx,setActiveStudentIdx]=useState(0); // selStudentsの添字
+  // v67: 未保存管理。○クリックは画面stateのみ更新し、保存は切替/離脱/手動ボタン時に
+  //   「その生徒の完全state」を1回だけGAS保存（連打で壊れた中間値を保存する経路を廃止）。
+  //   unsavedNames: 未保存の入力がある生徒名のSet（中身が空でなければ未保存ありの意味）
+  const [unsavedNames,setUnsavedNames]=useState(()=>new Set());
   const [saveMsg,setSaveMsg]=useState('');
   const [saveMsgType,setSaveMsgType]=useState('info'); // v19: 'info' | 'error'
   const [activeHint,setActiveHint]=useState(null);
@@ -5079,6 +5078,13 @@ function App(){
     if(type==='saving') return; // 保存中は次のflashで上書きされるまで残す
     setTimeout(()=>setSaveMsg(''),type==='error'?6000:2500);
   };
+
+  // v67: 未保存があるままタブを閉じる/リロードしようとしたらブラウザ標準の確認を出す
+  useEffect(()=>{
+    const h=(e)=>{ if(unsavedNames.size>0){ e.preventDefault(); e.returnValue=''; } };
+    window.addEventListener('beforeunload',h);
+    return ()=>window.removeEventListener('beforeunload',h);
+  },[unsavedNames]);
 
   // DB(chapters.json)ロード v23: キャッシュバスター付き（C対策）
   useEffect(()=>{
@@ -5405,27 +5411,16 @@ function App(){
 
   // 高校生の記録操作
   const hsCycleStatus=key=>{
-    // v66: jhCycleStatusと同じ。画面反映は即時・同期、GAS保存だけ裏で直列化。
+    // v67: jhと同じ。画面stateの更新のみ。GAS保存は切替/離脱/手動ボタン時に1回だけ。
     const name=curName;
-    let nr;
     setHsRecords(r=>{
       const prevRec=r[name]||{};
       const curStatus=(prevRec[key]||{status:'未'}).status;
       const next=CYCLE[curStatus];
-      nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
+      const nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
       return {...r,[name]:nr};
     });
-    flash('💾 保存中...');
-    const toSave=nr;
-    __recordCycleQueue = __recordCycleQueue.then(async()=>{
-      try{
-        await hsSet(`koukou:records:${name}`,toSave);
-        flash('💾 保存しました');
-      }catch(e){
-        flash('❌ 保存失敗（通信エラー）','error');
-        console.error('[hs records保存例外]',{name,key,e});
-      }
-    }).catch(err=>{console.error('[hsCycleStatus キューエラー]',err);});
+    setUnsavedNames(prev=>{ const n=new Set(prev); n.add(name); return n; });
   };
 
   const hsSkipToggle=async(key)=>{
@@ -5459,17 +5454,11 @@ function App(){
   //   新: shochugaku:records__item__生徒index のように生徒ごとに分割保存
   //   ※テンポを邪魔しないため、バッジは「保存中」「保存しました」だけシンプルに
   const jhCycleStatus=(si,key)=>{
-    // v66: テンポ復活＋○消え根治の両立。
-    //   v65の誤り: 画面反映(setState)まで直列キューに入れたため、各クリックが前のGAS通信
-    //     完了を待ってから反映され、連打が固まり「遅れて反映」になった。
-    //   v63の誤り: updaterの戻り値を別setStateやawaitをまたいで使い、保存値が不整合→○消え。
-    //   v66の正解: 画面反映は即時・同期(キュー外)。関数形式setStateのupdaterは呼び出し時に
-    //     同期実行される（このアプリはproduction React・StrictModeなし）ので、updater直後に
-    //     確定値studentRecordsを読み、それを「GAS保存だけ」の直列キューに渡す。
-    //     画面はクリック即反映＝連打サクサク、○はprev基準で確定＝消えない、保存は裏で順番に。
+    // v67: ○クリックは画面stateの更新のみ。GAS保存は一切しない（連打で通信ゼロ＝絶対に壊れない）。
+    //   保存は「生徒/科目切替・離脱・手動保存ボタン」時にその生徒の完全stateを1回だけ行う
+    //   （jhSaveStudentRecords）。連打で壊れた中間値がGASに保存される経路が存在しない。
     const fullName=jhStudents[si]||'';
     const sName=stripGrade(fullName);
-    // --- ① 画面反映：即時・同期（通信待ち一切なし。連打しても瞬時に○がつく）---
     let studentRecords;
     setJhRecordsByName(prev=>{
       const prevRec=prev[sName]||jhRecords[si]||{};
@@ -5478,25 +5467,87 @@ function App(){
       studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
       return {...prev,[sName]:studentRecords};
     });
-    let nr;
-    setJhRecords(prev=>{ nr={...prev,[si]:studentRecords}; return nr; });
+    setJhRecords(prev=>({...prev,[si]:studentRecords}));
+    setUnsavedNames(prev=>{ const n=new Set(prev); n.add(sName); return n; });
+  };
+
+  // v67: 指定した生徒の「その時点の完全な記録」を1回だけGAS保存する。
+  //   連打で壊れた中間値ではなく、最新stateのその生徒ぶん全体(全科目)を丸ごと保存。
+  //   返り値: true=保存成功 / false=失敗（呼び出し側で離脱を止める）
+  const jhSaveStudentRecords=async(sName)=>{
+    // 最新stateを関数形式で確実に読む
+    let latest;
+    setJhRecordsByName(prev=>{ latest=prev[sName]; return prev; });
+    await new Promise(r=>setTimeout(r,0)); // setStateのupdater実行を確実化
+    if(latest===undefined){
+      // 念のためのフォールバック（通常はここに来ない）
+      latest={};
+    }
     flash('💾 保存中...','saving');
-    // --- ② GAS保存：確定値を持って裏の直列キューへ（遅れてもOK・画面は既に正しい）---
-    const toSave=studentRecords, fullMap=nr;
-    __recordCycleQueue = __recordCycleQueue.then(async()=>{
-      try{
-        const result=await jhSetMap('records',sName,toSave,fullMap);
-        if(!result.ok){
-          flash(`❌ 保存失敗：${result.reason||''}`,'error');
-          console.error('[records保存失敗]',{si,sName,key,result});
-        }else{
-          flash('💾 保存しました');
-        }
-      }catch(e){
-        flash('❌ 保存失敗（通信エラー）','error');
-        console.error('[records保存例外]',{si,sName,key,e});
+    try{
+      // 保存に渡す fullMap（localStorageキャッシュ用）も最新を構築
+      let fullMap;
+      setJhRecords(prev=>{ fullMap=prev; return prev; });
+      await new Promise(r=>setTimeout(r,0));
+      const result=await jhSetMap('records',sName,latest,fullMap||{});
+      if(!result.ok){
+        flash(`❌ ${sName}の保存失敗：${result.reason||''}`,'error');
+        console.error('[jhSaveStudentRecords] 失敗',{sName,result});
+        return false;
       }
-    }).catch(err=>{console.error('[jhCycleStatus キューエラー]',err);});
+      setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(sName); return n; });
+      flash(`💾 ${sName}を保存しました`);
+      return true;
+    }catch(e){
+      flash(`❌ ${sName}の保存失敗（通信エラー）`,'error');
+      console.error('[jhSaveStudentRecords] 例外',{sName,e});
+      return false;
+    }
+  };
+
+  // v67: 高校生の完全state保存
+  const hsSaveStudentRecords=async(name)=>{
+    let latest;
+    setHsRecords(prev=>{ latest=prev[name]; return prev; });
+    await new Promise(r=>setTimeout(r,0));
+    if(latest===undefined) latest={};
+    flash('💾 保存中...','saving');
+    try{
+      await hsSet(`koukou:records:${name}`,latest);
+      setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(name); return n; });
+      flash(`💾 ${name}を保存しました`);
+      return true;
+    }catch(e){
+      flash(`❌ ${name}の保存失敗（通信エラー）`,'error');
+      console.error('[hsSaveStudentRecords] 例外',{name,e});
+      return false;
+    }
+  };
+
+  // v67: 今表示中の生徒を保存（手動保存ボタン・切替前の保存に使う）。jh/hs自動判定。
+  const saveCurrentStudent=async()=>{
+    const stu=selStudents[activeStudentIdx];
+    if(!stu) return true;
+    const nm=stripGrade(stu.name);
+    if(stu.type==='hs') return await hsSaveStudentRecords(nm);
+    return await jhSaveStudentRecords(nm);
+  };
+
+  // v67: 未保存があるとき、移動前に確認する共通ガード。
+  //   未保存なし → そのまま proceed() を実行
+  //   未保存あり → 「保存して移動 / 破棄して移動 / キャンセル」を確認
+  const guardUnsaved=async(proceed)=>{
+    if(unsavedNames.size===0){ proceed(); return; }
+    const stu=selStudents[activeStudentIdx];
+    const nm=stu?stripGrade(stu.name):'';
+    const ok=window.confirm(`「${nm}」さんの入力がまだ保存されていません。\n\n「OK」で保存してから移動します。\n「キャンセル」でこの画面に留まります（保存されません）。`);
+    if(!ok){ return; } // 留まる（破棄しない・データは画面に残る）
+    const saved=await saveCurrentStudent();
+    if(saved){ proceed(); }
+    else{
+      // 保存失敗時は移動せず留まる（データを失わせない）
+      window.alert('保存に失敗しました。通信状態を確認し、もう一度保存ボタンを押してください。移動は中止しました。');
+    }
   };
 
   const jhSaveTextbook=async(si,vals)=>{
@@ -6056,7 +6107,7 @@ function App(){
   const activeGrade=extractGrade(jhFullName);
   const jhSubjects=GRADE_SUBJECTS[activeGrade]||[];
   const activeSubj=activeSubjMap[activeGrade]||jhSubjects[0]||'';
-  const setActiveSubj=s=>setActiveSubjMap(p=>({...p,[activeGrade]:s}));
+  const setActiveSubj=s=>guardUnsaved(()=>setActiveSubjMap(p=>({...p,[activeGrade]:s})));
   const jhTextbookKey=(si,subj)=>{
     const grade=extractGrade(jhStudents[si]||'');
     const override=jhTextbookOverrides[si]?.[subj];
@@ -6131,7 +6182,16 @@ function App(){
               </span>
             );
           })()}
-          <button onClick={()=>setPhase('students')}
+          <button onClick={()=>{
+              const stu=selStudents[activeStudentIdx];
+              const nm=stu?stripGrade(stu.name):'';
+              if(unsavedNames.size===0){ window.alert('保存が必要な変更はありません。'); return; }
+              if(window.confirm(`「${nm}」さんの入力を保存しますか？`)) saveCurrentStudent();
+            }}
+            style={{background:unsavedNames.size>0?'#f59e0b':'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+            {unsavedNames.size>0?'💾 保存（未保存あり）':'💾 保存'}
+          </button>
+          <button onClick={()=>guardUnsaved(()=>setPhase('students'))}
             style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 10px',fontSize:'12px',cursor:'pointer'}}>
             ← 生徒選択
           </button>
@@ -6170,7 +6230,7 @@ function App(){
             }
             const g=(stu.name.match(/（(.+?)）/)||[])[1]||'';
             return(
-              <button key={i} onClick={()=>setActiveStudentIdx(i)}
+              <button key={i} onClick={()=>guardUnsaved(()=>setActiveStudentIdx(i))}
                 style={{width:'100%',padding:'8px 10px',border:'none',borderBottom:'1px solid #f3f4f6',
                   background:activeStudentIdx===i?'#eff6ff':'white',cursor:'pointer',textAlign:'left'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'4px',marginBottom:'2px'}}>
