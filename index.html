@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v63-20260520b";  // ✨ v63b 表示用バージョン(APP_DISPLAY_VERSION/APP_BUILD_DATE)をAPP_VERSIONから自動導出するよう変更。手動更新漏れによる表示ズレを根絶。機能はv63と同一（○消えバグ根治）。/ v63 ○消えバグ根治：jhCycleStatus/hsCycleStatusで連続クリック時に古いstateをコピーして前の○が消える構造バグを修正。setState更新関数内でprev(最新値)から次状態を組むよう統一。保存方式・GAS・データ構造は無変更。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v63-20260520c";  // ✨ v63c タブ<title>とmetaタグもAPP_VERSIONから自動更新するよう変更。バージョン文字列の真実をAPP_VERSION1箇所に統一し、タブ・バッジ・メタの表示ズレを完全根絶。機能はv63と同一（○消えバグ根治）。/ v63b 表示用バージョン(APP_DISPLAY_VERSION/APP_BUILD_DATE)をAPP_VERSIONから自動導出するよう変更。手動更新漏れによる表示ズレを根絶。機能はv63と同一（○消えバグ根治）。/ v63 ○消えバグ根治：jhCycleStatus/hsCycleStatusで連続クリック時に古いstateをコピーして前の○が消える構造バグを修正。setState更新関数内でprev(最新値)から次状態を組むよう統一。保存方式・GAS・データ構造は無変更。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -60,6 +60,12 @@
       window.__APP_VERSION__ = APP_DISPLAY_VERSION;
       window.__APP_BUILD_DATE__ = APP_BUILD_DATE;
       window.__APP_VERSION_FULL__ = APP_VERSION;
+      // v63c: タブ<title>とmetaタグをAPP_VERSIONから自動上書き（バージョン文字列の真実をAPP_VERSION1箇所に統一）
+      try{
+        document.title = `明光義塾 チェックアプリ ${APP_DISPLAY_VERSION}`;
+        const mv=document.querySelector('meta[name="app-version"]'); if(mv) mv.setAttribute('content',APP_DISPLAY_VERSION);
+        const mb=document.querySelector('meta[name="app-build-date"]'); if(mb) mb.setAttribute('content',APP_BUILD_DATE.replace(/\//g,'-'));
+      }catch(e){console.warn('[version] title/meta自動更新スキップ:',e);}
 
       // ① ServiceWorker完全削除（過去登録があれば解除）
       if('serviceWorker' in navigator){
