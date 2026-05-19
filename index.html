@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v60"/>
+  <meta name="app-version" content="v61"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v60</title>
+  <title>明光義塾 チェックアプリ v61</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,8 +47,8 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v60-20260519f";  // ✨ v59→v60 英語ステップ講師メイン画面の「1日のペース」を、残り日数割（旧÷7的）→ 数学と完全統一の「週の問題数÷4」静的計画ペースに変更。期限・残り日数は維持、プロセス説明文も追加。これで数学・英語の全表示が「4日演習・2日復習・1日塾」で完全一致。（v58の÷4・v59のプロセス説明も全て内包）
-      const APP_DISPLAY_VERSION = "v60";  // バージョンバッジ表示用
+      const APP_VERSION = "v61-20260519g";  // ✨ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_DISPLAY_VERSION = "v61";  // バージョンバッジ表示用
       const APP_BUILD_DATE = "2026/05/19"; // ビルド日（バッジ表示用）
       const STORAGE_KEY = '_meiko_app_version';
       const URL_PARAM = 'v';
@@ -1882,59 +1882,101 @@ function TestRangeModal({onClose, testRanges, onSave, defaultSchool, defaultGrad
 
 function TextbookModal({si,students,textbookOverrides,onSave,onClose}){
   const grade=extractGrade(students[si]||"");
-  const subjects=GRADE_SUBJECTS[grade]||[];
   const isMiddle=grade.startsWith("中");
   const isSho=grade.startsWith("小");
   if(!isMiddle&&!isSho){onClose();return null;}
-  const gradeNum=grade.replace(/[^0-9]/g,"");
   const overrides=textbookOverrides[si]||{};
+  // v61: キーから学年プレフィックスを取り出す（例 中1Y_数学→中1 / 小3X_算数→小3）
+  const gradeOfKey=(k)=>{const m=/^(小[1-6]|中[1-3])/.exec(k||"");return m?m[1]:null;};
+  const subjectsOwn=GRADE_SUBJECTS[grade]||[];
+  // v61: 既存overrideが学年違いなら、その学年で特別モード開始（既存データを正しく表示）
+  const initSpecial=(()=>{
+    for(const subj of subjectsOwn){
+      const g=gradeOfKey(overrides[subj]);
+      if(g&&g!==grade) return g;
+    }
+    return null;
+  })();
+  const [specialGrade,setSpecialGrade]=useState(initSpecial);
+  const activeGrade=specialGrade||grade;
+  const subjects=GRADE_SUBJECTS[activeGrade]||subjectsOwn;
   const [vals,setVals]=useState(()=>{
     const init={};
-    subjects.forEach(subj=>{
-      // デフォルト：中学生はY、小学生もY（明光式ワーク）
-      const defaultKey=isMiddle?`${grade}Y_${subj}`:`${grade}Y_${subj}`;
-      init[subj]=overrides[subj]||defaultKey;
-    });
+    subjects.forEach(subj=>{init[subj]=overrides[subj]||`${activeGrade}Y_${subj}`;});
     return init;
   });
-  const CHU_OPTS=["1","2","3"];
-  const SHO_OPTS=["1","2","3","4","5","6"];
-  const makeChuOpts=(subj)=>[
-    ...CHU_OPTS.flatMap(n=>[
-      {value:`中${n}Y_${subj}`,label:`中${n}年 α+10`,color:"#dcfce7",textColor:"#166534"},
-      {value:`中${n}X_${subj}`,label:`中${n}年 ウイニング`,color:"#dbeafe",textColor:"#1e40af"},
-    ]),
-    {value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"},
-  ];
-  // 小学生：Y=明光式ワーク / X=ウィンパス / W=エフォート
-  // 小1〜小3はYのみ / 小4〜小6はY・X・W
-  const gNum=Number(grade.replace(/[^0-9]/g,""));
-  const makeShoOpts=(subj)=>{
-    const opts=[
-      {value:`${grade}Y_${subj}`,label:`${grade} 明光式ワーク(Y)`,color:"#dcfce7",textColor:"#166534"},
-    ];
-    if(gNum>=4){
-      opts.push({value:`${grade}X_${subj}`,label:`${grade} ウィンパス(X)`,color:"#dbeafe",textColor:"#1e40af"});
-      opts.push({value:`${grade}W_${subj}`,label:`${grade} エフォート(W)`,color:"#fef3c7",textColor:"#92400e"});
+  const aNum=Number(activeGrade.replace(/[^0-9]/g,""));
+  const aIsMiddle=activeGrade.startsWith("中");
+  // v61: 指定学年のテキスト候補を作る（中=α+10/ウイニング、小=Y/X/W）
+  const makeOpts=(subj)=>{
+    if(aIsMiddle){
+      return [
+        {value:`${activeGrade}Y_${subj}`,label:`${activeGrade} α+10`,color:"#dcfce7",textColor:"#166534"},
+        {value:`${activeGrade}X_${subj}`,label:`${activeGrade} ウイニング`,color:"#dbeafe",textColor:"#1e40af"},
+        {value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"},
+      ];
+    }
+    const opts=[{value:`${activeGrade}Y_${subj}`,label:`${activeGrade} 明光式ワーク(Y)`,color:"#dcfce7",textColor:"#166534"}];
+    if(aNum>=4){
+      opts.push({value:`${activeGrade}X_${subj}`,label:`${activeGrade} ウィンパス(X)`,color:"#dbeafe",textColor:"#1e40af"});
+      opts.push({value:`${activeGrade}W_${subj}`,label:`${activeGrade} エフォート(W)`,color:"#fef3c7",textColor:"#92400e"});
     }
     opts.push({value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"});
     return opts;
   };
-  const OPTIONS=isMiddle
-    ?{"数学":makeChuOpts("数学"),"英語":makeChuOpts("英語")}
-    :{"算数":makeShoOpts("算数"),"国語":makeShoOpts("国語")};
+  const OPTIONS={};
+  subjects.forEach(s=>{OPTIONS[s]=makeOpts(s);});
+  // v61: 特別モードで学年を選ぶ→その学年の既定値にvalsをリセット（既存が同学年ならそれを維持）
+  const pickSpecialGrade=(g)=>{
+    setSpecialGrade(g);
+    const nv={};
+    (GRADE_SUBJECTS[g]||[]).forEach(s=>{nv[s]=(gradeOfKey(overrides[s])===g)?overrides[s]:`${g}Y_${s}`;});
+    setVals(nv);
+  };
+  const backToNormal=()=>{
+    setSpecialGrade(null);
+    const nv={};
+    (GRADE_SUBJECTS[grade]||[]).forEach(s=>{nv[s]=(gradeOfKey(overrides[s])===grade&&overrides[s])?overrides[s]:`${grade}Y_${s}`;});
+    setVals(nv);
+  };
+  const gradeChoices=isMiddle?["中1","中2","中3"]:["小1","小2","小3","小4","小5","小6"];
   const stuName=students[si]?.replace(/（.+?）/,"")||"";
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"16px"}} onClick={onClose}>
-      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"360px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"360px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
         <div style={{fontWeight:"bold",fontSize:"15px",color:"#312e81",marginBottom:"4px"}}>📚 テキスト設定</div>
-        <div style={{fontSize:"12px",color:"#6b7280",marginBottom:"16px"}}>{stuName}（{grade}）</div>
+        <div style={{fontSize:"12px",color:"#6b7280",marginBottom:"12px"}}>{stuName}（{grade}）</div>
+        {specialGrade==null?(
+          <button onClick={()=>setSpecialGrade(grade)}
+            style={{width:"100%",background:"#f5f3ff",color:"#6d28d9",border:"1px dashed #a78bfa",borderRadius:"8px",padding:"9px",cursor:"pointer",fontSize:"12px",fontWeight:"bold",marginBottom:"14px"}}>
+            🔧 特別パターン（前学年など別学年のテキストにする）
+          </button>
+        ):(
+          <div style={{background:"#f5f3ff",border:"1px solid #c4b5fd",borderRadius:"8px",padding:"10px",marginBottom:"14px"}}>
+            <div style={{fontSize:"11px",fontWeight:"bold",color:"#6d28d9",marginBottom:"6px"}}>🔧 特別パターン：学年を選択（個別最適化）</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"8px"}}>
+              {gradeChoices.map(g=>{
+                const sel=activeGrade===g;
+                return(
+                  <button key={g} onClick={()=>pickSpecialGrade(g)}
+                    style={{padding:"6px 12px",borderRadius:"6px",border:`2px solid ${sel?"#7c3aed":"#ddd6fe"}`,background:sel?"#7c3aed":"white",color:sel?"white":"#6d28d9",fontWeight:sel?"bold":"normal",cursor:"pointer",fontSize:"12px"}}>
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+            <button onClick={backToNormal}
+              style={{background:"none",border:"none",color:"#6b7280",fontSize:"11px",cursor:"pointer",textDecoration:"underline",padding:0}}>
+              ← 通常（{grade}）に戻す
+            </button>
+          </div>
+        )}
         {subjects.map(subj=>{
           const opts=OPTIONS[subj]||[];
           if(opts.length===0) return null;
           return(
             <div key={subj} style={{marginBottom:"16px"}}>
-              <div style={{fontSize:"12px",fontWeight:"bold",color:"#4338ca",marginBottom:"8px"}}>{subj}</div>
+              <div style={{fontSize:"12px",fontWeight:"bold",color:"#4338ca",marginBottom:"8px"}}>{subj}{specialGrade!=null&&<span style={{color:"#7c3aed",fontSize:"11px"}}>（{activeGrade}のテキスト）</span>}</div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px"}}>
                 {opts.map(opt=>{
                   const sel=vals[subj]===opt.value;
@@ -1950,7 +1992,7 @@ function TextbookModal({si,students,textbookOverrides,onSave,onClose}){
           );
         })}
         <div style={{background:"#fef3c7",borderRadius:"6px",padding:"8px 10px",marginBottom:"16px",fontSize:"11px",color:"#92400e"}}>
-          ⚠️ テキストを変更すると進捗データがリセットされます
+          ⚠️ テキストを変更すると進捗データがリセットされます{specialGrade!=null&&"（学年と違うテキストを割り当てます）"}
         </div>
         <div style={{display:"flex",gap:"8px"}}>
           <button onClick={onClose} style={{flex:1,background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"14px"}}>キャンセル</button>
