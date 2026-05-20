@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v72"/>
+  <meta name="app-version" content="v74"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v72</title>
+  <title>明光義塾 チェックアプリ v74</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v72-20260520";  // ✨ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v74-20260520";  // ✨ v74 教室長設定の安心仕様。①未保存のまま別生徒に切り替えようとすると確認ダイアログ。②ヘッダーに「💾 未保存N人を保存」ボタン(N>0のときオレンジ表示)で一括保存可能。③サイドバーの未保存生徒は●印＋オレンジ枠で一目瞭然。④戻るボタンも未保存があれば確認。useState+1(99→100、dirtyNames・教室長設定のみ)は意図的。/ v73 数学(入門精講＋チャート)のデフォルト期間を11か月→10か月に調整（運用実態に合わせて）。教室長の都合の良い計画作成へ微調整。/ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -237,7 +237,7 @@ const ENG_SETS = {
 // v72: ロードマップ追加時のデフォルト期間（月）。紗耶佳先生と相談した運用上の標準値。
 //   微調整は教室長が画面で行う前提。前ステップ完了予定日の翌日から開始＝連鎖計画も自動化。
 const ROADMAP_DEFAULT_MONTHS = {
-  math: 11,       // 入門精講＋チャート系（どの数学テキストでも11か月）
+  math: 10,       // 入門精講＋チャート系（どの数学テキストでも10か月。v73で11→10に調整）
   eng_hijii: 4,   // 肘井 ゼロから英文法
   eng_oiwa:  5,   // 大岩 いちばんはじめの英文法
 };
@@ -3284,6 +3284,22 @@ function StudentReport({data,onClose}){
 function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jhTextbookOverrides,jhTestRanges,jhDirectives,jhSchoolOverrides,jhSaveSchool,jhRenzemiAssign,jhSaveRenzemiAssign,jhRenzemiProgress,jhRenzemiDeadlines,jhSaveRenzemiDeadline,currentTerm,jhSaveCurrentTerm,hsRecords,hsEngAssign,hsEngRecords,jhRecords,jhRecordsByName,jhSchoolGradeMaster,jhStudentDirectives,jhSaveStudentDirective,onAddJhStudent,onDelJhStudent,onAddHsStudent,onAddTeacher,onSaveTextbook,onSaveTestRange,onSaveDirective,onBack,saveMsg,saveMsgType}){
   const [plans,setPlans]=useState({});
   const [curIdx,setCurIdx]=useState(0);
+  // v74: 教室長設定の未保存追跡。生徒切替時の警告と一括保存に使う。
+  const [dirtyNames,setDirtyNames]=useState(()=>new Set());
+  const markDirty=()=>{
+    setDirtyNames(prev=>{
+      // curNameは編集時点で確定しているはずだがガード
+      const nm=stripGrade(students[curIdx]||'');
+      if(!nm||prev.has(nm)) return prev;
+      const n=new Set(prev); n.add(nm); return n;
+    });
+  };
+  const clearDirty=(nm)=>{
+    setDirtyNames(prev=>{
+      if(!prev.has(nm)) return prev;
+      const n=new Set(prev); n.delete(nm); return n;
+    });
+  };
   const [msg,setMsg]=useState('');
   const [tab,setTab]=useState('text');
   const [stList,setStList]=useState([]);
@@ -3397,6 +3413,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
       // それ以外（memoなど）はplan直下に保存
       return {...p,[curName]:{...cur,[field]:val}};
     });
+    markDirty(); // v74: 編集を未保存リストに記録
   };
   const setNR=(f,v)=>{
     setPlans(p=>{
@@ -3409,6 +3426,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
       }
       return {...p,[curName]:{...cur,nyumonRange:{...(cur.nyumonRange||{}),[f]:v}}};
     });
+    markDirty(); // v74
   };
   const setCR=(f,v)=>{
     setPlans(p=>{
@@ -3421,6 +3439,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
       }
       return {...p,[curName]:{...cur,chartRange:{...(cur.chartRange||{}),[f]:v}}};
     });
+    markDirty(); // v74
   };
 
   const save=async()=>{
@@ -3430,8 +3449,59 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
     const migrated=migratePlan(p);
     await hsSet(`koukou:plan:${curName}`,migrated);
     setPlans(prev=>({...prev,[curName]:migrated}));
+    clearDirty(curName); // v74: 保存成功で未保存リストから除去
     setMsg('✅ 保存しました');
     setTimeout(()=>setMsg(''),2000);
+  };
+
+  // v74: 未保存の全員を一括保存。1人ずつ順番にhsSetする（並列にしないのは安全のため）
+  const saveAll=async()=>{
+    const names=[...dirtyNames];
+    if(names.length===0){ window.alert('未保存の生徒はいません。'); return; }
+    if(!window.confirm(`未保存の${names.length}人を一括保存します。よろしいですか？`)) return;
+    setMsg(`💾 ${names.length}人を保存中...`);
+    let ok=0; const fail=[];
+    for(const name of names){
+      try{
+        const migrated=migratePlan(plans[name]||{});
+        await hsSet(`koukou:plan:${name}`,migrated);
+        setPlans(prev=>({...prev,[name]:migrated}));
+        ok++;
+      }catch(e){
+        console.error('[saveAll] 失敗',name,e);
+        fail.push(name);
+      }
+    }
+    setDirtyNames(prev=>{
+      const n=new Set(prev);
+      names.forEach(name=>{ if(!fail.includes(name)) n.delete(name); });
+      return n;
+    });
+    if(fail.length===0){
+      setMsg(`✅ ${ok}人を保存しました`);
+    }else{
+      setMsg(`⚠️ ${ok}人成功・${fail.length}人失敗（${fail.join('、')}）`);
+    }
+    setTimeout(()=>setMsg(''),5000);
+  };
+
+  // v74: 生徒切替時に未保存があれば確認ダイアログを出す
+  const trySwitch=(i)=>{
+    if(i===curIdx) return; // 同一は何もしない
+    if(dirtyNames.has(curName)){
+      const ok=window.confirm(`「${curName}」さんの編集が未保存です。\n\n・OK ＝ 切替する（編集はメモリには残るがタブを閉じると消えます。あとで「未保存を全員保存」ボタンで保存できます）\n・キャンセル ＝ この生徒のままにする`);
+      if(!ok) return;
+    }
+    setCurIdx(i);
+  };
+
+  // v74: 戻る時にも未保存があれば確認
+  const tryBack=()=>{
+    if(dirtyNames.size>0){
+      const ok=window.confirm(`未保存の編集が${dirtyNames.size}人ぶんあります（${[...dirtyNames].join('、')}）。\n\n・OK ＝ このまま戻る（編集はメモリには残るがタブを閉じると消えます）\n・キャンセル ＝ 戻らずヘッダーの「💾 未保存${dirtyNames.size}人を保存」ボタンから保存する`);
+      if(!ok) return;
+    }
+    onBack();
   };
 
   // ロードマップ操作
@@ -3442,6 +3512,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   const updateRoadmap=(newRoadmap)=>{
     const mp=migratePlan(plans[curName]||{});
     setPlans(p=>({...p,[curName]:{...mp,roadmap:newRoadmap}}));
+    markDirty(); // v74
   };
   // 英文法ステップ追加
   const addRoadmapEngStep=(engSet)=>{
@@ -3565,7 +3636,14 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                 <span style={{background:'#f59e0b',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
               :<span style={{background:'#22c55e',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
             )}
-            <button onClick={onBack} style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
+            {/* v74: 未保存の全員を一括保存ボタン。未保存があるときオレンジで目立たせる */}
+            {dirtyNames.size>0&&(
+              <button onClick={saveAll}
+                style={{background:'#f59e0b',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'13px',fontWeight:'bold'}}>
+                💾 未保存{dirtyNames.size}人を保存
+              </button>
+            )}
+            <button onClick={tryBack} style={{background:'rgba(255,255,255,0.2)',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'13px'}}>← 戻る</button>
           </div>
         </div>
 
@@ -3593,12 +3671,13 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
             {students.map((s,i)=>{
               const n=stripGrade(s);
               const hp=plans[n]?.textbookSet;
+              const isDirty=dirtyNames.has(n); // v74: 未保存生徒の視覚指標
               return(
-                <button key={i} onClick={()=>setCurIdx(i)}
-                  style={{padding:'8px 14px',borderRadius:'20px',border:`2px solid ${curIdx===i?'#065f46':hp?'#10b981':'#e5e7eb'}`,
-                    background:curIdx===i?'#065f46':'white',color:curIdx===i?'white':'#374151',cursor:'pointer',
-                    fontSize:'13px',flexShrink:0,fontWeight:curIdx===i?'bold':'normal'}}>
-                  {hp?'✅ ':''}{n}
+                <button key={i} onClick={()=>trySwitch(i)}
+                  style={{padding:'8px 14px',borderRadius:'20px',border:`2px solid ${curIdx===i?'#065f46':isDirty?'#f59e0b':hp?'#10b981':'#e5e7eb'}`,
+                    background:curIdx===i?'#065f46':isDirty?'#fffbeb':'white',color:curIdx===i?'white':isDirty?'#92400e':'#374151',cursor:'pointer',
+                    fontSize:'13px',flexShrink:0,fontWeight:curIdx===i?'bold':isDirty?'bold':'normal'}}>
+                  {isDirty?'● ':hp?'✅ ':''}{n}
                 </button>
               );
             })}
