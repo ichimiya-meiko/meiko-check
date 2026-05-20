@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v70"/>
+  <meta name="app-version" content="v71"/>
   <meta name="app-build-date" content="2026-05-19"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v70</title>
+  <title>明光義塾 チェックアプリ v71</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <!-- v24: Babel警告抑制（プリコンパイルではなく警告だけ消す） -->
@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v70-20260520";  // ✨ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v71-20260520";  // ✨ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -6227,6 +6227,22 @@ function App(){
             :saveMsgType==='saving'?
               <span style={{background:'#f59e0b',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
             :<span style={{background:'#22c55e',color:'white',fontSize:'12px',fontWeight:'bold',padding:'4px 10px',borderRadius:'6px'}}>{saveMsg}</span>
+          )}
+          {/* v71: 画面中央に大きく目立つ保存メッセージ表示。講師がシャットダウンしないよう「保存中」を強く可視化 */}
+          {saveMsg&&(
+            <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center',background:saveMsgType==='saving'?'rgba(0,0,0,0.45)':'rgba(0,0,0,0)',pointerEvents:'none',zIndex:9999,transition:'background 0.2s'}}>
+              <div style={{background:saveMsgType==='error'?'#dc2626':saveMsgType==='saving'?'#f59e0b':'#22c55e',color:'white',fontSize:saveMsgType==='saving'?'30px':'26px',fontWeight:'bold',padding:'28px 48px',borderRadius:'18px',boxShadow:'0 12px 48px rgba(0,0,0,0.4)',animation:saveMsgType==='saving'?'pulse 1.2s infinite':'none',textAlign:'center',maxWidth:'90%'}}>
+                {saveMsgType==='saving'&&<span style={{marginRight:'10px'}}>💾</span>}
+                {saveMsgType==='error'&&<span style={{marginRight:'10px'}}>❌</span>}
+                {saveMsgType!=='saving'&&saveMsgType!=='error'&&<span style={{marginRight:'10px'}}>✅</span>}
+                {saveMsg}
+                {saveMsgType==='saving'&&(
+                  <div style={{fontSize:'15px',fontWeight:'normal',marginTop:'14px',opacity:0.95,lineHeight:1.5}}>
+                    ⚠️ 完了するまで画面を閉じたり<br/>PCを切ったりしないでください
+                  </div>
+                )}
+              </div>
+            </div>
           )}
           {bgLoading&&(()=>{
             const pct=bgProgress&&bgProgress.total>0?Math.round(bgProgress.done/bgProgress.total*100):0;
