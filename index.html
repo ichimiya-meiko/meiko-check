@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v75-20260520";  // ✨ v75 パスワード画面に手動保存の重要案内ボックスを追加。講師が「消えた」と混乱しないように、ログイン前に必ず①○クリックは未保存、②生徒切替/科目切替/💾保存で保存、③「保存中…」表示中は閉じない、④「保存しました」確認の4点を表示。フック増減ゼロ。/ v74 教室長設定の安心仕様。①未保存のまま別生徒に切り替えようとすると確認ダイアログ。②ヘッダーに「💾 未保存N人を保存」ボタン(N>0のときオレンジ表示)で一括保存可能。③サイドバーの未保存生徒は●印＋オレンジ枠で一目瞭然。④戻るボタンも未保存があれば確認。useState+1(99→100、dirtyNames・教室長設定のみ)は意図的。/ v73 数学(入門精講＋チャート)のデフォルト期間を11か月→10か月に調整（運用実態に合わせて）。教室長の都合の良い計画作成へ微調整。/ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v76-20260523";  // ✨ v76 テキスト設定モーダルを科目ごとに独立した学年選択に変更。数学は中２・英語は中１のように科目単位で個別最適化が可能に。specialGrade(単一)→specialGrades(科目キー別オブジェクト)に置き換え。各科目に「🔧 別学年」ボタンを設置し押下するとその科目のみの学年ピッカーが展開。「← 中Xに戻す」も科目ごとに独立。保存・読込パスへの変更ゼロ。useState+1(openPicker追加)は意図的。/ v75  // ✨ v75 パスワード画面に手動保存の重要案内ボックスを追加。講師が「消えた」と混乱しないように、ログイン前に必ず①○クリックは未保存、②生徒切替/科目切替/💾保存で保存、③「保存中…」表示中は閉じない、④「保存しました」確認の4点を表示。フック増減ゼロ。/ v74 教室長設定の安心仕様。①未保存のまま別生徒に切り替えようとすると確認ダイアログ。②ヘッダーに「💾 未保存N人を保存」ボタン(N>0のときオレンジ表示)で一括保存可能。③サイドバーの未保存生徒は●印＋オレンジ枠で一目瞭然。④戻るボタンも未保存があれば確認。useState+1(99→100、dirtyNames・教室長設定のみ)は意図的。/ v73 数学(入門精講＋チャート)のデフォルト期間を11か月→10か月に調整（運用実態に合わせて）。教室長の都合の良い計画作成へ微調整。/ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -1918,97 +1918,119 @@ function TextbookModal({si,students,textbookOverrides,onSave,onClose}){
   const isSho=grade.startsWith("小");
   if(!isMiddle&&!isSho){onClose();return null;}
   const overrides=textbookOverrides[si]||{};
-  // v61: キーから学年プレフィックスを取り出す（例 中1Y_数学→中1 / 小3X_算数→小3）
+  // キーから学年プレフィックスを取り出す（例 中1Y_数学→中1 / 小3X_算数→小3）
   const gradeOfKey=(k)=>{const m=/^(小[1-6]|中[1-3])/.exec(k||"");return m?m[1]:null;};
   const subjectsOwn=GRADE_SUBJECTS[grade]||[];
-  // v61: 既存overrideが学年違いなら、その学年で特別モード開始（既存データを正しく表示）
-  const initSpecial=(()=>{
+  const gradeChoices=isMiddle?["中1","中2","中3"]:["小1","小2","小3","小4","小5","小6"];
+  // v76: specialGrades = 科目ごとの「別学年指定」オブジェクト。nullは通常（実学年）
+  // 既存overrideが学年違いの科目があれば、その科目だけ特別モードで開始（既存データ保護）
+  const initSpecialGrades=(()=>{
+    const sg={};
     for(const subj of subjectsOwn){
       const g=gradeOfKey(overrides[subj]);
-      if(g&&g!==grade) return g;
+      sg[subj]=(g&&g!==grade)?g:null;
     }
-    return null;
+    return sg;
   })();
-  const [specialGrade,setSpecialGrade]=useState(initSpecial);
-  const activeGrade=specialGrade||grade;
-  const subjects=GRADE_SUBJECTS[activeGrade]||subjectsOwn;
+  const [specialGrades,setSpecialGrades]=useState(initSpecialGrades);
+  // v76: ピッカーの開閉状態（科目ごと）
+  const [openPicker,setOpenPicker]=useState({});
+  // 科目ごとの実効学年（specialGradesがnullなら実学年）
+  const activeGradeOf=(subj)=>specialGrades[subj]||grade;
+  // vals初期化：科目ごとに実効学年で初期値
   const [vals,setVals]=useState(()=>{
     const init={};
-    subjects.forEach(subj=>{init[subj]=overrides[subj]||`${activeGrade}Y_${subj}`;});
+    subjectsOwn.forEach(subj=>{
+      const ag=specialGrades[subj]||grade;
+      init[subj]=overrides[subj]||`${ag}Y_${subj}`;
+    });
     return init;
   });
-  const aNum=Number(activeGrade.replace(/[^0-9]/g,""));
-  const aIsMiddle=activeGrade.startsWith("中");
-  // v61: 指定学年のテキスト候補を作る（中=α+10/ウイニング、小=Y/X/W）
+  // v76: 科目ごとのテキスト候補（実効学年ベース）
   const makeOpts=(subj)=>{
+    const ag=activeGradeOf(subj);
+    const aNum=Number(ag.replace(/[^0-9]/g,""));
+    const aIsMiddle=ag.startsWith("中");
     if(aIsMiddle){
       return [
-        {value:`${activeGrade}Y_${subj}`,label:`${activeGrade} α+10`,color:"#dcfce7",textColor:"#166534"},
-        {value:`${activeGrade}X_${subj}`,label:`${activeGrade} ウイニング`,color:"#dbeafe",textColor:"#1e40af"},
+        {value:`${ag}Y_${subj}`,label:`${ag} α+10`,color:"#dcfce7",textColor:"#166534"},
+        {value:`${ag}X_${subj}`,label:`${ag} ウイニング`,color:"#dbeafe",textColor:"#1e40af"},
         {value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"},
       ];
     }
-    const opts=[{value:`${activeGrade}Y_${subj}`,label:`${activeGrade} 明光式ワーク(Y)`,color:"#dcfce7",textColor:"#166534"}];
+    const opts=[{value:`${ag}Y_${subj}`,label:`${ag} 明光式ワーク(Y)`,color:"#dcfce7",textColor:"#166534"}];
     if(aNum>=4){
-      opts.push({value:`${activeGrade}X_${subj}`,label:`${activeGrade} ウィンパス(X)`,color:"#dbeafe",textColor:"#1e40af"});
-      opts.push({value:`${activeGrade}W_${subj}`,label:`${activeGrade} エフォート(W)`,color:"#fef3c7",textColor:"#92400e"});
+      opts.push({value:`${ag}X_${subj}`,label:`${ag} ウィンパス(X)`,color:"#dbeafe",textColor:"#1e40af"});
+      opts.push({value:`${ag}W_${subj}`,label:`${ag} エフォート(W)`,color:"#fef3c7",textColor:"#92400e"});
     }
     opts.push({value:`none_${subj}`,label:"受講なし",color:"#f3f4f6",textColor:"#6b7280"});
     return opts;
   };
-  const OPTIONS={};
-  subjects.forEach(s=>{OPTIONS[s]=makeOpts(s);});
-  // v61: 特別モードで学年を選ぶ→その学年の既定値にvalsをリセット（既存が同学年ならそれを維持）
-  const pickSpecialGrade=(g)=>{
-    setSpecialGrade(g);
-    const nv={};
-    (GRADE_SUBJECTS[g]||[]).forEach(s=>{nv[s]=(gradeOfKey(overrides[s])===g)?overrides[s]:`${g}Y_${s}`;});
-    setVals(nv);
+  // v76: 科目に別学年を設定→その科目のvalsを新学年の既定値にリセット（既存が同学年なら維持）
+  const pickSubjGrade=(subj,g)=>{
+    setSpecialGrades(p=>({...p,[subj]:g===grade?null:g}));
+    setOpenPicker(p=>({...p,[subj]:false}));
+    setVals(p=>({...p,[subj]:(gradeOfKey(overrides[subj])===g)?overrides[subj]:`${g}Y_${subj}`}));
   };
-  const backToNormal=()=>{
-    setSpecialGrade(null);
-    const nv={};
-    (GRADE_SUBJECTS[grade]||[]).forEach(s=>{nv[s]=(gradeOfKey(overrides[s])===grade&&overrides[s])?overrides[s]:`${grade}Y_${s}`;});
-    setVals(nv);
+  // v76: 科目を通常学年に戻す
+  const backSubjToNormal=(subj)=>{
+    setSpecialGrades(p=>({...p,[subj]:null}));
+    setOpenPicker(p=>({...p,[subj]:false}));
+    setVals(p=>({...p,[subj]:(gradeOfKey(overrides[subj])===grade&&overrides[subj])?overrides[subj]:`${grade}Y_${subj}`}));
   };
-  const gradeChoices=isMiddle?["中1","中2","中3"]:["小1","小2","小3","小4","小5","小6"];
+  const anySpecial=subjectsOwn.some(s=>specialGrades[s]!=null);
   const stuName=students[si]?.replace(/（.+?）/,"")||"";
   return(
     <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"16px"}} onClick={onClose}>
-      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"360px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"white",padding:"20px",borderRadius:"12px",maxWidth:"380px",width:"100%",boxShadow:"0 8px 32px rgba(0,0,0,0.3)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
         <div style={{fontWeight:"bold",fontSize:"15px",color:"#312e81",marginBottom:"4px"}}>📚 テキスト設定</div>
-        <div style={{fontSize:"12px",color:"#6b7280",marginBottom:"12px"}}>{stuName}（{grade}）</div>
-        {specialGrade==null?(
-          <button onClick={()=>setSpecialGrade(grade)}
-            style={{width:"100%",background:"#f5f3ff",color:"#6d28d9",border:"1px dashed #a78bfa",borderRadius:"8px",padding:"9px",cursor:"pointer",fontSize:"12px",fontWeight:"bold",marginBottom:"14px"}}>
-            🔧 特別パターン（前学年など別学年のテキストにする）
-          </button>
-        ):(
-          <div style={{background:"#f5f3ff",border:"1px solid #c4b5fd",borderRadius:"8px",padding:"10px",marginBottom:"14px"}}>
-            <div style={{fontSize:"11px",fontWeight:"bold",color:"#6d28d9",marginBottom:"6px"}}>🔧 特別パターン：学年を選択（個別最適化）</div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:"5px",marginBottom:"8px"}}>
-              {gradeChoices.map(g=>{
-                const sel=activeGrade===g;
-                return(
-                  <button key={g} onClick={()=>pickSpecialGrade(g)}
-                    style={{padding:"6px 12px",borderRadius:"6px",border:`2px solid ${sel?"#7c3aed":"#ddd6fe"}`,background:sel?"#7c3aed":"white",color:sel?"white":"#6d28d9",fontWeight:sel?"bold":"normal",cursor:"pointer",fontSize:"12px"}}>
-                    {g}
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={backToNormal}
-              style={{background:"none",border:"none",color:"#6b7280",fontSize:"11px",cursor:"pointer",textDecoration:"underline",padding:0}}>
-              ← 通常（{grade}）に戻す
-            </button>
-          </div>
-        )}
-        {subjects.map(subj=>{
-          const opts=OPTIONS[subj]||[];
-          if(opts.length===0) return null;
+        <div style={{fontSize:"12px",color:"#6b7280",marginBottom:"14px"}}>{stuName}（{grade}）</div>
+        {subjectsOwn.map(subj=>{
+          const ag=activeGradeOf(subj);
+          const isSpecial=specialGrades[subj]!=null;
+          const isPickerOpen=!!openPicker[subj];
+          const opts=makeOpts(subj);
           return(
-            <div key={subj} style={{marginBottom:"16px"}}>
-              <div style={{fontSize:"12px",fontWeight:"bold",color:"#4338ca",marginBottom:"8px"}}>{subj}{specialGrade!=null&&<span style={{color:"#7c3aed",fontSize:"11px"}}>（{activeGrade}のテキスト）</span>}</div>
+            <div key={subj} style={{marginBottom:"18px",borderRadius:"8px",border:isSpecial?"1.5px solid #c4b5fd":"1px solid #e5e7eb",padding:"10px",background:isSpecial?"#faf5ff":"white"}}>
+              {/* 科目ヘッダー行 */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}}>
+                <div style={{fontSize:"12px",fontWeight:"bold",color:isSpecial?"#6d28d9":"#4338ca"}}>
+                  {subj}
+                  {isSpecial&&<span style={{marginLeft:"6px",fontSize:"11px",color:"#7c3aed",fontWeight:"normal"}}>（{ag}のテキスト）</span>}
+                </div>
+                <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
+                  {isSpecial?(
+                    <button onClick={()=>backSubjToNormal(subj)}
+                      style={{fontSize:"10px",color:"#6b7280",background:"none",border:"none",cursor:"pointer",textDecoration:"underline",padding:"2px 4px"}}>
+                      ← {grade}に戻す
+                    </button>
+                  ):(
+                    <button onClick={()=>setOpenPicker(p=>({...p,[subj]:!p[subj]}))}
+                      style={{fontSize:"10px",color:"#6d28d9",background:"#f5f3ff",border:"1px dashed #a78bfa",borderRadius:"4px",cursor:"pointer",padding:"3px 7px",fontWeight:"bold"}}>
+                      🔧 別学年
+                    </button>
+                  )}
+                </div>
+              </div>
+              {/* 科目ごとの学年ピッカー（別学年ボタン押下時に展開） */}
+              {isPickerOpen&&!isSpecial&&(
+                <div style={{background:"#f5f3ff",border:"1px solid #ddd6fe",borderRadius:"6px",padding:"8px",marginBottom:"8px"}}>
+                  <div style={{fontSize:"10px",color:"#6d28d9",fontWeight:"bold",marginBottom:"6px"}}>学年を選択（{subj}のみ変更）</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"4px"}}>
+                    {gradeChoices.filter(g=>g!==grade).map(g=>(
+                      <button key={g} onClick={()=>pickSubjGrade(subj,g)}
+                        style={{padding:"5px 10px",borderRadius:"5px",border:"2px solid #ddd6fe",background:"white",color:"#6d28d9",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}}>
+                        {g}
+                      </button>
+                    ))}
+                    <button onClick={()=>setOpenPicker(p=>({...p,[subj]:false}))}
+                      style={{padding:"5px 8px",borderRadius:"5px",border:"1px solid #e5e7eb",background:"#f3f4f6",color:"#6b7280",cursor:"pointer",fontSize:"11px"}}>
+                      閉じる
+                    </button>
+                  </div>
+                </div>
+              )}
+              {/* テキスト選択ボタン */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"6px"}}>
                 {opts.map(opt=>{
                   const sel=vals[subj]===opt.value;
@@ -2024,7 +2046,7 @@ function TextbookModal({si,students,textbookOverrides,onSave,onClose}){
           );
         })}
         <div style={{background:"#fef3c7",borderRadius:"6px",padding:"8px 10px",marginBottom:"16px",fontSize:"11px",color:"#92400e"}}>
-          ⚠️ テキストを変更すると進捗データがリセットされます{specialGrade!=null&&"（学年と違うテキストを割り当てます）"}
+          ⚠️ テキストを変更すると進捗データがリセットされます{anySpecial&&"（学年と違うテキストを割り当てます）"}
         </div>
         <div style={{display:"flex",gap:"8px"}}>
           <button onClick={onClose} style={{flex:1,background:"#f3f4f6",color:"#6b7280",border:"none",borderRadius:"6px",padding:"10px",cursor:"pointer",fontSize:"14px"}}>キャンセル</button>
