@@ -47,7 +47,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v87-20260530";  // v87 データ消失問題を根治。①jhGetMapをインデックス非依存化(getallで全__item__を直接取得)→インデックスが壊れていても全データを読込可能に。②jhSetMapからインデックス更新を廃止(個別キー保存のみ)→130人でURL長制限超過してインデックス保存失敗→読込欠落する温床を除去。保存結果もok:true/falseを正直に返す。③保険として__MEIKO_REBUILD_INDEX__()を追加。データ本体(90名806項目)は全て無事。フック増減ゼロ。/ v86  // v86 データ救出ツール__MEIKO_RESCUE__()を追加(読み取り専用)。GASのgetallで全recordsを直接取得し、インデックス未登録だが実データが存在する迷子の生徒を検出・救出。武村咲希等のデータ生存確認用。データ変更は一切なし。フック増減ゼロ。/ v85  // v85 小2算数に東書(Z)版を追加(201-243の43単元,5チャンク)。テキスト設定モーダルの算数選択肢に明光式(東書)ボタン(東バッジ)を追加。CHAPTERSに該当学年Zキーが存在する場合のみ表示する判定式。フック増減ゼロ。/ v84  // ✨ v84 ①v83クラッシュバグ修正：jhTextbookOverridesByNameをApp関数スコープにも追加（DirectorSetting内のみ定義だったためAppスコープ外から参照不可→練ゼミタブで真っ白）。②コンソール診断強化：window.__MEIKO_DIAG__()を貼るだけでバージョン/DBロード/Reactマウント/エラー数/localStorage全項目を一括診断。console.errorを自動収集→window.__MEIKO_ERRORS__で原因特定。useMemo+1は意図的。/ v83  // ✨ v83 緊急修正：生徒削除後にテキスト設定がずれる根本バグを根治。jhTextbookOverrides[インデックス]参照（4箇所）をjhTextbookOverridesByName[名前]参照に統一。生徒削除でインデックスがずれても正しい生徒のテキスト設定を参照するように。講師チェック画面・教室長設定画面・進捗集計の全4箇所を修正。/ v82  // ✨ v82 進捗ダッシュボードの小中学生データ取得を修正。生徒削除後にjhStudentIdxs(インデックス配列)がずれて別の生徒データを参照するバグを根治。ダッシュボードはjhAllStudents(名前リスト)から直接全生徒を取得するよう変更。データ本体は名前キー保存のため安全。フック増減ゼロ。/ v81  // ✨ v81 高校生チェック画面の入門精講↔チャート対応をさらに修正。v79の対応マップは正しかったが、chartRange(cFrom/cTo)による範囲制限が対応マップ使用時にも効いてしまい、白チャートⅡBCの合算15章のうちcTo(旧設定値)を超える章（数列・ベクトル等）が表示されない問題を根治。対応マップ使用時はcFrom/cToチェックを完全スキップ。フック増減ゼロ。/ v80  // ✨ v80 小2国語Y/Zキーのデータ修正。v78でキー名入れ替え時に中身が逆になっていた問題を根治（小2Y=東書・小2Z=光村に正しく整合）。v79の入門精講↔チャート単元対応（NYUMON_CHART_MAP）は維持。/ v79  // ✨ v79 高校生チェック画面で入門精講とチャートを単元対応させて表示。従来は添字対応（入門精講第i章＋チャート第i章）だったため「入門：三角比 ＋ チャート：図形と方程式」のようなズレが発生していた。v79では入門精講の章を軸に、単元対応マップ(NYUMON_CHART_MAP_IA/IIB)を使って「入門：三角比 ＋ チャート：三角比」と正しく対応。複数チャート章に対応する入門章（整数・図形と方程式等）はチャート章を結合して1ブロックに表示。入門精講に対応しないチャート章のみの単元は末尾に独立表示。ⅢCは従来どおり。フック増減ゼロ。/ v78  // ✨ v78 ①教室長の生徒選択画面に「🎓 講師モードへ」ボタンを追加。教室長モードのまま生徒選択後、再ログインなしで即講師モードへ切り替え可能。②小学国語テキストのデフォルト/特別版を入れ替え：東書(Y)をデフォルト・光村(Z)を特別版（「光」バッジ）に変更。CHAPTERSキーも整合調整。③は確認中につき次版で対応。フック増減ゼロ。/ v77  // ✨ v77 小学国語・算数テキスト大幅追加。①小2Y_国語（光村46単元）、②小2〜6Z_国語（東書特別版、各46〜55単元）、③小4W_算数（エフォートⅠ 31単元）、④小5W_算数（エフォートⅡ 37単元）をCHAPTERSに追加。国語テキスト選択UIを光村(Y)/東書(Z)/ウィンパス(X)/受講なしの最大4択に対応（東書に「特」バッジ表示）。ボタン列数を選択肢数に応じて2〜3列に自動調整。保存・読込パスへの変更ゼロ。/ v76  // ✨ v76 テキスト設定モーダルを科目ごとに独立した学年選択に変更。数学は中２・英語は中１のように科目単位で個別最適化が可能に。specialGrade(単一)→specialGrades(科目キー別オブジェクト)に置き換え。各科目に「🔧 別学年」ボタンを設置し押下するとその科目のみの学年ピッカーが展開。「← 中Xに戻す」も科目ごとに独立。保存・読込パスへの変更ゼロ。useState+1(openPicker追加)は意図的。/ v75  // ✨ v75 パスワード画面に手動保存の重要案内ボックスを追加。講師が「消えた」と混乱しないように、ログイン前に必ず①○クリックは未保存、②生徒切替/科目切替/💾保存で保存、③「保存中…」表示中は閉じない、④「保存しました」確認の4点を表示。フック増減ゼロ。/ v74 教室長設定の安心仕様。①未保存のまま別生徒に切り替えようとすると確認ダイアログ。②ヘッダーに「💾 未保存N人を保存」ボタン(N>0のときオレンジ表示)で一括保存可能。③サイドバーの未保存生徒は●印＋オレンジ枠で一目瞭然。④戻るボタンも未保存があれば確認。useState+1(99→100、dirtyNames・教室長設定のみ)は意図的。/ v73 数学(入門精講＋チャート)のデフォルト期間を11か月→10か月に調整（運用実態に合わせて）。教室長の都合の良い計画作成へ微調整。/ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v90-20260603";  // v90 v89で「保険」として追加したチャンク分割保存(##part)を撤去。読み取り診断で90名全員が7000字未満・残骸0件と実測確認できたため分割は不要かつ、分割と単一の混在が新旧衝突でデータ巻き戻り/欠落を起こす不発弾だったため除去。jhSetMapは単一保存に戻した。v89のマージ保存(mergeRecordsByTimestamp/updatedAt)は良い対策として維持。読込側のjhBuildMapFromAllの##part結合処理は将来の残骸防御として温存。フック増減ゼロ。/ v89 複数端末での進捗上書き消失を根治。原因：保存が「その生徒の記録を丸ごと上書き」方式のため、古い端末(古田先生のタブレット等)が古いデータで保存すると他端末の新しい入力を消していた。対策(案A)：①各記録項目にupdatedAt(ミリ秒)を付与、②保存直前にGAS最新を読み、項目ごとにupdatedAtが新しい方を採用してマージしてから書き戻す(mergeRecordsByTimestamp)。他端末の項目を絶対に消さない。jh/hs両対応。+保険でjhSetMapに自動チャンク分割保存(URL長制限対策)も実装。フック増減ゼロ。/ v88  // v88 ①救出レポートの文言改善(v87は読込インデックス非依存のため旧インデックス未登録42名も全員表示される旨を明記)。②__MEIKO_VERIFY_READ__()追加：v87新読込ロジックで実際に何名読めるか検証(武村咲希含む90名全員読込確認用)。読込/保存ロジック本体はv87から変更なし。フック増減ゼロ。/ v87  // v87 データ消失問題を根治。①jhGetMapをインデックス非依存化(getallで全__item__を直接取得)→インデックスが壊れていても全データを読込可能に。②jhSetMapからインデックス更新を廃止(個別キー保存のみ)→130人でURL長制限超過してインデックス保存失敗→読込欠落する温床を除去。保存結果もok:true/falseを正直に返す。③保険として__MEIKO_REBUILD_INDEX__()を追加。データ本体(90名806項目)は全て無事。フック増減ゼロ。/ v86  // v86 データ救出ツール__MEIKO_RESCUE__()を追加(読み取り専用)。GASのgetallで全recordsを直接取得し、インデックス未登録だが実データが存在する迷子の生徒を検出・救出。武村咲希等のデータ生存確認用。データ変更は一切なし。フック増減ゼロ。/ v85  // v85 小2算数に東書(Z)版を追加(201-243の43単元,5チャンク)。テキスト設定モーダルの算数選択肢に明光式(東書)ボタン(東バッジ)を追加。CHAPTERSに該当学年Zキーが存在する場合のみ表示する判定式。フック増減ゼロ。/ v84  // ✨ v84 ①v83クラッシュバグ修正：jhTextbookOverridesByNameをApp関数スコープにも追加（DirectorSetting内のみ定義だったためAppスコープ外から参照不可→練ゼミタブで真っ白）。②コンソール診断強化：window.__MEIKO_DIAG__()を貼るだけでバージョン/DBロード/Reactマウント/エラー数/localStorage全項目を一括診断。console.errorを自動収集→window.__MEIKO_ERRORS__で原因特定。useMemo+1は意図的。/ v83  // ✨ v83 緊急修正：生徒削除後にテキスト設定がずれる根本バグを根治。jhTextbookOverrides[インデックス]参照（4箇所）をjhTextbookOverridesByName[名前]参照に統一。生徒削除でインデックスがずれても正しい生徒のテキスト設定を参照するように。講師チェック画面・教室長設定画面・進捗集計の全4箇所を修正。/ v82  // ✨ v82 進捗ダッシュボードの小中学生データ取得を修正。生徒削除後にjhStudentIdxs(インデックス配列)がずれて別の生徒データを参照するバグを根治。ダッシュボードはjhAllStudents(名前リスト)から直接全生徒を取得するよう変更。データ本体は名前キー保存のため安全。フック増減ゼロ。/ v81  // ✨ v81 高校生チェック画面の入門精講↔チャート対応をさらに修正。v79の対応マップは正しかったが、chartRange(cFrom/cTo)による範囲制限が対応マップ使用時にも効いてしまい、白チャートⅡBCの合算15章のうちcTo(旧設定値)を超える章（数列・ベクトル等）が表示されない問題を根治。対応マップ使用時はcFrom/cToチェックを完全スキップ。フック増減ゼロ。/ v80  // ✨ v80 小2国語Y/Zキーのデータ修正。v78でキー名入れ替え時に中身が逆になっていた問題を根治（小2Y=東書・小2Z=光村に正しく整合）。v79の入門精講↔チャート単元対応（NYUMON_CHART_MAP）は維持。/ v79  // ✨ v79 高校生チェック画面で入門精講とチャートを単元対応させて表示。従来は添字対応（入門精講第i章＋チャート第i章）だったため「入門：三角比 ＋ チャート：図形と方程式」のようなズレが発生していた。v79では入門精講の章を軸に、単元対応マップ(NYUMON_CHART_MAP_IA/IIB)を使って「入門：三角比 ＋ チャート：三角比」と正しく対応。複数チャート章に対応する入門章（整数・図形と方程式等）はチャート章を結合して1ブロックに表示。入門精講に対応しないチャート章のみの単元は末尾に独立表示。ⅢCは従来どおり。フック増減ゼロ。/ v78  // ✨ v78 ①教室長の生徒選択画面に「🎓 講師モードへ」ボタンを追加。教室長モードのまま生徒選択後、再ログインなしで即講師モードへ切り替え可能。②小学国語テキストのデフォルト/特別版を入れ替え：東書(Y)をデフォルト・光村(Z)を特別版（「光」バッジ）に変更。CHAPTERSキーも整合調整。③は確認中につき次版で対応。フック増減ゼロ。/ v77  // ✨ v77 小学国語・算数テキスト大幅追加。①小2Y_国語（光村46単元）、②小2〜6Z_国語（東書特別版、各46〜55単元）、③小4W_算数（エフォートⅠ 31単元）、④小5W_算数（エフォートⅡ 37単元）をCHAPTERSに追加。国語テキスト選択UIを光村(Y)/東書(Z)/ウィンパス(X)/受講なしの最大4択に対応（東書に「特」バッジ表示）。ボタン列数を選択肢数に応じて2〜3列に自動調整。保存・読込パスへの変更ゼロ。/ v76  // ✨ v76 テキスト設定モーダルを科目ごとに独立した学年選択に変更。数学は中２・英語は中１のように科目単位で個別最適化が可能に。specialGrade(単一)→specialGrades(科目キー別オブジェクト)に置き換え。各科目に「🔧 別学年」ボタンを設置し押下するとその科目のみの学年ピッカーが展開。「← 中Xに戻す」も科目ごとに独立。保存・読込パスへの変更ゼロ。useState+1(openPicker追加)は意図的。/ v75  // ✨ v75 パスワード画面に手動保存の重要案内ボックスを追加。講師が「消えた」と混乱しないように、ログイン前に必ず①○クリックは未保存、②生徒切替/科目切替/💾保存で保存、③「保存中…」表示中は閉じない、④「保存しました」確認の4点を表示。フック増減ゼロ。/ v74 教室長設定の安心仕様。①未保存のまま別生徒に切り替えようとすると確認ダイアログ。②ヘッダーに「💾 未保存N人を保存」ボタン(N>0のときオレンジ表示)で一括保存可能。③サイドバーの未保存生徒は●印＋オレンジ枠で一目瞭然。④戻るボタンも未保存があれば確認。useState+1(99→100、dirtyNames・教室長設定のみ)は意図的。/ v73 数学(入門精講＋チャート)のデフォルト期間を11か月→10か月に調整（運用実態に合わせて）。教室長の都合の良い計画作成へ微調整。/ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -125,11 +125,13 @@
         }catch{}
         console.log('=== 📦 データ救出レポート ===');
         console.log(`GAS上に実在する records データ: ${Object.keys(found).length}名 / 合計${totalItems}項目`);
-        console.log(`インデックスに登録されている名前: ${indexNames.length}名`);
+        console.log(`（参考）旧インデックスに登録されている名前: ${indexNames.length}名`);
         const orphans=Object.keys(found).filter(n=>!indexNames.includes(n));
         if(orphans.length>0){
-          console.log(`⚠️ インデックス未登録だがデータは実在する生徒（=画面から消えて見える）: ${orphans.length}名`);
-          orphans.forEach(n=>console.log(`   🆘 ${n}（${found[n]}項目 救出可能）`));
+          console.log(`ℹ️ 旧インデックス未登録: ${orphans.length}名`);
+          console.log(`   ✅ v87以降は読込がインデックス非依存（getallで全${Object.keys(found).length}名を直接取得）のため、`);
+          console.log(`      これら${orphans.length}名も含めて全員が正しく画面に表示されます。問題ありません。`);
+          orphans.forEach(n=>console.log(`   ・ ${n}（${found[n]}項目）`));
         }else{
           console.log('✅ 全生徒インデックス登録済み（迷子なし）');
         }
@@ -146,6 +148,38 @@
         console.log('============================');
         window.__MEIKO_RESCUE_DATA__={found,indexNames,orphans,all};
         return {found,indexNames,orphans};
+      };
+      // v88: 【読込検証ツール】v87の新読込ロジック(jhGetMap=インデックス非依存)で
+      //   実際に何名分のrecordsが読めるかを検証。「本当に全員表示されるか」を確認する。
+      window.__MEIKO_VERIFY_READ__ = async function(){
+        const GAS='https://script.google.com/macros/s/AKfycbybRa6HIwXqWbdhiI4MSTrYgTSuw6gWZCUijqjySaZNHFq84mxjZopl6ETGQ6dGgpu4Vw/exec';
+        const PFX='shochugaku:';
+        console.log('🔍 v87の新読込ロジックで全データを取得中...');
+        let all;
+        try{
+          const r=await fetch(`${GAS}?action=getall`,{cache:'no-store'});
+          all=await r.json();
+        }catch(e){console.error('❌ getall失敗:',e); return;}
+        // jhBuildMapFromAll と同じロジックで再現
+        const prefix=PFX+'records__item__';
+        const result={};
+        for(const k in all){
+          if(k.startsWith(prefix)){
+            const sName=k.slice(prefix.length);
+            const raw=all[k];
+            if(raw===undefined||raw===null||raw==='') continue;
+            try{result[sName]=typeof raw==='string'?JSON.parse(raw):raw;}catch{}
+          }
+        }
+        const names=Object.keys(result);
+        let total=0; names.forEach(n=>total+=Object.keys(result[n]).length);
+        console.log('=== ✅ v87 読込検証レポート ===');
+        console.log(`新ロジックで読み込める生徒: ${names.length}名 / 合計${total}項目`);
+        console.log('→ この人数が実際に画面に表示されます（インデックスは不使用）');
+        const saki=names.find(n=>n.includes('武村'));
+        if(saki) console.log(`🎯 武村咲希: ${Object.keys(result[saki]).length}項目 読込OK ✅`);
+        console.log('================================');
+        return {count:names.length,total,names};
       };
       // v87: 【インデックス再構築ツール】getall非対応環境向けの保険。
       //   GAS上の全 records__item__* を走査し、インデックスを完全に作り直す。
@@ -625,18 +659,21 @@ async function jhSet(key,val){
 let __indexUpdateQueue = Promise.resolve();
 
 async function jhSetMap(mapKey,changedSubKey,val,fullMap){
-  // v87: インデックス更新を廃止。読込(jhGetMap/jhBuildMapFromAll)がgetallで
-  //   全 __item__ を直接拾う方式になったため、インデックスは不要。
-  //   旧方式のインデックス保存は130人でURL長制限を超えて失敗し、
-  //   「個別データは保存成功なのにインデックスに載らず読込で欠落」する温床だった。
+  // v90: v89で「保険」として入れたチャンク分割保存(##part)を撤去し、v88以前の単一保存に戻す。
+  //   理由: ①90名全員が7000字未満で分割は不要だった（読み取り診断で実測確認済み・残骸0件）。
+  //         ②分割と単一が混在すると読込時に新旧が衝突し、新しい入力が古い##partに巻き戻る/欠落する
+  //           という新たなデータ消失経路を生んでいた（未発火の不発弾だった）。
+  //   万一将来7000字を超えても、jhSet(v34)がURL長8000字で{ok:false}を返し、
+  //   上位のjhSaveStudentRecordsが「❌保存失敗」を画面表示するので、黙って消えることはない。
+  //   v89のマージ保存(mergeRecordsByTimestamp/updatedAt)は良い対策なので維持する。
   // 1. ローカルにフルマップを保存（読み込み高速化）
   try{localStorage.setItem('cache:jh:'+mapKey,JSON.stringify({v:fullMap,t:Date.now()}));}catch(e){
     console.warn('[jhSetMap] localStorage保存失敗:',mapKey,e);
   }
-  // 2. 個別キーをGASに保存（変更分だけ・並行書き込み可）
-  const subKey=`${mapKey}__item__${changedSubKey}`;
-  const itemResult=await jhSet(subKey,val);
-  return itemResult; // {ok:true/false} を正直に返す（インデックス握りつぶし廃止）
+  // 2. その生徒のキーを単一で保存（##part分割なし）
+  const baseKey=`${mapKey}__item__${changedSubKey}`;
+  const r=await jhSet(baseKey,val);
+  return r;
 }
 
 // v34: 個別キー保存方式から、フルマップを再構築して読み込む
@@ -734,11 +771,38 @@ function jhBuildMapFromAll(all,mapKey){
       const subKey=fullKey.slice(prefix.length);
       const raw=all[fullKey];
       if(raw===undefined||raw===null||raw==='') continue;
-      try{
-        result[subKey]=typeof raw==='string'?JSON.parse(raw):raw;
+      let parsed;
+      try{ parsed=typeof raw==='string'?JSON.parse(raw):raw; }catch{ continue; }
+      // v89: 分割保存対応
+      const m=/^(.*)##part(\d+)$/.exec(subKey);
+      if(m){
+        // チャンクキー（生徒名##partN）→ 生徒名にマージ
+        const realName=m[1];
+        if(!result[realName]) result[realName]={};
+        Object.assign(result[realName],parsed);
         found=true;
-      }catch{}
+      }else{
+        // 通常キー。ただし {__split__:N} マーカーは「分割版が正」なので中身として混ぜない
+        if(parsed&&typeof parsed==='object'&&parsed.__split__!==undefined){
+          // マーカーのみ。partN側でデータが入るのでここではキーの存在確保だけ
+          if(!result[subKey]) result[subKey]={};
+          found=true;
+        }else{
+          // 旧来の単一保存データ。既にpartでマージ済みなら上書きしない（part優先）
+          if(result[subKey]){
+            // partが先に入っている → 旧単一は古い可能性。マージ（既存=part優先で補完）
+            result[subKey]={...parsed,...result[subKey]};
+          }else{
+            result[subKey]=parsed;
+          }
+          found=true;
+        }
+      }
     }
+  }
+  // __split__ マーカーだけで中身が空になったキーを掃除
+  for(const k in result){
+    if(result[k]&&typeof result[k]==='object'&&Object.keys(result[k]).length===0) delete result[k];
   }
   return found?result:null;
 }
@@ -5876,7 +5940,7 @@ function App(){
     const prevRec=hsRecRef.current[name]||hsRecords[name]||{}; // v69: Ref未シード時もstateから復元（既存○消失を防ぐ）
     const curStatus=(prevRec[key]||{status:'未'}).status;
     const next=CYCLE[curStatus];
-    const nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():''}};
+    const nr={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?toDay():'',updatedAt:Date.now()}}; // v89: updatedAt追加（端末間マージ用）
     hsRecRef.current={...hsRecRef.current,[name]:nr}; // 同期で最新を保持
     sessionTouchedRef.current.add(name); // v70: 編集した生徒は背景再読込から永久保護
     setHsRecords(r=>({...r,[name]:nr}));              // 画面更新
@@ -5922,7 +5986,7 @@ function App(){
     const prevRec=jhRecByNameRef.current[sName]||jhRecByIdxRef.current[si]||jhRecords[si]||{};
     const curStatus=(prevRec[key]||{status:'未'}).status;
     const next=STATUS_CYCLE[curStatus];
-    const studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():''}};
+    const studentRecords={...prevRec,[key]:{status:next,teacher:next!=='未'?selTeacher:'',date:next!=='未'?today():'',updatedAt:Date.now()}}; // v89: updatedAt追加（端末間マージ用）
     jhRecByNameRef.current={...jhRecByNameRef.current,[sName]:studentRecords}; // 同期で最新を保持
     jhRecByIdxRef.current={...jhRecByIdxRef.current,[si]:studentRecords};
     sessionTouchedRef.current.add(sName); // v70: 編集した生徒は背景再読込から永久保護
@@ -5931,15 +5995,28 @@ function App(){
     setUnsavedNames(prev=>{ const n=new Set(prev); n.add(sName); unsavedRef.current=n; return n; });
   };
 
-  // v67: 指定した生徒の「その時点の完全な記録」を1回だけGAS保存する。
-  //   連打で壊れた中間値ではなく、最新stateのその生徒ぶん全体(全科目)を丸ごと保存。
-  //   返り値: true=保存成功 / false=失敗（呼び出し側で離脱を止める）
+  // v89: 【端末間マージ】保存直前にGAS最新を読み、項目ごとにupdatedAtが新しい方を採用してマージ。
+  //   複数端末（古田先生のタブレット等）が古いデータで丸ごと上書きしてしまう問題を根治。
+  //   - localの各項目: 自分が今編集した最新
+  //   - remoteの各項目: 他端末が保存した最新
+  //   - 項目ごとに updatedAt（ミリ秒）が大きい方を採用。updatedAtが無い旧データはremoteを尊重（消さない）。
+  const mergeRecordsByTimestamp=(local,remote)=>{
+    const merged={...(remote||{})}; // まずGAS最新を土台に（他端末の項目を絶対に消さない）
+    for(const [key,lv] of Object.entries(local||{})){
+      const rv=merged[key];
+      if(!rv){ merged[key]=lv; continue; } // remoteに無い→localを採用
+      const lt=lv&&typeof lv==='object'?(lv.updatedAt||0):0;
+      const rt=rv&&typeof rv==='object'?(rv.updatedAt||0):0;
+      // updatedAtが新しい方を採用。同値またはlocalが新しければlocal。
+      merged[key]=(lt>=rt)?lv:rv;
+    }
+    return merged;
+  };
+  // v67→v89: 指定生徒の記録を「GAS最新とマージしてから」保存する。
+  //   返り値: true=保存成功 / false=失敗
   const jhSaveStudentRecords=async(sName)=>{
-    // v68: 最新値はRefミラーから「同期」取得（setTimeout頼みの裏技を完全撤廃）。
     const latest=jhRecByNameRef.current[sName];
-    // v68: 空・undefinedは絶対に保存しない。
-    //   これがv63〜v67のデータ消失の根本原因（取得失敗→{}をGASに保存→既存記録を空で上書き）。
-    //   保存対象が無いだけなのでエラーにはせず、その生徒の未保存フラグだけ解除して離脱は許可。
+    // v68: 空・undefinedは絶対に保存しない（空上書き防止）。
     if(latest===undefined||latest===null||(typeof latest==='object'&&Object.keys(latest).length===0)){
       setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(sName); unsavedRef.current=n; return n; });
       console.warn('[jhSaveStudentRecords] 保存対象が空のため書き込みをスキップ（データ保護）',{sName});
@@ -5947,8 +6024,29 @@ function App(){
     }
     flash('💾 保存中...','saving');
     try{
-      // fullMap(localStorageキャッシュ用)もRefから同期取得（by-index）
-      const result=await jhSetMap('records',sName,latest,jhRecByIdxRef.current||{});
+      // v89: 保存直前にGAS最新を読んでマージ（他端末の更新を消さない）
+      let remote={};
+      try{
+        const all=await jhGetAll();
+        if(all){
+          const built=jhBuildMapFromAll(all,'records');
+          if(built&&built[sName]) remote=built[sName];
+        }
+      }catch(e){ console.warn('[jhSaveStudentRecords] 最新取得失敗、localのみで保存:',e); }
+      const merged=mergeRecordsByTimestamp(latest,remote);
+      // マージ結果が空になることは無いはずだが念のため空ガード
+      if(!merged||Object.keys(merged).length===0){
+        console.warn('[jhSaveStudentRecords] マージ結果が空のため保存中止（データ保護）',{sName});
+        setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(sName); unsavedRef.current=n; return n; });
+        return true;
+      }
+      // マージ結果をRef/stateにも反映（画面も最新マージ状態に）
+      const si=jhStudents.findIndex(s=>stripGrade(s)===sName);
+      jhRecByNameRef.current={...jhRecByNameRef.current,[sName]:merged};
+      if(si>=0) jhRecByIdxRef.current={...jhRecByIdxRef.current,[si]:merged};
+      setJhRecordsByName(prev=>({...prev,[sName]:merged}));
+      if(si>=0) setJhRecords(prev=>({...prev,[si]:merged}));
+      const result=await jhSetMap('records',sName,merged,jhRecByIdxRef.current||{});
       if(!result.ok){
         flash(`❌ ${sName}の保存失敗：${result.reason||''}`,'error');
         console.error('[jhSaveStudentRecords] 失敗',{sName,result});
@@ -5964,9 +6062,8 @@ function App(){
     }
   };
 
-  // v67: 高校生の完全state保存
+  // v67→v89: 高校生もGAS最新とマージしてから保存（端末間の上書き防止）
   const hsSaveStudentRecords=async(name)=>{
-    // v68: 最新値はRefから同期取得。空・undefinedは絶対に保存しない（空上書き防止）。
     const latest=hsRecRef.current[name];
     if(latest===undefined||latest===null||(typeof latest==='object'&&Object.keys(latest).length===0)){
       setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(name); unsavedRef.current=n; return n; });
@@ -5975,7 +6072,21 @@ function App(){
     }
     flash('💾 保存中...','saving');
     try{
-      await hsSet(`koukou:records:${name}`,latest);
+      // v89: 保存直前にGAS最新を読んでマージ（他端末の更新を消さない）
+      let remote={};
+      try{
+        const r=await hsGet(`koukou:records:${name}`,{});
+        if(r&&typeof r==='object') remote=r;
+      }catch(e){ console.warn('[hsSaveStudentRecords] 最新取得失敗、localのみで保存:',e); }
+      const merged=mergeRecordsByTimestamp(latest,remote);
+      if(!merged||Object.keys(merged).length===0){
+        console.warn('[hsSaveStudentRecords] マージ結果が空のため保存中止（データ保護）',{name});
+        setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(name); unsavedRef.current=n; return n; });
+        return true;
+      }
+      hsRecRef.current={...hsRecRef.current,[name]:merged};
+      setHsRecords(r=>({...r,[name]:merged}));
+      await hsSet(`koukou:records:${name}`,merged);
       setUnsavedNames(prev=>{ const n=new Set(prev); n.delete(name); unsavedRef.current=n; return n; });
       flash(`💾 ${name}を保存しました`);
       return true;
