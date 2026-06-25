@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="-1"/>
   <meta name="robots" content="noarchive"/>
   <!-- v23: アプリバージョン情報（B対策） -->
-  <meta name="app-version" content="v100"/>
+  <meta name="app-version" content="v102"/>
   <meta name="app-build-date" content="2026-06-17"/>
   <!-- v24: 教室ロゴfavicon（オレンジ背景に白「明」） -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
   <!-- iOS Safari用（ホーム画面に追加されたとき用） -->
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNlYTU4MGMiLz48dGV4dCB4PSIzMiIgeT0iNDgiIGZvbnQtZmFtaWx5PSJIaXJhZ2lubyBLYWt1IEdvdGhpYyBQcm9OLCBZdSBHb3RoaWMsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7mmI48L3RleHQ+PC9zdmc+"/>
-  <title>明光義塾 チェックアプリ v100</title>
+  <title>明光義塾 チェックアプリ v102</title>
   <!-- v95: CDNバージョンを完全固定（react@18→18.3.1）。「最新版を勝手に取得」して破壊的変更で壊れる事故を根絶 -->
   <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
@@ -52,7 +52,7 @@
   <script>
     // === 強力キャッシュ対策システム（v23強化版） ===
     (function(){
-      const APP_VERSION = "v100-20260623";  // v100 練ゼミタブで受講していない科目を「📐 数学：練ゼミ受講なし」「📖 英語：練ゼミ受講なし」と明示表示（従来は受講なし科目はreturn nullで非表示＝何が受講なしか分からなかった）。あわせて練ゼミタブで誤って出ていた汎用「受講なし（練ゼミ）」を抑止。両科目とも受講なしの場合は従来通りまとめメッセージ。表示のみの変更でデータ・記録・保存読込への影響ゼロ。フック増減ゼロ。/ v99 テキスト名表記を教室の呼称に合わせて調整：「明光式」→「明光式ワーク」（算数・国語）、英語のY系「+10」→「α+10」。TEXTBOOK_NAME定数1箇所の文言変更のみで機能・データへの影響ゼロ。/ v98 講師チェック画面の単元一覧の見出しにテキスト名を表示（例「国語 ウィンパス・全39単元（テキスト順）」）。テキストキーのサフィックス(X=ウィンパス/Y=明光式・数学α+10・英語+10/Z=光村・東書/W=エフォート)から科目別にテキスト名を導出して科目名の隣に表示。表示文言の追加のみで、データ・記録・並び順・保存読込への影響は一切なし。フック増減ゼロ。/ v97 v96で末尾に温存していた3単元（中3数学ウイニングの「関数y=ax²のグラフ」「関数y=ax²の利用」、小6国語ウインパスの「物語(2)」）を単元管理表の正しい位置に差し込み。原因は表記ゆれ（²↔^2／単元管理表側の誤字「物事(2)」）で自動照合が外れていたもの。照合を改良し全テキスト未マッチ0。単元ID（記録キー）は不変＝既存データ影響ゼロ。/ v96 ★単元の並び順を単元管理表（テキスト）の順に統一★ 小1〜中3の全34テキストについて、CHAPTERSの単元を単元管理表（Excel）の掲載順に並べ直した。従来はv94のID末尾数字昇順ソートが小3算数等で不発（id"316b"等の英字混じりが原因）となりカテゴリ束ね順で表示され、計算単元が固まり時計が後方(29番目)に飛ぶ等テキストと順序が食い違っていた。v96は①各テキストを1章に統合しExcel掲載順で保持、②表示ソート自体を廃止しデータ順そのまま表示、③不要な章区切り(📂)を非表示化。単元ID（記録キー=科目_単元ID）は1件も変更しておらず、並べ替え前後でID集合の完全一致を全テキストで機械検証済み＝既存の保存データは一切消えない。フック増減ゼロ。/ v95 ★緊急修正★ CDNのバージョンを完全固定。Babelの無印URL(=最新版)がBabel8.0.0を引くようになり、type="text/babel"の変換仕様変更で「Cannot use import statement outside a module」が発生→Reactがマウントできず全画面が開けなくなった事故を根治。react/react-dom→18.3.1、@babel/standalone→7.29.0に固定。これで他者が勝手にバージョンを上げても影響ゼロ。アプリのロジック・データ・保存/読込・フック数は一切変更なし。/ v94 小中学生チェック画面の章タブを廃止し、全単元を「単元管理表（テキスト）の順番」で1本のリストに表示。単元番号（IDの末尾数字）昇順で並べ、章名は薄い区切り行（📂）として残す。記録キー（科目_単元ID）はタブ構造と無関係のため、保存・読込・既存データへの影響は完全にゼロ。番号が取れないテキストはデータ順のまま表示する安全フォールバック付き。テスト範囲ハイライト・スタート/ゴールバッジ・スキップ機能は全て維持。フック増減ゼロ。/ v93 黄チャート・青チャートの入門精講対応を実装。白(Ⅰ8+A5=13章)と黄青(Ⅰ5+A4=9章/Ⅱ7+B2+C4=13章)で章構成が違うため、白用マップを黄青に流用すると添字がズレて非対応だった。黄と青は章構成が完全同一のため共用マップ(NYUMON_CHART_MAP_IA_YB/IIB_YB)を新設し、getChartMapにテキストセットキーを渡してチャート色でマップ切替。白・ⅢCは従来通り無変更。フック増減ゼロ。/ v92 高校生保存の静かな失敗を根治。①hsSetを堅牢化：旧版はcatch{}で失敗を握りつぶしHTTPステータスも未確認＝保存失敗でも「保存しました」と表示していた(紗耶佳先生の「昨晩入れたのに消えた」の真因)。v92はリトライ3回＋成功判定＋正直な{ok}を返す。②保存通信をGET→POST化(jh/hs両方)：URL長~8000字制限を構造的に撤廃。記録が多い生徒でも保存が400で弾かれない(GETフォールバック保険付き)。③hsSaveStudentRecordsが保存結果を確認し、失敗時は❌表示＋未保存フラグ維持(嘘の成功表示を廃止)。④beforeunloadでsendBeacon緊急保存：タブを閉じた瞬間でもブラウザに殺されず配送される(「閉じて消えた」経路を塞ぐ)。フック増減ゼロ。/ v91 診断ログ版。jhSaveStudentRecordsにconsole.logを追加し、保存ボタン押下時のlatest(Refの中身)/remote(GAS最新)/merged(GASに書く中身)/jhSetMap戻り値を全て出力。保存動作そのものは一切変更なし(ログ追加のみ)。p605〜607がどの工程で消えるかを実物で特定するための一時版。原因特定後に撤去する。/ v90 v89のチャンク分割保存(##part)を撤去。マージ保存は維持。/ v89 複数端末での進捗上書き消失を根治。原因：保存が「その生徒の記録を丸ごと上書き」方式のため、古い端末(古田先生のタブレット等)が古いデータで保存すると他端末の新しい入力を消していた。対策(案A)：①各記録項目にupdatedAt(ミリ秒)を付与、②保存直前にGAS最新を読み、項目ごとにupdatedAtが新しい方を採用してマージしてから書き戻す(mergeRecordsByTimestamp)。他端末の項目を絶対に消さない。jh/hs両対応。+保険でjhSetMapに自動チャンク分割保存(URL長制限対策)も実装。フック増減ゼロ。/ v88  // v88 ①救出レポートの文言改善(v87は読込インデックス非依存のため旧インデックス未登録42名も全員表示される旨を明記)。②__MEIKO_VERIFY_READ__()追加：v87新読込ロジックで実際に何名読めるか検証(武村咲希含む90名全員読込確認用)。読込/保存ロジック本体はv87から変更なし。フック増減ゼロ。/ v87  // v87 データ消失問題を根治。①jhGetMapをインデックス非依存化(getallで全__item__を直接取得)→インデックスが壊れていても全データを読込可能に。②jhSetMapからインデックス更新を廃止(個別キー保存のみ)→130人でURL長制限超過してインデックス保存失敗→読込欠落する温床を除去。保存結果もok:true/falseを正直に返す。③保険として__MEIKO_REBUILD_INDEX__()を追加。データ本体(90名806項目)は全て無事。フック増減ゼロ。/ v86  // v86 データ救出ツール__MEIKO_RESCUE__()を追加(読み取り専用)。GASのgetallで全recordsを直接取得し、インデックス未登録だが実データが存在する迷子の生徒を検出・救出。武村咲希等のデータ生存確認用。データ変更は一切なし。フック増減ゼロ。/ v85  // v85 小2算数に東書(Z)版を追加(201-243の43単元,5チャンク)。テキスト設定モーダルの算数選択肢に明光式(東書)ボタン(東バッジ)を追加。CHAPTERSに該当学年Zキーが存在する場合のみ表示する判定式。フック増減ゼロ。/ v84  // ✨ v84 ①v83クラッシュバグ修正：jhTextbookOverridesByNameをApp関数スコープにも追加（DirectorSetting内のみ定義だったためAppスコープ外から参照不可→練ゼミタブで真っ白）。②コンソール診断強化：window.__MEIKO_DIAG__()を貼るだけでバージョン/DBロード/Reactマウント/エラー数/localStorage全項目を一括診断。console.errorを自動収集→window.__MEIKO_ERRORS__で原因特定。useMemo+1は意図的。/ v83  // ✨ v83 緊急修正：生徒削除後にテキスト設定がずれる根本バグを根治。jhTextbookOverrides[インデックス]参照（4箇所）をjhTextbookOverridesByName[名前]参照に統一。生徒削除でインデックスがずれても正しい生徒のテキスト設定を参照するように。講師チェック画面・教室長設定画面・進捗集計の全4箇所を修正。/ v82  // ✨ v82 進捗ダッシュボードの小中学生データ取得を修正。生徒削除後にjhStudentIdxs(インデックス配列)がずれて別の生徒データを参照するバグを根治。ダッシュボードはjhAllStudents(名前リスト)から直接全生徒を取得するよう変更。データ本体は名前キー保存のため安全。フック増減ゼロ。/ v81  // ✨ v81 高校生チェック画面の入門精講↔チャート対応をさらに修正。v79の対応マップは正しかったが、chartRange(cFrom/cTo)による範囲制限が対応マップ使用時にも効いてしまい、白チャートⅡBCの合算15章のうちcTo(旧設定値)を超える章（数列・ベクトル等）が表示されない問題を根治。対応マップ使用時はcFrom/cToチェックを完全スキップ。フック増減ゼロ。/ v80  // ✨ v80 小2国語Y/Zキーのデータ修正。v78でキー名入れ替え時に中身が逆になっていた問題を根治（小2Y=東書・小2Z=光村に正しく整合）。v79の入門精講↔チャート単元対応（NYUMON_CHART_MAP）は維持。/ v79  // ✨ v79 高校生チェック画面で入門精講とチャートを単元対応させて表示。従来は添字対応（入門精講第i章＋チャート第i章）だったため「入門：三角比 ＋ チャート：図形と方程式」のようなズレが発生していた。v79では入門精講の章を軸に、単元対応マップ(NYUMON_CHART_MAP_IA/IIB)を使って「入門：三角比 ＋ チャート：三角比」と正しく対応。複数チャート章に対応する入門章（整数・図形と方程式等）はチャート章を結合して1ブロックに表示。入門精講に対応しないチャート章のみの単元は末尾に独立表示。ⅢCは従来どおり。フック増減ゼロ。/ v78  // ✨ v78 ①教室長の生徒選択画面に「🎓 講師モードへ」ボタンを追加。教室長モードのまま生徒選択後、再ログインなしで即講師モードへ切り替え可能。②小学国語テキストのデフォルト/特別版を入れ替え：東書(Y)をデフォルト・光村(Z)を特別版（「光」バッジ）に変更。CHAPTERSキーも整合調整。③は確認中につき次版で対応。フック増減ゼロ。/ v77  // ✨ v77 小学国語・算数テキスト大幅追加。①小2Y_国語（光村46単元）、②小2〜6Z_国語（東書特別版、各46〜55単元）、③小4W_算数（エフォートⅠ 31単元）、④小5W_算数（エフォートⅡ 37単元）をCHAPTERSに追加。国語テキスト選択UIを光村(Y)/東書(Z)/ウィンパス(X)/受講なしの最大4択に対応（東書に「特」バッジ表示）。ボタン列数を選択肢数に応じて2〜3列に自動調整。保存・読込パスへの変更ゼロ。/ v76  // ✨ v76 テキスト設定モーダルを科目ごとに独立した学年選択に変更。数学は中２・英語は中１のように科目単位で個別最適化が可能に。specialGrade(単一)→specialGrades(科目キー別オブジェクト)に置き換え。各科目に「🔧 別学年」ボタンを設置し押下するとその科目のみの学年ピッカーが展開。「← 中Xに戻す」も科目ごとに独立。保存・読込パスへの変更ゼロ。useState+1(openPicker追加)は意図的。/ v75  // ✨ v75 パスワード画面に手動保存の重要案内ボックスを追加。講師が「消えた」と混乱しないように、ログイン前に必ず①○クリックは未保存、②生徒切替/科目切替/💾保存で保存、③「保存中…」表示中は閉じない、④「保存しました」確認の4点を表示。フック増減ゼロ。/ v74 教室長設定の安心仕様。①未保存のまま別生徒に切り替えようとすると確認ダイアログ。②ヘッダーに「💾 未保存N人を保存」ボタン(N>0のときオレンジ表示)で一括保存可能。③サイドバーの未保存生徒は●印＋オレンジ枠で一目瞭然。④戻るボタンも未保存があれば確認。useState+1(99→100、dirtyNames・教室長設定のみ)は意図的。/ v73 数学(入門精講＋チャート)のデフォルト期間を11か月→10か月に調整（運用実態に合わせて）。教室長の都合の良い計画作成へ微調整。/ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
+      const APP_VERSION = "v102-20260623";  // v102 英単語テストを実戦仕様に拡張。①各範囲を最大5回まで再テスト記録（不合格だと次の回の入力欄が増える）。②合格判定＝満点×割合(切り上げ)以上。合格ラインは教室長が設定可（デフォルト7割）。③2回不合格で3回目に進むと「⚠️教室長面談」サイン表示。④フォレスタ半分パターン：教室長が生徒ごとにON/OFF、ONなら各範囲を前半/後半(20語ずつ・端数は前半多め)に分割して記録。⑤教室長ダッシュボードに合格ライン設定・半分モード切替・要面談集計・5回対応CSVを追加。新キー(vocabHalf/vocabPassRate)を追加するだけで既存記録に影響なし。v101の点数は自動で1回目として引継ぎ。useState+2(jhVocabHalf/jhVocabPassRate)は意図的。/ v101 英単語テスト機能を新規追加。①講師チェック画面に新タブ「📝 英単語」：範囲ごとに点数(満点付き)を記録（フォレスタ=級20＋段15の35範囲/ターゲット1800=40語ずつ45範囲、満点は範囲の語数）。②生徒ごとにテキスト切替（全学年デフォルト=フォレスタ、ボタンでターゲット1800へ変更可、7/21の切替対応）。③教室長アプリに「英単語の進捗一覧」ダッシュボード＋CSV出力。データは練ゼミと同じjhSetMap個別保存で新キー(vocabAssign/vocabProgress)に保存＝既存の単元・練ゼミ記録には一切影響なし。useState+3(jhVocabAssign/jhVocabProgress/showVocabOverview)は本機能に必須の意図的追加。/ v100 練ゼミタブで受講していない科目を「📐 数学：練ゼミ受講なし」「📖 英語：練ゼミ受講なし」と明示表示（従来は受講なし科目はreturn nullで非表示＝何が受講なしか分からなかった）。あわせて練ゼミタブで誤って出ていた汎用「受講なし（練ゼミ）」を抑止。両科目とも受講なしの場合は従来通りまとめメッセージ。表示のみの変更でデータ・記録・保存読込への影響ゼロ。フック増減ゼロ。/ v99 テキスト名表記を教室の呼称に合わせて調整：「明光式」→「明光式ワーク」（算数・国語）、英語のY系「+10」→「α+10」。TEXTBOOK_NAME定数1箇所の文言変更のみで機能・データへの影響ゼロ。/ v98 講師チェック画面の単元一覧の見出しにテキスト名を表示（例「国語 ウィンパス・全39単元（テキスト順）」）。テキストキーのサフィックス(X=ウィンパス/Y=明光式・数学α+10・英語+10/Z=光村・東書/W=エフォート)から科目別にテキスト名を導出して科目名の隣に表示。表示文言の追加のみで、データ・記録・並び順・保存読込への影響は一切なし。フック増減ゼロ。/ v97 v96で末尾に温存していた3単元（中3数学ウイニングの「関数y=ax²のグラフ」「関数y=ax²の利用」、小6国語ウインパスの「物語(2)」）を単元管理表の正しい位置に差し込み。原因は表記ゆれ（²↔^2／単元管理表側の誤字「物事(2)」）で自動照合が外れていたもの。照合を改良し全テキスト未マッチ0。単元ID（記録キー）は不変＝既存データ影響ゼロ。/ v96 ★単元の並び順を単元管理表（テキスト）の順に統一★ 小1〜中3の全34テキストについて、CHAPTERSの単元を単元管理表（Excel）の掲載順に並べ直した。従来はv94のID末尾数字昇順ソートが小3算数等で不発（id"316b"等の英字混じりが原因）となりカテゴリ束ね順で表示され、計算単元が固まり時計が後方(29番目)に飛ぶ等テキストと順序が食い違っていた。v96は①各テキストを1章に統合しExcel掲載順で保持、②表示ソート自体を廃止しデータ順そのまま表示、③不要な章区切り(📂)を非表示化。単元ID（記録キー=科目_単元ID）は1件も変更しておらず、並べ替え前後でID集合の完全一致を全テキストで機械検証済み＝既存の保存データは一切消えない。フック増減ゼロ。/ v95 ★緊急修正★ CDNのバージョンを完全固定。Babelの無印URL(=最新版)がBabel8.0.0を引くようになり、type="text/babel"の変換仕様変更で「Cannot use import statement outside a module」が発生→Reactがマウントできず全画面が開けなくなった事故を根治。react/react-dom→18.3.1、@babel/standalone→7.29.0に固定。これで他者が勝手にバージョンを上げても影響ゼロ。アプリのロジック・データ・保存/読込・フック数は一切変更なし。/ v94 小中学生チェック画面の章タブを廃止し、全単元を「単元管理表（テキスト）の順番」で1本のリストに表示。単元番号（IDの末尾数字）昇順で並べ、章名は薄い区切り行（📂）として残す。記録キー（科目_単元ID）はタブ構造と無関係のため、保存・読込・既存データへの影響は完全にゼロ。番号が取れないテキストはデータ順のまま表示する安全フォールバック付き。テスト範囲ハイライト・スタート/ゴールバッジ・スキップ機能は全て維持。フック増減ゼロ。/ v93 黄チャート・青チャートの入門精講対応を実装。白(Ⅰ8+A5=13章)と黄青(Ⅰ5+A4=9章/Ⅱ7+B2+C4=13章)で章構成が違うため、白用マップを黄青に流用すると添字がズレて非対応だった。黄と青は章構成が完全同一のため共用マップ(NYUMON_CHART_MAP_IA_YB/IIB_YB)を新設し、getChartMapにテキストセットキーを渡してチャート色でマップ切替。白・ⅢCは従来通り無変更。フック増減ゼロ。/ v92 高校生保存の静かな失敗を根治。①hsSetを堅牢化：旧版はcatch{}で失敗を握りつぶしHTTPステータスも未確認＝保存失敗でも「保存しました」と表示していた(紗耶佳先生の「昨晩入れたのに消えた」の真因)。v92はリトライ3回＋成功判定＋正直な{ok}を返す。②保存通信をGET→POST化(jh/hs両方)：URL長~8000字制限を構造的に撤廃。記録が多い生徒でも保存が400で弾かれない(GETフォールバック保険付き)。③hsSaveStudentRecordsが保存結果を確認し、失敗時は❌表示＋未保存フラグ維持(嘘の成功表示を廃止)。④beforeunloadでsendBeacon緊急保存：タブを閉じた瞬間でもブラウザに殺されず配送される(「閉じて消えた」経路を塞ぐ)。フック増減ゼロ。/ v91 診断ログ版。jhSaveStudentRecordsにconsole.logを追加し、保存ボタン押下時のlatest(Refの中身)/remote(GAS最新)/merged(GASに書く中身)/jhSetMap戻り値を全て出力。保存動作そのものは一切変更なし(ログ追加のみ)。p605〜607がどの工程で消えるかを実物で特定するための一時版。原因特定後に撤去する。/ v90 v89のチャンク分割保存(##part)を撤去。マージ保存は維持。/ v89 複数端末での進捗上書き消失を根治。原因：保存が「その生徒の記録を丸ごと上書き」方式のため、古い端末(古田先生のタブレット等)が古いデータで保存すると他端末の新しい入力を消していた。対策(案A)：①各記録項目にupdatedAt(ミリ秒)を付与、②保存直前にGAS最新を読み、項目ごとにupdatedAtが新しい方を採用してマージしてから書き戻す(mergeRecordsByTimestamp)。他端末の項目を絶対に消さない。jh/hs両対応。+保険でjhSetMapに自動チャンク分割保存(URL長制限対策)も実装。フック増減ゼロ。/ v88  // v88 ①救出レポートの文言改善(v87は読込インデックス非依存のため旧インデックス未登録42名も全員表示される旨を明記)。②__MEIKO_VERIFY_READ__()追加：v87新読込ロジックで実際に何名読めるか検証(武村咲希含む90名全員読込確認用)。読込/保存ロジック本体はv87から変更なし。フック増減ゼロ。/ v87  // v87 データ消失問題を根治。①jhGetMapをインデックス非依存化(getallで全__item__を直接取得)→インデックスが壊れていても全データを読込可能に。②jhSetMapからインデックス更新を廃止(個別キー保存のみ)→130人でURL長制限超過してインデックス保存失敗→読込欠落する温床を除去。保存結果もok:true/falseを正直に返す。③保険として__MEIKO_REBUILD_INDEX__()を追加。データ本体(90名806項目)は全て無事。フック増減ゼロ。/ v86  // v86 データ救出ツール__MEIKO_RESCUE__()を追加(読み取り専用)。GASのgetallで全recordsを直接取得し、インデックス未登録だが実データが存在する迷子の生徒を検出・救出。武村咲希等のデータ生存確認用。データ変更は一切なし。フック増減ゼロ。/ v85  // v85 小2算数に東書(Z)版を追加(201-243の43単元,5チャンク)。テキスト設定モーダルの算数選択肢に明光式(東書)ボタン(東バッジ)を追加。CHAPTERSに該当学年Zキーが存在する場合のみ表示する判定式。フック増減ゼロ。/ v84  // ✨ v84 ①v83クラッシュバグ修正：jhTextbookOverridesByNameをApp関数スコープにも追加（DirectorSetting内のみ定義だったためAppスコープ外から参照不可→練ゼミタブで真っ白）。②コンソール診断強化：window.__MEIKO_DIAG__()を貼るだけでバージョン/DBロード/Reactマウント/エラー数/localStorage全項目を一括診断。console.errorを自動収集→window.__MEIKO_ERRORS__で原因特定。useMemo+1は意図的。/ v83  // ✨ v83 緊急修正：生徒削除後にテキスト設定がずれる根本バグを根治。jhTextbookOverrides[インデックス]参照（4箇所）をjhTextbookOverridesByName[名前]参照に統一。生徒削除でインデックスがずれても正しい生徒のテキスト設定を参照するように。講師チェック画面・教室長設定画面・進捗集計の全4箇所を修正。/ v82  // ✨ v82 進捗ダッシュボードの小中学生データ取得を修正。生徒削除後にjhStudentIdxs(インデックス配列)がずれて別の生徒データを参照するバグを根治。ダッシュボードはjhAllStudents(名前リスト)から直接全生徒を取得するよう変更。データ本体は名前キー保存のため安全。フック増減ゼロ。/ v81  // ✨ v81 高校生チェック画面の入門精講↔チャート対応をさらに修正。v79の対応マップは正しかったが、chartRange(cFrom/cTo)による範囲制限が対応マップ使用時にも効いてしまい、白チャートⅡBCの合算15章のうちcTo(旧設定値)を超える章（数列・ベクトル等）が表示されない問題を根治。対応マップ使用時はcFrom/cToチェックを完全スキップ。フック増減ゼロ。/ v80  // ✨ v80 小2国語Y/Zキーのデータ修正。v78でキー名入れ替え時に中身が逆になっていた問題を根治（小2Y=東書・小2Z=光村に正しく整合）。v79の入門精講↔チャート単元対応（NYUMON_CHART_MAP）は維持。/ v79  // ✨ v79 高校生チェック画面で入門精講とチャートを単元対応させて表示。従来は添字対応（入門精講第i章＋チャート第i章）だったため「入門：三角比 ＋ チャート：図形と方程式」のようなズレが発生していた。v79では入門精講の章を軸に、単元対応マップ(NYUMON_CHART_MAP_IA/IIB)を使って「入門：三角比 ＋ チャート：三角比」と正しく対応。複数チャート章に対応する入門章（整数・図形と方程式等）はチャート章を結合して1ブロックに表示。入門精講に対応しないチャート章のみの単元は末尾に独立表示。ⅢCは従来どおり。フック増減ゼロ。/ v78  // ✨ v78 ①教室長の生徒選択画面に「🎓 講師モードへ」ボタンを追加。教室長モードのまま生徒選択後、再ログインなしで即講師モードへ切り替え可能。②小学国語テキストのデフォルト/特別版を入れ替え：東書(Y)をデフォルト・光村(Z)を特別版（「光」バッジ）に変更。CHAPTERSキーも整合調整。③は確認中につき次版で対応。フック増減ゼロ。/ v77  // ✨ v77 小学国語・算数テキスト大幅追加。①小2Y_国語（光村46単元）、②小2〜6Z_国語（東書特別版、各46〜55単元）、③小4W_算数（エフォートⅠ 31単元）、④小5W_算数（エフォートⅡ 37単元）をCHAPTERSに追加。国語テキスト選択UIを光村(Y)/東書(Z)/ウィンパス(X)/受講なしの最大4択に対応（東書に「特」バッジ表示）。ボタン列数を選択肢数に応じて2〜3列に自動調整。保存・読込パスへの変更ゼロ。/ v76  // ✨ v76 テキスト設定モーダルを科目ごとに独立した学年選択に変更。数学は中２・英語は中１のように科目単位で個別最適化が可能に。specialGrade(単一)→specialGrades(科目キー別オブジェクト)に置き換え。各科目に「🔧 別学年」ボタンを設置し押下するとその科目のみの学年ピッカーが展開。「← 中Xに戻す」も科目ごとに独立。保存・読込パスへの変更ゼロ。useState+1(openPicker追加)は意図的。/ v75  // ✨ v75 パスワード画面に手動保存の重要案内ボックスを追加。講師が「消えた」と混乱しないように、ログイン前に必ず①○クリックは未保存、②生徒切替/科目切替/💾保存で保存、③「保存中…」表示中は閉じない、④「保存しました」確認の4点を表示。フック増減ゼロ。/ v74 教室長設定の安心仕様。①未保存のまま別生徒に切り替えようとすると確認ダイアログ。②ヘッダーに「💾 未保存N人を保存」ボタン(N>0のときオレンジ表示)で一括保存可能。③サイドバーの未保存生徒は●印＋オレンジ枠で一目瞭然。④戻るボタンも未保存があれば確認。useState+1(99→100、dirtyNames・教室長設定のみ)は意図的。/ v73 数学(入門精講＋チャート)のデフォルト期間を11か月→10か月に調整（運用実態に合わせて）。教室長の都合の良い計画作成へ微調整。/ v72 高校生ロードマップの面倒くささを解消。①登録順を示す数字バッジ(1,2,3)を削除＝意味のない番号で混乱しない。②ステップ追加時の開始日・完了予定日を自動セット：直前の同教科ステップの完了予定日の「翌日」から開始＋テキスト別の標準月数(肘井=4/大岩=5/数学(入門精講＋チャート)=11)で完了予定日を自動計算。3冊×3年分の月送り何十回が一発で入る。微調整は教室長が手動。フック増減なし。/ v71 保存メッセージを画面中央に大きく表示するオーバーレイを追加。「保存中」時は半透明の暗幕＋⚠️「完了するまで画面を閉じないでください」警告で講師の不用意なシャットダウンを防止。右上の小さなピルも維持(編集中の状態表示用)。色は保存中=黄/成功=緑/失敗=赤。フック増減なし(JSX追加のみ)。/ v70 sessionTouchedRefを追加：「このセッションで1度でも触れた(編集or保存した)生徒」を背景再読込・キャッシュ描画から永久保護。v69のunsavedRefは保存成功で解除→直後に遅れて到着するgetall応答(6〜10秒)が画面を空白で上書きしていた競合(=v62以降の3秒空白現象)を構造的に根治。クロス端末同期はページ再読込で正常に効く(塾内運用に支障なし)。サーバー側のデータは無事(再ログインで戻る)=画面表示のみの問題だった。useRef+1(4→5)は意図的。/ v69 高校生クリック処理にstateフォールバックを追加(Ref未シード時に既存○が消える不具合を修正)。さらに背景再読込が未保存(編集中)の生徒をサーバーの古い値で上書きする競合を防止(JH/HS両方・unsavedRefで保護)。「自動ステップ送り(getAutoCurrentIdx)」は保存と無関係の既存仕様で変更なし。useRef+1(3→4)は意図的。/ v68 保存時の最新値読取をsetTimeout頼みの裏技から「クリック時に同期更新するRefミラー」に変更し連打でも確実に最新を保存。さらに空・undefinedは絶対に保存しない安全弁を追加しv63〜v67のデータ消失(空上書き)経路を構造的に廃止。v67の良い設計(連打サクサク・3パターンまとめ保存)は維持。useRef+3(0→3)は本修正に不可欠な意図的追加。/ v67 保存方式を刷新。v63〜v66で連打時に「1クリックごとGAS保存」が中間値を保存し、F5でデータが空になる致命的不具合があった。v67: ○クリックは画面stateの更新のみ（GAS通信ゼロ＝連打で絶対に壊れない・サクサク）。GAS保存は「生徒切替・科目切替・生徒選択へ戻る・タブ閉じ/リロード・手動保存ボタン」時に、その生徒の完全state（全科目まるごと）を1回だけjhSetMap/hsSetで保存。中間値が保存される経路を構造的に廃止。未保存のまま離脱しようとすると確認ダイアログ（保存して移動/留まる）。手動保存ボタンをヘッダーに常設（未保存時オレンジ表示）。useState+1(unsavedNames=99)、useEffect+1(beforeunload=7)は本機能に不可欠な意図的追加。__recordCycleQueueは不要化のため削除。/ v64 バージョン表示をAPP_VERSION1箇所から自動導出・自動上書き。/ v62 小中学生テキスト設定の保存をrecordsと同じ生徒ごと分割保存(jhSetMap)に統一しURL長制限の保存失敗を根治。読込も旧単一キー＋分割キー統合に。GAS変更不要。/ v60→v61 小中学生テキストモーダルに「特別パターン（学年違いテキスト）」を追加。通常は今の学年のテキストのみ表示（130人の通常運用は完全に従来どおり）。特別パターンボタン→学年選択→その学年のテキスト候補→保存。単元・進捗は既存のCHAPTERS[キー]の仕組みでそのまま反映。学年違いのoverride既存生徒は自動で特別モードで開く（既存データ保護）。データ構造・保存処理は無変更。
       // v63b: 表示用バージョンは APP_VERSION ("vXX-YYYYMMDD?") から自動導出（手動更新漏れによる表示ズレを根絶）
       const APP_DISPLAY_VERSION = (APP_VERSION.match(/^(v\d+)/)||[,'?'])[1];  // 例: "v63"
       const APP_BUILD_DATE = (function(){
@@ -316,6 +316,8 @@ const JH_STUDENTS_DEFAULT = [];
 // 練ゼミノート（自習用）v17: R/S/W × 数英 × 1〜3年 = 18テキスト
 //   RはRファイルから取り込み、S・Wは空配列（後日データ投入）
 const RENZEMI_BOOKS = {"math1R":[{"num":1,"text":"小学校の復習…数と計算"},{"num":2,"text":"小学校の復習…図形"},{"num":3,"text":"正負の数の意味"},{"num":4,"text":"正負の数の加法と減法"},{"num":5,"text":"正負の数の乗法と除法"},{"num":6,"text":"正負の数の四則計算"},{"num":7,"text":"素因数分解"}],"math1S":[],"math1W":[],"eng1R":[{"num":1,"text":"アルファベット"},{"num":2,"text":"単語"},{"num":3,"text":"英文のしくみと書き方"},{"num":4,"text":"I am~.Are you~?の文"},{"num":5,"text":"This is~.の文"},{"num":6,"text":"I like~.の文"},{"num":7,"text":"He is~.She is~.の文"},{"num":8,"text":"canを用いた文"},{"num":9,"text":"疑問詞を用いた疑問文"}],"eng1S":[],"eng1W":[],"math2R":[{"num":1,"text":"正負の数"},{"num":2,"text":"文字式"},{"num":3,"text":"１次方程式"},{"num":4,"text":"式の計算"},{"num":5,"text":"式の計算の利用"},{"num":6,"text":"比例・反比例"},{"num":7,"text":"平面図形"},{"num":8,"text":"空間図形"},{"num":9,"text":"データの活用"}],"math2S":[],"math2W":[],"eng2R":[{"num":1,"text":"be動詞・一般動詞"},{"num":2,"text":"現在進行形・can"},{"num":3,"text":"一般動詞の過去形"},{"num":4,"text":"be動詞の過去形"},{"num":5,"text":"疑問詞を使う疑問文"},{"num":6,"text":"過去進行形"},{"num":7,"text":"不定詞・動名詞"}],"eng2S":[],"eng2W":[],"math3R":[{"num":1,"text":"式の計算"},{"num":2,"text":"方程式"},{"num":3,"text":"確率、データの活用"},{"num":4,"text":"式の展開"},{"num":5,"text":"因数分解"},{"num":6,"text":"関数"},{"num":7,"text":"平行と合同"},{"num":8,"text":"三角形と四角形"}],"math3S":[],"math3W":[],"eng3R":[{"num":1,"text":"動詞と時制"},{"num":2,"text":"助動詞"},{"num":3,"text":"不定詞"},{"num":4,"text":"比較"},{"num":5,"text":"受動態"},{"num":6,"text":"現在完了"},{"num":7,"text":"文型"},{"num":8,"text":"文法問題演習"}],"eng3S":[],"eng3W":[]};
+const VOCAB_BOOKS = {foresta:[{num:1,label:"20級",range:"1〜40",max:40},{num:2,label:"19級",range:"41〜80",max:40},{num:3,label:"18級",range:"81〜120",max:40},{num:4,label:"17級",range:"121〜160",max:40},{num:5,label:"16級",range:"161〜200",max:40},{num:6,label:"15級",range:"201〜240",max:40},{num:7,label:"14級",range:"241〜280",max:40},{num:8,label:"13級",range:"281〜320",max:40},{num:9,label:"12級",range:"321〜360",max:40},{num:10,label:"11級",range:"361〜400",max:40},{num:11,label:"10級",range:"401〜440",max:40},{num:12,label:"9級",range:"441〜480",max:40},{num:13,label:"8級",range:"481〜507",max:27},{num:14,label:"7級",range:"508〜530",max:23},{num:15,label:"6級",range:"531〜570",max:40},{num:16,label:"5級",range:"571〜610",max:40},{num:17,label:"4級",range:"611〜650",max:40},{num:18,label:"3級",range:"651〜690",max:40},{num:19,label:"2級",range:"691〜730",max:40},{num:20,label:"1級",range:"731〜770",max:40},{num:21,label:"初段",range:"771〜810",max:40},{num:22,label:"2段",range:"811〜850",max:40},{num:23,label:"3段",range:"851〜890",max:40},{num:24,label:"4段",range:"891〜930",max:40},{num:25,label:"5段",range:"931〜970",max:40},{num:26,label:"6段",range:"971〜1010",max:40},{num:27,label:"7段",range:"1011〜1050",max:40},{num:28,label:"8段",range:"1051〜1090",max:40},{num:29,label:"9段",range:"1091〜1130",max:40},{num:30,label:"10段",range:"1131〜1170",max:40},{num:31,label:"11段",range:"1171〜1210",max:40},{num:32,label:"12段",range:"1211〜1250",max:40},{num:33,label:"13段",range:"1251〜1290",max:40},{num:34,label:"14段",range:"1291〜1330",max:40},{num:35,label:"15段",range:"1331〜1370",max:40}],target1800:[{num:1,label:"1〜40",range:"1〜40",max:40},{num:2,label:"41〜80",range:"41〜80",max:40},{num:3,label:"81〜120",range:"81〜120",max:40},{num:4,label:"121〜160",range:"121〜160",max:40},{num:5,label:"161〜200",range:"161〜200",max:40},{num:6,label:"201〜240",range:"201〜240",max:40},{num:7,label:"241〜280",range:"241〜280",max:40},{num:8,label:"281〜320",range:"281〜320",max:40},{num:9,label:"321〜360",range:"321〜360",max:40},{num:10,label:"361〜400",range:"361〜400",max:40},{num:11,label:"401〜440",range:"401〜440",max:40},{num:12,label:"441〜480",range:"441〜480",max:40},{num:13,label:"481〜520",range:"481〜520",max:40},{num:14,label:"521〜560",range:"521〜560",max:40},{num:15,label:"561〜600",range:"561〜600",max:40},{num:16,label:"601〜640",range:"601〜640",max:40},{num:17,label:"641〜680",range:"641〜680",max:40},{num:18,label:"681〜720",range:"681〜720",max:40},{num:19,label:"721〜760",range:"721〜760",max:40},{num:20,label:"761〜800",range:"761〜800",max:40},{num:21,label:"801〜840",range:"801〜840",max:40},{num:22,label:"841〜880",range:"841〜880",max:40},{num:23,label:"881〜920",range:"881〜920",max:40},{num:24,label:"921〜960",range:"921〜960",max:40},{num:25,label:"961〜1000",range:"961〜1000",max:40},{num:26,label:"1001〜1040",range:"1001〜1040",max:40},{num:27,label:"1041〜1080",range:"1041〜1080",max:40},{num:28,label:"1081〜1120",range:"1081〜1120",max:40},{num:29,label:"1121〜1160",range:"1121〜1160",max:40},{num:30,label:"1161〜1200",range:"1161〜1200",max:40},{num:31,label:"1201〜1240",range:"1201〜1240",max:40},{num:32,label:"1241〜1280",range:"1241〜1280",max:40},{num:33,label:"1281〜1320",range:"1281〜1320",max:40},{num:34,label:"1321〜1360",range:"1321〜1360",max:40},{num:35,label:"1361〜1400",range:"1361〜1400",max:40},{num:36,label:"1401〜1440",range:"1401〜1440",max:40},{num:37,label:"1441〜1480",range:"1441〜1480",max:40},{num:38,label:"1481〜1520",range:"1481〜1520",max:40},{num:39,label:"1521〜1560",range:"1521〜1560",max:40},{num:40,label:"1561〜1600",range:"1561〜1600",max:40},{num:41,label:"1601〜1640",range:"1601〜1640",max:40},{num:42,label:"1641〜1680",range:"1641〜1680",max:40},{num:43,label:"1681〜1720",range:"1681〜1720",max:40},{num:44,label:"1721〜1760",range:"1721〜1760",max:40},{num:45,label:"1761〜1800",range:"1761〜1800",max:40}]};
+const VOCAB_LABEL={foresta:"フォレスタ英単語",target1800:"ターゲット1800"};
 // 学期マスタ
 const TERM_LIST = [{key:"R",label:"1学期(R)",full:"1学期(春・R)"},{key:"S",label:"2学期(S)",full:"2学期(夏・S)"},{key:"W",label:"3学期(W)",full:"3学期(冬・W)"}];
 const GRADE_LIST = ["1","2","3"];
@@ -365,6 +367,17 @@ function normalizeRenzemiSubj(v,subj,term){
 
 // 進捗キーを構築：生徒名|教科|学年学期|項目番号
 function renzemiKey(name,subj,gradeTerm,num){return `${name}|${subj}|${gradeTerm}|${num}`;}
+// v101: 英単語テスト ヘルパー
+function vocabKey(name,book,num){return `${name}|${book}|${num}`;}
+function vocabDefaultBook(grade){return "foresta";} // 当面は全学年フォレスタが標準（生徒ごとに手動変更可）
+function vocabBookOf(assign,name,grade){const v=assign&&assign[name];return (v==="foresta"||v==="target1800")?v:vocabDefaultBook(grade);}
+// v102: 合格点・試行(最大5回)・半分パターン
+function vocabPassPoint(max,rate){return Math.ceil((max||0)*(rate||0.7));}
+function vocabAttempts(pp){if(!pp)return [];if(Array.isArray(pp.attempts))return pp.attempts;if(pp.score!==undefined&&pp.score!==null)return [{score:pp.score,date:pp.checkedAt||'',by:pp.checkedBy||''}];return [];}
+function vocabSplitHalf(items){const out=[];(items||[]).forEach(it=>{const m=/(\d+)\D+(\d+)/.exec(it.range||'');let a,b;if(m){a=parseInt(m[1],10);b=parseInt(m[2],10);}else{a=1;b=it.max||0;}const total=b-a+1;const firstN=Math.ceil(total/2);const mid=a+firstN-1;out.push({num:String(it.num)+'a',label:it.label+' 前半',range:a+'〜'+mid,max:firstN});out.push({num:String(it.num)+'b',label:it.label+' 後半',range:(mid+1)+'〜'+b,max:total-firstN});});return out;}
+function vocabItemsFor(book,half){const base=VOCAB_BOOKS[book]||[];return (half&&book==='foresta')?vocabSplitHalf(base):base;}
+function vocabHalfOf(halfMap,name){return !!(halfMap&&halfMap[name]);}
+const VOCAB_MAX_ATTEMPTS=5;
 // 進捗値を取り出し（旧形式：生徒名|教科|学年|項目 もR扱いでフォールバック）
 function getRenzemiProg(progress,name,subj,gradeTerm,num){
   if(!progress) return null;
@@ -3465,6 +3478,7 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
   const [editSchoolName,setEditSchoolName]=useState('');
   const [savingSchool,setSavingSchool]=useState('');
   const [showRenzemiOverview,setShowRenzemiOverview]=useState(false);
+  const [showVocabOverview,setShowVocabOverview]=useState(false); // v101 英単語ダッシュボード
   // v17: 練ゼミ期限編集モーダル
   const [showRenzemiDeadlineModal,setShowRenzemiDeadlineModal]=useState(false);
   // 高校生設定の数学・英語タブ切替
@@ -4331,6 +4345,10 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                     style={{background:'#d97706',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
                     📓 練ゼミの進捗一覧を見る
                   </button>
+                  <button onClick={()=>setShowVocabOverview(true)}
+                    style={{background:'#7c3aed',color:'white',border:'none',borderRadius:'8px',padding:'6px 14px',fontSize:'12px',cursor:'pointer',fontWeight:'bold'}}>
+                    📝 英単語の進捗一覧を見る
+                  </button>
                 </div>
               </div>
 
@@ -4958,6 +4976,74 @@ function DirectorSetting({studentIdxs,allStudents,jhStudentIdxs,jhAllStudents,jh
                   </div>
                 </div>
               )}
+              {/* v101 英単語テスト 進捗ダッシュボード */}
+              {showVocabOverview&&(
+                <div onClick={()=>setShowVocabOverview(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'12px'}}>
+                  <div onClick={e=>e.stopPropagation()} style={{background:'white',borderRadius:'12px',width:'100%',maxWidth:'960px',maxHeight:'90vh',overflow:'auto',padding:'18px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px',flexWrap:'wrap',gap:'8px'}}>
+                      <p style={{fontWeight:'bold',fontSize:'16px',color:'#5b21b6'}}>📝 英単語テスト 進捗ダッシュボード</p>
+                      <div style={{display:'flex',gap:'8px'}}>
+                        <button onClick={()=>{
+                          const ss=Array.isArray(jhAllStudents)?jhAllStudents:[];const rate=jhVocabPassRate||0.7;
+                          const head=['生徒名','学年','テキスト','モード','範囲','合格点','満点','1回目','2回目','3回目','4回目','5回目','合否','合格回','最終日'];
+                          const rows=[head];
+                          ss.forEach(st=>{if(!st)return;const n=stripGrade(st);const book=vocabBookOf(jhVocabAssign||{},n);const half=vocabHalfOf(jhVocabHalf,n);const items=vocabItemsFor(book,half);items.forEach(it=>{const att=vocabAttempts((jhVocabProgress||{})[vocabKey(n,book,it.num)]);if(!att.length)return;const pass=vocabPassPoint(it.max,rate);let pa=-1;att.forEach((a,i)=>{if(pa<0&&typeof a.score==='number'&&a.score>=pass)pa=i;});const sc=i=>(att[i]&&typeof att[i].score==='number')?att[i].score:'';let last='';att.forEach(a=>{if(a.date&&a.date>last)last=a.date;});rows.push([n,extractGrade(st)||'',VOCAB_LABEL[book],(half&&book==='foresta')?'半分':'通常',it.label,pass,it.max,sc(0),sc(1),sc(2),sc(3),sc(4),pa>=0?'合格':'不合格',pa>=0?(pa+1)+'回目':'',last]);});});
+                          const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+                          const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const aa=document.createElement('a');aa.href=url;aa.download='英単語進捗_'+new Date().toISOString().slice(0,10)+'.csv';aa.click();URL.revokeObjectURL(url);
+                        }} style={{background:'#7c3aed',color:'white',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer',fontSize:'12px',fontWeight:'bold'}}>⬇ CSV出力</button>
+                        <button onClick={()=>setShowVocabOverview(false)} style={{background:'#f3f4f6',color:'#6b7280',border:'none',borderRadius:'6px',padding:'6px 12px',cursor:'pointer'}}>閉じる</button>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:'6px',background:'#f5f3ff',border:'1px solid #ddd6fe',borderRadius:'8px',padding:'8px 12px',marginBottom:'12px',flexWrap:'wrap'}}>
+                      <span style={{fontSize:'12px',fontWeight:'bold',color:'#5b21b6'}}>🎯 合格ライン:</span>
+                      {[0.5,0.6,0.7,0.8,0.9].map(r=>{const on=Math.abs((jhVocabPassRate||0.7)-r)<0.001;return(
+                        <button key={r} onClick={()=>jhSaveVocabPassRate(r)} style={{padding:'4px 12px',borderRadius:'12px',border:'none',background:on?'#7c3aed':'#e5e7eb',color:on?'white':'#6b7280',fontWeight:'bold',cursor:'pointer',fontSize:'12px'}}>{Math.round(r*100)}％</button>);})}
+                      <span style={{fontSize:'11px',color:'#9ca3af'}}>（満点×割合を切り上げた点が合格点）</span>
+                    </div>
+                    {(()=>{
+                      try{
+                        const ss=Array.isArray(jhAllStudents)?jhAllStudents:[];
+                        const rate=jhVocabPassRate||0.7;
+                        const rows=ss.map(st=>{
+                          if(!st)return null;
+                          const n=stripGrade(st);const book=vocabBookOf(jhVocabAssign||{},n);const half=vocabHalfOf(jhVocabHalf,n);
+                          const items=vocabItemsFor(book,half);
+                          let done=0,men=0,last='';
+                          items.forEach(it=>{const att=vocabAttempts((jhVocabProgress||{})[vocabKey(n,book,it.num)]);const pass=vocabPassPoint(it.max,rate);let pa=-1;att.forEach((a,i)=>{if(pa<0&&typeof a.score==='number'&&a.score>=pass)pa=i;});if(pa>=0)done++;else if(att.length>=2)men++;att.forEach(a=>{if(a.date&&a.date>last)last=a.date;});});
+                          return {full:st,name:n,grade:extractGrade(st)||'',book,half,total:items.length,done,men,last};
+                        }).filter(Boolean);
+                        const mid=rows.filter(r=>/中/.test(String(r.grade))||/中/.test(String(r.full)));
+                        const list=(mid.length?mid:rows).slice();
+                        if(!list.length)return <p style={{color:'#9ca3af',textAlign:'center',padding:'30px'}}>対象の生徒がいません</p>;
+                        list.sort((a,b)=>(b.men-a.men)||((a.done/(a.total||1))-(b.done/(b.total||1))));
+                        return(
+                          <div>
+                            <p style={{fontSize:'11px',color:'#9ca3af',marginBottom:'6px'}}>⚠️要面談（2回不合格の範囲）が多い生徒が上に来ます。「モード」でフォレスタの半分／通常を切替できます。</p>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 56px 116px 84px 76px 78px 80px',background:'#f3f4f6',padding:'8px',fontSize:'11px',fontWeight:'bold',color:'#6b7280',borderRadius:'6px 6px 0 0'}}>
+                              <div>生徒</div><div style={{textAlign:'center'}}>学年</div><div>テキスト</div><div style={{textAlign:'center'}}>モード</div><div style={{textAlign:'center'}}>合格</div><div style={{textAlign:'center'}}>要面談</div><div style={{textAlign:'center'}}>最終</div>
+                            </div>
+                            {list.map(r=>(
+                              <div key={r.full} style={{display:'grid',gridTemplateColumns:'1fr 56px 116px 84px 76px 78px 80px',padding:'7px 8px',fontSize:'12px',borderBottom:'1px solid #f3f4f6',alignItems:'center',background:r.men>0?'#fef2f2':'white'}}>
+                                <div style={{fontWeight:'bold',color:'#374151'}}>{r.name}</div>
+                                <div style={{textAlign:'center',color:'#6b7280'}}>{r.grade}</div>
+                                <div><span style={{background:r.book==='foresta'?'#ede9fe':'#ccfbf1',color:r.book==='foresta'?'#5b21b6':'#0f766e',padding:'2px 8px',borderRadius:'10px',fontSize:'11px',fontWeight:'bold'}}>{VOCAB_LABEL[r.book]}</span></div>
+                                <div style={{textAlign:'center'}}>
+                                  {r.book==='foresta'?(
+                                    <button onClick={()=>jhSaveVocabHalf(r.name,!r.half)} style={{padding:'3px 8px',borderRadius:'10px',border:'1px solid '+(r.half?'#f59e0b':'#d1d5db'),background:r.half?'#fef3c7':'white',color:r.half?'#92400e':'#9ca3af',fontSize:'10px',fontWeight:'bold',cursor:'pointer'}}>{r.half?'半分':'通常'}</button>
+                                  ):(<span style={{fontSize:'10px',color:'#d1d5db'}}>—</span>)}
+                                </div>
+                                <div style={{textAlign:'center',color:'#374151'}}>{r.done}/{r.total}</div>
+                                <div style={{textAlign:'center'}}>{r.men>0?<span style={{background:'#dc2626',color:'white',padding:'2px 8px',borderRadius:'10px',fontSize:'11px',fontWeight:'bold'}}>{r.men}</span>:<span style={{color:'#d1d5db'}}>0</span>}</div>
+                                <div style={{textAlign:'center',color:'#9ca3af',fontSize:'11px'}}>{r.last||'-'}</div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }catch(err){return <p style={{color:'#dc2626',padding:'20px'}}>表示エラー: {String(err&&err.message||err)}</p>;}
+                    })()}
+                  </div>
+                </div>
+              )}
               {/* 学校変更ダイアログ（jhタブからも開ける） */}
               {editSchoolName&&(
                 <div onClick={()=>setEditSchoolName('')} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'16px'}}>
@@ -5328,6 +5414,10 @@ function App(){
   // jhRenzemiAssign: {生徒名: {math:{taking,grade,rangeStart,rangeEnd}, eng:{...}}}
   //   旧形式 {math:'none|1|2|3'} は読み込み時に自動マイグレーション
   const [jhRenzemiAssign,setJhRenzemiAssign]=useState({});
+  const [jhVocabAssign,setJhVocabAssign]=useState({}); // v101 英単語テキスト割当
+  const [jhVocabProgress,setJhVocabProgress]=useState({}); // v101 英単語点数
+  const [jhVocabHalf,setJhVocabHalf]=useState({}); // v102 フォレスタ半分モード（生徒ごと）
+  const [jhVocabPassRate,setJhVocabPassRate]=useState(0.7); // v102 合格割合（教室全体・デフォルト7割）
   // jhRenzemiProgress: {生徒名|subj|gradeTerm(例:1R)|num: {first,redo,checkedAt,checkedBy,updatedAt}}
   //   旧形式 (生徒名|subj|grade|num) も読み込み時にgradeを「{grade}R」として扱う
   const [jhRenzemiProgress,setJhRenzemiProgress]=useState({});
@@ -5409,6 +5499,10 @@ function App(){
     const cRzA=jhGetCached('renzemiAssign',{});
     const cRzP=jhGetCached('renzemiProgress',{});
     const cRzD=jhGetCached('renzemiDeadlines',{});
+    const cVA=jhGetCached('vocabAssign',{}); // v101
+    const cVP=jhGetCached('vocabProgress',{}); // v101
+    const cVH=jhGetCached('vocabHalf',{}); // v102
+    const cVR=jhGetCached('vocabPassRate',0.7); // v102
     const cSGM=jhGetCached('schoolGradeMaster',{}); // v36
     const cSDir=jhGetCached('studentDirectives',{}); // v38
     const cCurTerm=jhGetCached('currentTerm','R');
@@ -5418,6 +5512,7 @@ function App(){
     setJhTextbookOverrides(cTb);setJhTestRanges(cTr);setJhDirectives(cDv);setJhSkipItems(cSk);setJhSchoolOverrides(cSov);
     setJhRenzemiAssign(migrateRenzemiAssign(cRzA));setJhRenzemiProgress(cRzP);
     setJhRenzemiDeadlines(cRzD);setJhSchoolGradeMaster(cSGM);setJhStudentDirectives(cSDir);setCurrentTerm(cCurTerm||'R'); // v36, v38
+    setJhVocabHalf(cVH||{});setJhVocabPassRate((typeof cVR==='number'&&cVR>0)?cVR:0.7); // v102
     setHsEngAssign(cEngA);setHsEngRecords(cEngR);
     setPhase('teacher');  // すぐ遷移
     // ② バックグラウンドで最新データを取得してUIを更新
@@ -5502,6 +5597,29 @@ function App(){
           const oldMap=jhPickFromAll(jhAll,'renzemiProgress',cRzP);
           const newMap=jhBuildMapFromAll(jhAll,'renzemiProgress');
           setJhRenzemiProgress({...(oldMap||{}),...(newMap||{})});
+        }
+        // vocabAssign (v101)
+        {
+          const oldMap=jhPickFromAll(jhAll,'vocabAssign',cVA);
+          const newMap=jhBuildMapFromAll(jhAll,'vocabAssign');
+          setJhVocabAssign({...(oldMap||{}),...(newMap||{})});
+        }
+        // vocabProgress (v101)
+        {
+          const oldMap=jhPickFromAll(jhAll,'vocabProgress',cVP);
+          const newMap=jhBuildMapFromAll(jhAll,'vocabProgress');
+          setJhVocabProgress({...(oldMap||{}),...(newMap||{})});
+        }
+        // vocabHalf (v102)
+        {
+          const oldMap=jhPickFromAll(jhAll,'vocabHalf',cVH);
+          const newMap=jhBuildMapFromAll(jhAll,'vocabHalf');
+          setJhVocabHalf({...(oldMap||{}),...(newMap||{})});
+        }
+        // vocabPassRate (v102 単一値)
+        {
+          const v=jhPickFromAll(jhAll,'vocabPassRate',cVR);
+          setJhVocabPassRate((typeof v==='number'&&v>0)?v:((typeof cVR==='number'&&cVR>0)?cVR:0.7));
         }
         // records (v48: byName と merged の両方を構築)
         {
@@ -6064,6 +6182,53 @@ function App(){
   //   新: shochugaku:renzemiProgress__item__生徒名|教科|学期|番号 のように個別保存
   //   理由：講師全員が記録すれば一気に増えるので、testRanges/directives/renzemiAssignと同じ罠を予防
   //   ※講師の操作はテンポが大事なのでバッジは出さない（v40の方針継承）
+  // v101: 英単語テスト 点数保存（練ゼミと同じ個別キー保存方式）
+  // v102: 英単語 点数保存（最大5回の試行に対応。attemptIdx=0始まり）
+  const jhSaveVocabScore=async(name,book,num,attemptIdx,score,teacherName)=>{
+    const key=vocabKey(name,book,num);
+    const today=new Date();const todayStr=today.toISOString().slice(0,10);const nowIso=today.toISOString();
+    const cur=jhVocabProgress[key]||{};
+    const attempts=vocabAttempts(cur).map(x=>({...x}));
+    const sc=(score===''||score===null||score===undefined)?null:Number(score);
+    while(attempts.length<=attemptIdx) attempts.push({score:null,date:'',by:''});
+    if(sc===null){
+      attempts[attemptIdx]={score:null,date:'',by:''};
+      while(attempts.length>0 && attempts[attempts.length-1].score===null) attempts.pop();
+    }else{
+      attempts[attemptIdx]={score:sc,date:todayStr,by:teacherName||''};
+    }
+    const newVal={attempts,updatedAt:nowIso};
+    let updated;
+    setJhVocabProgress(prev=>{updated={...prev,[key]:newVal};return updated;});
+    await new Promise(r=>setTimeout(r,0));
+    const result=await jhSetMap('vocabProgress',key,newVal,updated);
+    if(!result.ok){flash(`❌ 保存に失敗しました（${result.reason||'通信エラー'}）。`,'error');console.error('[英単語保存失敗]',{key,result});}
+  };
+  // v102: フォレスタ半分モードの設定（教室長＝紗耶佳先生が生徒ごとにON/OFF）
+  const jhSaveVocabHalf=async(name,on)=>{
+    let updated;
+    setJhVocabHalf(prev=>{updated={...prev,[name]:!!on};return updated;});
+    await new Promise(r=>setTimeout(r,0));
+    const result=await jhSetMap('vocabHalf',name,!!on,updated);
+    if(!result.ok){flash(`❌ 半分モード設定の保存に失敗（${result.reason||'通信エラー'}）`,'error');}
+    else{flash(`${name} さんを${on?'「半分（20語ずつ）」':'「通常（40語）」'}に設定しました`);}
+  };
+  // v102: 合格ライン（割合・教室全体）の保存
+  const jhSaveVocabPassRate=async(rate)=>{
+    setJhVocabPassRate(rate);
+    const result=await jhSet('vocabPassRate',rate);
+    if(!result.ok){flash(`❌ 合格ライン設定の保存に失敗（${result.reason||'通信エラー'}）`,'error');}
+    else{flash(`合格ラインを ${Math.round(rate*100)}％ に設定しました`);}
+  };
+  // v101: 英単語テキスト割当の保存
+  const jhSaveVocabAssign=async(name,book)=>{
+    let updated;
+    setJhVocabAssign(prev=>{updated={...prev,[name]:book};return updated;});
+    await new Promise(r=>setTimeout(r,0));
+    const result=await jhSetMap('vocabAssign',name,book,updated);
+    if(!result.ok){flash(`❌ テキスト設定の保存に失敗しました（${result.reason||'通信エラー'}）`,'error');}
+    else{flash(`英単語テキストを「${VOCAB_LABEL[book]||book}」に設定しました`,'success');}
+  };
   const jhSaveRenzemiProgress=async(name,subj,gradeTerm,num,col,value,teacherName)=>{
     const key=renzemiKey(name,subj,gradeTerm,num);
     const today=new Date();
@@ -7232,6 +7397,13 @@ function App(){
                         </button>
                       );
                     })()}
+                    {/* v101 英単語タブ：中学生に常時表示 */}
+                    <button onClick={()=>setActiveSubj('英単語')}
+                      style={{padding:'5px 14px',borderRadius:'20px',border:'none',
+                        background:activeSubj==='英単語'?'#7c3aed':'#e5e7eb',
+                        color:activeSubj==='英単語'?'white':'#6b7280',fontWeight:activeSubj==='英単語'?'bold':'normal',cursor:'pointer',fontSize:'13px'}}>
+                      📝 英単語
+                    </button>
                   </div>
                 )}
               </div>
@@ -7492,6 +7664,85 @@ function App(){
                 );
               })()}
 
+              {/* v101 英単語テスト */}
+              {activeSubj==='英単語'&&(()=>{
+                const sN=stripGrade(jhFullName);
+                const book=vocabBookOf(jhVocabAssign,sN);
+                const half=vocabHalfOf(jhVocabHalf,sN);
+                const items=vocabItemsFor(book,half);
+                const rate=jhVocabPassRate||0.7;
+                const headColor=book==='foresta'?'#7c3aed':'#0d9488';
+                const statusOf=(it)=>{
+                  const att=vocabAttempts(jhVocabProgress[vocabKey(sN,book,it.num)]);
+                  const pass=vocabPassPoint(it.max,rate);
+                  let passedAt=-1;
+                  att.forEach((a,i)=>{if(passedAt<0&&typeof a.score==='number'&&a.score>=pass)passedAt=i;});
+                  return {att,pass,passedAt};
+                };
+                const doneC=items.filter(it=>statusOf(it).passedAt>=0).length;
+                return(
+                  <div>
+                    <div style={{background:'#ede9fe',border:'1px solid #c4b5fd',borderRadius:'8px',padding:'10px 14px',marginBottom:'12px'}}>
+                      <p style={{fontWeight:'bold',fontSize:'13px',color:'#5b21b6',marginBottom:'4px'}}>📝 英単語テスト（合格ライン {Math.round(rate*100)}％）</p>
+                      <p style={{fontSize:'11px',color:'#6d28d9'}}>各回の点数を入力。合格点に届くと「合格」。<b>2回不合格で3回目に進むと「⚠️ 教室長面談」</b>が出ます（最大5回）。</p>
+                    </div>
+                    {/* テキスト切替＋モード表示 */}
+                    <div style={{display:'flex',gap:'8px',marginBottom:'12px',flexWrap:'wrap',alignItems:'center'}}>
+                      {['foresta','target1800'].map(bk=>{
+                        const on=bk===book;
+                        return(<button key={bk} onClick={()=>{if(!on)jhSaveVocabAssign(sN,bk);}}
+                          style={{padding:'8px 16px',borderRadius:'8px',border:on?'2px solid '+headColor:'1px solid #d1d5db',background:on?headColor:'white',color:on?'white':'#6b7280',fontWeight:'bold',cursor:on?'default':'pointer',fontSize:'13px'}}>
+                          {on?'✓ ':''}{VOCAB_LABEL[bk]}</button>);
+                      })}
+                      {book==='foresta'&&half&&<span style={{background:'#fef3c7',color:'#92400e',padding:'4px 10px',borderRadius:'10px',fontSize:'12px',fontWeight:'bold'}}>半分モード（20語ずつ）</span>}
+                      {book==='foresta'&&!half&&<span style={{color:'#9ca3af',fontSize:'11px'}}>※半分モードは教室長アプリで設定できます</span>}
+                    </div>
+                    <div style={{background:'white',borderRadius:'10px',overflow:'hidden',border:'2px solid '+headColor}}>
+                      <div style={{background:headColor,color:'white',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'6px'}}>
+                        <span style={{fontWeight:'bold',fontSize:'15px'}}>{VOCAB_LABEL[book]}{half&&book==='foresta'?'（半分）':''} 全{items.length}範囲</span>
+                        <span style={{fontSize:'12px',background:'rgba(255,255,255,0.25)',padding:'2px 8px',borderRadius:'10px'}}>合格 {doneC}/{items.length}</span>
+                      </div>
+                      {items.map(it=>{
+                        const st=statusOf(it);
+                        const att=st.att,pass=st.pass,passedAt=st.passedAt;
+                        const passed=passedAt>=0;
+                        const showN=passed?(passedAt+1):Math.min(VOCAB_MAX_ATTEMPTS,att.length+1);
+                        const needMen=!passed&&att.length>=2;
+                        return(
+                          <div key={it.num} style={{padding:'8px 10px',borderBottom:'1px solid #f3f4f6',background:passed?'#f0fdf4':(needMen?'#fef2f2':'white')}}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px',flexWrap:'wrap',gap:'6px'}}>
+                              <div style={{fontSize:'13px',color:'#374151'}}><b>{it.label}</b> <span style={{color:'#9ca3af',fontSize:'11px'}}>（{it.range}）</span> <span style={{color:headColor,fontSize:'11px',fontWeight:'bold'}}>合格{pass}点/{it.max}</span></div>
+                              <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
+                                {passed&&<span style={{background:'#16a34a',color:'white',padding:'2px 10px',borderRadius:'10px',fontSize:'12px',fontWeight:'bold'}}>✓ {passedAt+1}回目で合格</span>}
+                                {needMen&&<span style={{background:'#dc2626',color:'white',padding:'2px 10px',borderRadius:'10px',fontSize:'12px',fontWeight:'bold'}}>⚠️ 教室長面談</span>}
+                              </div>
+                            </div>
+                            <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                              {Array.from({length:showN}).map((_,i)=>{
+                                const a=att[i]||{};
+                                const has=typeof a.score==='number';
+                                const ok=has&&a.score>=pass;
+                                return(
+                                  <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'2px'}}>
+                                    <span style={{fontSize:'10px',color:'#9ca3af'}}>{i+1}回目</span>
+                                    <input type="number" min="0" max={it.max} defaultValue={has?a.score:''}
+                                      key={sN+'_'+book+'_'+half+'_'+it.num+'_'+i+'_'+(a.date||'')}
+                                      onBlur={e=>{let v=e.target.value;if(v===''){jhSaveVocabScore(sN,book,it.num,i,'',selTeacher);return;}v=Math.max(0,Math.min(it.max,Math.round(Number(v))));e.target.value=v;jhSaveVocabScore(sN,book,it.num,i,v,selTeacher);}}
+                                      style={{width:'52px',height:'32px',textAlign:'center',border:has?(ok?'2px solid #16a34a':'2px solid #dc2626'):'1px solid #d1d5db',borderRadius:'6px',fontSize:'14px',fontWeight:'bold',color:has?(ok?'#15803d':'#b91c1c'):'#111827',background:'white'}}/>
+                                    <span style={{fontSize:'10px',color:has?(ok?'#16a34a':'#dc2626'):'#d1d5db',fontWeight:'bold'}}>{has?(ok?'合格':'不合格'):'—'}</span>
+                                    <span style={{fontSize:'9px',color:'#9ca3af',lineHeight:1}}>{a.date?a.date.slice(5):''}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* 項目リスト */}
               {activeSubj!=='練ゼミ'&&jhChapters.length>0&&jhSi>=0&&(()=>{
                 const sName=(jhFullName||'').replace(/（.+?）/,'');
@@ -7603,7 +7854,7 @@ function App(){
                 </div>
                 );
               })()}
-              {activeSubj!=='練ゼミ'&&jhChapters.length===0&&<div style={{background:'white',borderRadius:'10px',padding:'24px',textAlign:'center',color:'#6b7280'}}><p>受講なし（{activeSubj}）</p></div>}
+              {activeSubj!=='練ゼミ'&&activeSubj!=='英単語'&&jhChapters.length===0&&<div style={{background:'white',borderRadius:'10px',padding:'24px',textAlign:'center',color:'#6b7280'}}><p>受講なし（{activeSubj}）</p></div>}
             </>
           )}
         </div>
